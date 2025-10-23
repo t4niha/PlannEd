@@ -17,6 +17,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.foundation.Canvas
 import com.planned.ui.theme.PlanEdTheme
 import kotlinx.coroutines.delay
 import java.time.*
@@ -45,19 +47,25 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun HomeScreen() {
     var currentView by remember { mutableStateOf("Day") }
-    var displayedDate by remember { mutableStateOf(LocalDate.now()) }
+    val today = LocalDate.now()
+
+    // Global selected date state for MonthView
+    var selectedDate by remember { mutableStateOf(today) }
+
+    // Displayed date (changes with nav arrows or tab reset)
+    var displayedDate by remember { mutableStateOf(today) }
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("PlannEd", fontSize = 20.sp) },
                 navigationIcon = {
-                    IconButton(onClick = { /* TODO: open drawer */ }) {
+                    IconButton(onClick = { /* TODO */ }) {
                         Icon(Icons.Filled.Menu, contentDescription = "Menu")
                     }
                 },
                 actions = {
-                    IconButton(onClick = { /* TODO: account page */ }) {
+                    IconButton(onClick = { /* TODO */ }) {
                         Icon(Icons.Filled.AccountCircle, contentDescription = "Account")
                     }
                 }
@@ -69,16 +77,21 @@ fun HomeScreen() {
                     .fillMaxSize()
                     .padding(padding)
             ) {
-                // View selector buttons
+                // ---------------- View Selector ----------------
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.Center
                 ) {
-                    val buttonWidth = 110.dp // set your desired fixed width
+                    val buttonWidth = 110.dp
                     listOf("Day", "Week", "Month").forEach { view ->
                         val selected = view == currentView
                         Button(
-                            onClick = { currentView = view },
+                            onClick = {
+                                currentView = view
+                                // Reset displayedDate and selectedDate to today when switching tabs
+                                displayedDate = today
+                                selectedDate = today
+                            },
                             shape = RoundedCornerShape(20.dp),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = if (selected) Color(0xFF1976D2) else Color.LightGray,
@@ -93,7 +106,7 @@ fun HomeScreen() {
                     }
                 }
 
-                // Header for date/week/month
+                // ---------------- Header ----------------
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -106,21 +119,15 @@ fun HomeScreen() {
                         text = when (currentView) {
                             "Day" -> displayedDate.format(DateTimeFormatter.ofPattern("EEEE, MMM d, yyyy"))
                             "Week" -> {
-                                val startOfWeek =
-                                    displayedDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.SUNDAY))
-                                val endOfWeek =
-                                    displayedDate.with(TemporalAdjusters.nextOrSame(DayOfWeek.SATURDAY))
-
+                                val startOfWeek = displayedDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.SUNDAY))
+                                val endOfWeek = displayedDate.with(TemporalAdjusters.nextOrSame(DayOfWeek.SATURDAY))
                                 val startMonth = startOfWeek.format(DateTimeFormatter.ofPattern("MMM"))
                                 val endMonth = endOfWeek.format(DateTimeFormatter.ofPattern("MMM"))
-
-                                if (startOfWeek.month == endOfWeek.month) {
+                                if (startOfWeek.month == endOfWeek.month)
                                     "$startMonth ${startOfWeek.dayOfMonth} - ${endOfWeek.dayOfMonth}, ${endOfWeek.year}"
-                                } else {
+                                else
                                     "$startMonth ${startOfWeek.dayOfMonth} - $endMonth ${endOfWeek.dayOfMonth}, ${endOfWeek.year}"
-                                }
                             }
-
                             "Month" -> displayedDate.format(DateTimeFormatter.ofPattern("MMMM, yyyy"))
                             else -> ""
                         },
@@ -129,19 +136,24 @@ fun HomeScreen() {
                     )
                 }
 
-                // Calendar container
+                // ---------------- Calendar / Events ----------------
                 Box(
                     modifier = Modifier
-                        .fillMaxSize()
+                        .weight(1f)
+                        .fillMaxWidth()
                 ) {
                     when (currentView) {
                         "Day" -> DayView(displayedDate)
                         "Week" -> WeekView(displayedDate)
-                        "Month" -> MonthView(displayedDate)
+                        "Month" -> MonthView(
+                            displayedDate = displayedDate,
+                            selectedDate = selectedDate,
+                            onDateSelected = { selectedDate = it }
+                        )
                     }
                 }
 
-                // Bottom navigation arrows
+                // ---------------- Navigation Buttons ----------------
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
@@ -182,7 +194,7 @@ fun DayView(displayedDate: LocalDate) {
     LaunchedEffect(Unit) {
         while (true) {
             currentTime = LocalTime.now()
-            delay(60_000)
+            delay(10_000)
         }
     }
 
@@ -192,8 +204,8 @@ fun DayView(displayedDate: LocalDate) {
         // Hour labels column
         Column(
             modifier = Modifier
-                .width(60.dp)
-                .padding(all = 10.dp)
+                .width(50.dp)
+                .padding(start = 10.dp)
         ) {
             hours.forEach { hourLabel ->
                 Box(
@@ -205,13 +217,15 @@ fun DayView(displayedDate: LocalDate) {
             }
         }
 
-        // Day column
+        // Daily column
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(end = 10.dp)
-                .padding(top=11.5.dp)
+                .padding(end = 0.dp)
+                .padding(top = 0.dp)
         ) {
+
+            // Hour lines
             Column(modifier = Modifier.padding(all = 10.dp)) {
                 hours.forEach { _ ->
                     Box(
@@ -223,22 +237,42 @@ fun DayView(displayedDate: LocalDate) {
                 }
             }
 
+            // 5 minute lines
+            Canvas(modifier = Modifier
+                .matchParentSize()
+                .padding(all = 10.dp)) {
+                val totalHeightPx = size.height
+                val minuteHeightPx = totalHeightPx / 288f
+                val blue = Color(0xFF1976D2).copy(alpha = 0.3f)
+
+                for (minute in 1 until 1440) {
+                    val y = minute * minuteHeightPx
+                    drawLine(
+                        color = blue,
+                        start = Offset(0f, y),
+                        end = Offset(size.width, y),
+                        strokeWidth = 0.5.dp.toPx()
+                    )
+                }
+            }
+
             // Current time line
             val totalHeight = hourHeight.value * 24
             val yOffset = (currentTime.hour * 60 + currentTime.minute) * (totalHeight / 1440)
             Box(
                 modifier = Modifier
-                    .offset(y = yOffset.dp)
+                    .offset(y = yOffset.dp + 8.dp)
                     .fillMaxWidth()
                     .height(4.dp)
-                    .padding(end=10.dp)
+                    .padding(end = 10.dp)
                     .background(Color(0xFF1976D2))
             )
         }
     }
 }
 
-// ---------------- Week View ----------------
+
+// ---------------- Week View ---------------
 @Composable
 fun WeekView(displayedDate: LocalDate) {
     val hourHeight = 80.dp
@@ -256,13 +290,13 @@ fun WeekView(displayedDate: LocalDate) {
             .verticalScroll(rememberScrollState())
     ) {
         // Hour column
-        Column(modifier = Modifier.width(60.dp)) {
+        Column(modifier = Modifier.width(50.dp)) {
             Spacer(modifier = Modifier.height(66.5.dp))
             hours.forEach { hourLabel ->
                 Box(
                     modifier = Modifier
                         .height(hourHeight)
-                        .padding(all = 10.dp),
+                        .padding(start = 10.dp),
                     contentAlignment = Alignment.TopCenter
                 ) {
                     Text(hourLabel, fontSize = 14.sp)
@@ -272,15 +306,16 @@ fun WeekView(displayedDate: LocalDate) {
 
         Spacer(modifier = Modifier.width(10.dp))
 
+        // Day columns
         (0..6).forEach { i ->
             val day = startOfWeek.plusDays(i.toLong())
             val isToday = day == today
 
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.padding(vertical = 10.dp)
+                modifier = Modifier.padding(bottom = 10.dp)
             ) {
-                // Day-of-week text (no circle)
+                // Day of week text
                 Text(
                     day.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault()),
                     fontSize = 14.sp
@@ -288,7 +323,7 @@ fun WeekView(displayedDate: LocalDate) {
 
                 Spacer(modifier = Modifier.height(4.dp))
 
-                // Day-of-month circle
+                // Day of month in circle
                 Box(
                     modifier = Modifier
                         .size(40.dp)
@@ -320,14 +355,20 @@ fun WeekView(displayedDate: LocalDate) {
             }
         }
 
-        Spacer(modifier = Modifier.width(20.dp))
+        Spacer(modifier = Modifier.width(10.dp))
     }
 }
 
-// ---------------- Month View ----------------
+// --------------- Month View ---------------
 @Composable
-fun MonthView(displayedDate: LocalDate) {
+fun MonthView(
+    displayedDate: LocalDate,
+    selectedDate: LocalDate,
+    onDateSelected: (LocalDate) -> Unit
+) {
     val today = LocalDate.now()
+
+    // Month-week structure
     val firstDayOfMonth = displayedDate.withDayOfMonth(1)
     val daysInMonth = displayedDate.lengthOfMonth()
     val startDayOfWeek = firstDayOfMonth.dayOfWeek.value % 7
@@ -346,42 +387,97 @@ fun MonthView(displayedDate: LocalDate) {
 
     Column(
         modifier = Modifier
-            .verticalScroll(rememberScrollState())
-            .fillMaxWidth()
-            .padding(all=10.dp)
-            .padding(horizontal=10.dp)
+            .fillMaxSize()
+            .padding(horizontal = 10.dp)
     ) {
-        Row(modifier = Modifier.fillMaxWidth()) {
-            listOf("Sun","Mon","Tue","Wed","Thu","Fri","Sat").forEach { day ->
-                Box(
-                    modifier = Modifier.weight(1f).height(40.dp),
-                    contentAlignment = Alignment.TopCenter
-                ) { Text(day, fontSize = 14.sp) }
-            }
-        }
-
-        weeks.forEach { week ->
+        // Calendar
+        Column {
+            // Weekday headers
             Row(modifier = Modifier.fillMaxWidth()) {
-                week.forEach { day ->
-                    val isToday = day == today.dayOfMonth && displayedDate.month == today.month
+                listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat").forEach { day ->
                     Box(
                         modifier = Modifier
                             .weight(1f)
-                            .height(70.dp)
-                            .border(0.5.dp, Color.Gray)
-                            .background(if (isToday) Color(0xFF1976D2) else Color.Transparent)
-                            .padding(all = 5.dp),
-                        contentAlignment = Alignment.TopCenter
+                            .height(40.dp),
+                        contentAlignment = Alignment.Center
                     ) {
+                        Text(day, fontSize = 14.sp)
+                    }
+                }
+            }
+
+            // Calendar grid
+            weeks.forEach { week ->
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    week.forEach { day ->
                         if (day != null) {
-                            Text(
-                                text = day.toString(),
-                                fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
-                                color = if (isToday) Color.White else Color.Black,
-                                fontSize = 14.sp
+                            val thisDate = displayedDate.withDayOfMonth(day)
+                            val isSelected = thisDate == selectedDate
+
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(50.dp)
+                                    .border(0.5.dp, Color.Gray)
+                                    .background(
+                                        if (isSelected) Color(0xFF1976D2) else Color.Transparent
+                                    )
+                                    .clickable { onDateSelected(thisDate) }
+                                    .padding(all = 5.dp),
+                                contentAlignment = Alignment.TopCenter
+                            ) {
+                                Text(
+                                    text = day.toString(),
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                    color = if (isSelected) Color.White else Color.Black,
+                                    fontSize = 14.sp
+                                )
+                            }
+                        } else {
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(50.dp)
+                                    .border(0.5.dp, Color.Gray)
                             )
                         }
                     }
+                }
+            }
+
+            // Selected date label
+            Text(
+                text = selectedDate.format(DateTimeFormatter.ofPattern("EEEE, MMM d")),
+                modifier = Modifier
+                    .padding(top = 16.dp)
+                    .align(Alignment.Start),
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Medium,
+                color = Color(0xFF1976D2)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Events (scrollable)
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
+        ) {
+            // Sample events for testing
+            val sampleEvents = List(15) { "Event ${it + 1}" }
+            sampleEvents.forEach { event ->
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp)
+                        .border(1.dp, Color(0xFF1976D2), RoundedCornerShape(8.dp))
+                        .background(Color(0x00000000), RoundedCornerShape(8.dp))
+                        .padding(12.dp)
+                ) {
+                    Text(text = event, fontSize = 14.sp)
                 }
             }
         }
