@@ -1,10 +1,14 @@
 package com.planned
 
+import android.annotation.SuppressLint
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.annotation.RequiresApi
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -41,6 +45,7 @@ private val PrimaryColor = Color(0xFF1976D2)
 private val CircleShapePrimary = CircleShape
 
 class MainActivity : ComponentActivity() {
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
@@ -52,6 +57,7 @@ class MainActivity : ComponentActivity() {
 }
 
 // Home screen
+@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
 fun HomeScreen() {
@@ -59,7 +65,7 @@ fun HomeScreen() {
     val today = LocalDate.now()
     var selectedDate by remember { mutableStateOf(today) }
     var displayedDate by remember { mutableStateOf(today) }
-    var navDirection by remember { mutableStateOf(0) }
+    var navDirection by remember { mutableIntStateOf(0) }
 
     val selectorButtonWidth = 90.dp
     val selectorButtonHeight = 34.dp
@@ -240,6 +246,8 @@ fun HomeScreen() {
 }
 
 // Day view
+@SuppressLint("UnusedContentLambdaTargetStateParameter")
+@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun DayView(displayedDate: LocalDate, navDirection: Int) {
@@ -305,11 +313,11 @@ fun DayView(displayedDate: LocalDate, navDirection: Int) {
                 targetState = displayedDate,
                 transitionSpec = {
                     if (navDirection >= 0)
-                        slideInHorizontally(tween(150)) { it } + fadeIn(tween(150)) with
-                                slideOutHorizontally(tween(150)) { -it } + fadeOut(tween(150))
+                        (slideInHorizontally(tween(150)) { it } + fadeIn(tween(150))).togetherWith(
+                            slideOutHorizontally(tween(150)) { -it } + fadeOut(tween(150)))
                     else
-                        slideInHorizontally(tween(150)) { -it } + fadeIn(tween(150)) with
-                                slideOutHorizontally(tween(150)) { it } + fadeOut(tween(150))
+                        (slideInHorizontally(tween(150)) { -it } + fadeIn(tween(150))).togetherWith(
+                            slideOutHorizontally(tween(150)) { it } + fadeOut(tween(150)))
                 },
                 label = "DayHourBoxes"
             ) { _ ->
@@ -365,6 +373,8 @@ fun DayView(displayedDate: LocalDate, navDirection: Int) {
 }
 
 // Week view
+@SuppressLint("UnusedContentLambdaTargetStateParameter")
+@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun WeekView(displayedDate: LocalDate, navDirection: Int) {
@@ -373,8 +383,6 @@ fun WeekView(displayedDate: LocalDate, navDirection: Int) {
     val today = LocalDate.now()
     val startOfWeek = displayedDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.SUNDAY))
     val scrollState = rememberScrollState()
-    val density = LocalDensity.current
-    val totalHeight = hourHeight.value * 24
 
     Column(
         modifier = Modifier
@@ -450,21 +458,26 @@ fun WeekView(displayedDate: LocalDate, navDirection: Int) {
                 targetState = displayedDate,
                 transitionSpec = {
                     if (navDirection >= 0)
-                        slideInHorizontally(tween(150)) { it } + fadeIn(tween(150)) with
-                                slideOutHorizontally(tween(150)) { -it } + fadeOut(tween(150))
+                        (slideInHorizontally(tween(150)) { it } + fadeIn(tween(150))).togetherWith(
+                            slideOutHorizontally(tween(150)) { -it } + fadeOut(tween(150)))
                     else
-                        slideInHorizontally(tween(150)) { -it } + fadeIn(tween(150)) with
-                                slideOutHorizontally(tween(150)) { it } + fadeOut(tween(150))
+                        (slideInHorizontally(tween(150)) { -it } + fadeIn(tween(150))).togetherWith(
+                            slideOutHorizontally(tween(150)) { it } + fadeOut(tween(150)))
                 },
                 label = "WeekGrid"
             ) { _ ->
+                val todayIndex = (today.dayOfWeek.value % 7) // Sunday = 0
+                val currentTime = LocalTime.now()
+                val totalHeightPx = hourHeight.value * 24
+                val yOffset = (currentTime.hour * 60 + currentTime.minute) * (totalHeightPx / 1440)
+
                 Row(
                     modifier = Modifier
                         .verticalScroll(scrollState)
                         .fillMaxWidth()
                         .padding(top = 10.dp)
                 ) {
-                    (0..6).forEach { _ ->
+                    (0..6).forEachIndexed { index, _ ->
                         Box(modifier = Modifier.weight(1f)) {
                             Column(modifier = Modifier.fillMaxWidth()) {
                                 hours.forEach { _ ->
@@ -479,8 +492,7 @@ fun WeekView(displayedDate: LocalDate, navDirection: Int) {
 
                             // 5-minute lines
                             Canvas(modifier = Modifier.matchParentSize()) {
-                                val totalHeightPx = size.height
-                                val minuteHeightPx = totalHeightPx / 1440f
+                                val minuteHeightPx = size.height / 1440f
                                 val blue = PrimaryColor.copy(alpha = 0.3f)
                                 for (minute in 5 until 1440 step 5) {
                                     if (minute % 60 != 0) {
@@ -493,6 +505,17 @@ fun WeekView(displayedDate: LocalDate, navDirection: Int) {
                                         )
                                     }
                                 }
+
+                                // Current time line
+                                if (index == todayIndex) {
+                                    val lineY = (currentTime.hour * 60 + currentTime.minute) * minuteHeightPx
+                                    drawLine(
+                                        color = PrimaryColor,
+                                        start = Offset(0f, lineY),
+                                        end = Offset(size.width, lineY),
+                                        strokeWidth = 4.dp.toPx()
+                                    )
+                                }
                             }
                         }
                     }
@@ -503,6 +526,8 @@ fun WeekView(displayedDate: LocalDate, navDirection: Int) {
 }
 
 // Month view
+@SuppressLint("UnusedContentLambdaTargetStateParameter")
+@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun MonthView(
@@ -536,9 +561,9 @@ fun MonthView(
             targetState = displayedDate,
             transitionSpec = {
                 if (navDirection >= 0)
-                    slideInHorizontally(tween(150)) { it } with slideOutHorizontally(tween(150)) { -it }
+                    slideInHorizontally(tween(150)) { it }.togetherWith(slideOutHorizontally(tween(150)) { -it })
                 else
-                    slideInHorizontally(tween(150)) { -it } with slideOutHorizontally(tween(150)) { it }
+                    slideInHorizontally(tween(150)) { -it }.togetherWith(slideOutHorizontally(tween(150)) { it })
             },
             label = "MonthGrid"
         ) { _ ->
@@ -556,7 +581,7 @@ fun MonthView(
                                 !isCurrentMonth -> Color.Gray
                                 else -> Color.Black
                             }
-                            val textWeight = if (isSelected || (isToday && !isSelected)) FontWeight.Bold else FontWeight.Normal
+                            val textWeight = if (isSelected || (isToday)) FontWeight.Bold else FontWeight.Normal
 
                             Box(
                                 modifier = Modifier
