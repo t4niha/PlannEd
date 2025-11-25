@@ -32,6 +32,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.SegmentedButtonDefaults
 import com.planned.ui.theme.PlanEdTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -50,22 +53,12 @@ private const val INITIAL_PAGE = 10000
 private const val TOTAL_PAGES = 20000
 
 class MainActivity : ComponentActivity() {
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            setContent {
-                PlanEdTheme {
-                    HomeScreen()
-                }
-            }
-        } else {
-            setContent {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("This app requires Android 8.0 or higher")
-                }
+        setContent {
+            PlanEdTheme {
+                HomeScreen()
             }
         }
     }
@@ -111,10 +104,6 @@ fun HomeScreen() {
         }
     }
 
-    val selectorButtonWidth = 90.dp
-    val selectorButtonHeight = 34.dp
-    val selectorButtonCorner = 10.dp
-
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
@@ -130,14 +119,14 @@ fun HomeScreen() {
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         // View selector buttons
-                        Row(
-                            modifier = Modifier.weight(1.8f),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
+                        SingleChoiceSegmentedButtonRow(
+                            modifier = Modifier.weight(1.8f)
                         ) {
-                            listOf("Day", "Week", "Month").forEach { view ->
-                                val selected = view == currentView
-                                Button(
+                            val options = listOf("Day", "Week", "Month")
+
+                            options.forEachIndexed { index, view ->
+                                SegmentedButton(
+                                    selected = currentView == view,
                                     onClick = {
                                         currentView = view
                                         selectedDate = today
@@ -145,23 +134,26 @@ fun HomeScreen() {
                                         if (view == "Week") weekInitialScrollDone = false
                                         coroutineScope.launch { pagerState.scrollToPage(INITIAL_PAGE) }
                                     },
-                                    shape = RoundedCornerShape(selectorButtonCorner),
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = if (selected) PrimaryColor else Color.LightGray,
-                                        contentColor = if (selected) Color.White else Color.Black
+                                    shape = SegmentedButtonDefaults.itemShape(index, options.size),
+
+                                    // REMOVE THE CHECK MARK
+                                    icon = {},
+
+                                    colors = SegmentedButtonDefaults.colors(
+                                        activeContainerColor = PrimaryColor,
+                                        activeContentColor = Color.White,
+                                        inactiveContainerColor = Color.White,
+                                        inactiveContentColor = Color.Black,
                                     ),
-                                    contentPadding = PaddingValues(0.dp),
-                                    modifier = Modifier
-                                        .width(selectorButtonWidth)
-                                        .height(selectorButtonHeight)
-                                        .padding(horizontal = 4.dp)
-                                ) {
-                                    Text(
-                                        text = view,
-                                        fontSize = 14.sp,
-                                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
-                                    )
-                                }
+
+                                    label = {
+                                        Text(
+                                            view,
+                                            fontSize = 14.sp,
+                                            fontWeight = if (currentView == view) FontWeight.Bold else FontWeight.Normal
+                                        )
+                                    }
+                                )
                             }
                         }
 
