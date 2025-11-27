@@ -8,10 +8,25 @@ import java.time.LocalDateTime
 import java.time.Instant
 import java.time.ZoneId
 
-// Type Converters
+/* RECURRENCE LOGIC */
+//<editor-fold desc="Recurrence">
+
+enum class RecurrenceFrequency {
+    NONE, DAILY, WEEKLY, MONTHLY, YEARLY
+}
+
+data class RecurrenceRule(
+    val frequency: RecurrenceFrequency = RecurrenceFrequency.NONE,
+    val daysOfWeek: List<Int>? = null,       // 1=Mon ... 7=Sun
+    val dayOfMonth: Int? = null              // Dates 1–31
+)
+//</editor-fold>
+
+/* TYPE CONVERTERS */
+//<editor-fold desc="Converters">
+
 @RequiresApi(Build.VERSION_CODES.O)
 class Converters {
-
     @TypeConverter
     fun fromLocalDate(date: LocalDate?): Long? =
         date?.atStartOfDay(ZoneId.systemDefault())?.toInstant()?.toEpochMilli()
@@ -29,7 +44,19 @@ class Converters {
         millis?.let { Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDateTime() }
 }
 
+class RecurrenceConverter {
+    @TypeConverter
+    fun fromRule(rule: RecurrenceRule?): String? =
+        rule?.let { com.google.gson.Gson().toJson(it) }
+
+    @TypeConverter
+    fun toRule(json: String?): RecurrenceRule? =
+        json?.let { com.google.gson.Gson().fromJson(it, RecurrenceRule::class.java) }
+}
+//</editor-fold>
+
 /* ENTITIES */
+//<editor-fold desc="Entities">
 
 // Category
 @Entity
@@ -54,10 +81,19 @@ data class Event(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val title: String,
     val notes: String?,
-    val date: LocalDate,
-    val time: LocalDateTime,
     val color: String?,
-    val recurrence: String?,
+
+    val startDate: LocalDate,            // first day of occurrence
+    val endDate: LocalDate?,             // optional end date
+
+    val startTime: LocalDateTime,
+    val endTime: LocalDateTime,
+
+    val recurrence: RecurrenceRule?,                // master recurrence rule
+    val parentRecurrenceId: Int? = null,            // null if master, else points to master
+    val recurrenceInstanceDate: LocalDate? = null,  // actual date of this occurrence
+    val isException: Boolean = false,               // edited instance exception
+
     val categoryId: Int?,
     val linkedDeadlineId: Int?
 )
@@ -101,12 +137,20 @@ data class Deadline(
 data class TaskBucket(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val title: String,
-    val recurrence: String?,
-    val date: LocalDate?,
-    val startTime: LocalDateTime?,
-    val endTime: LocalDateTime?,
+
+    val recurrence: RecurrenceRule?,
+    val parentRecurrenceId: Int? = null,
+    val recurrenceInstanceDate: LocalDate? = null,
+    val isException: Boolean = false,
+
+    val startDate: LocalDate?,
+    val endDate: LocalDate?,
+
+    val startTime: LocalDateTime,
+    val endTime: LocalDateTime,
+
     val categoryId: Int?,
-    val exclusiveToEventId: Int? // null = not exclusive, otherwise linked to an Event
+    val exclusiveToEventId: Int? // null = not exclusive
 )
 
 // Task
@@ -143,13 +187,12 @@ data class Task(
     val title: String,
     val notes: String?,
 
+    val startDateTime: LocalDateTime?,
     val predictedDuration: Int,
     val actualDuration: Int?,
+
     val priority: Int,
     val breakable: Boolean,
-
-    val startDateTime: LocalDateTime?,
-    val endDateTime: LocalDateTime?,
 
     val eventId: Int?,
     val deadlineId: Int?,
@@ -159,10 +202,12 @@ data class Task(
     val status: String,
     val manuallyAssigned: Boolean
 )
+//</editor-fold>
 
 /* ATI MODULE */
+//<editor-fold desc="ATI">
 
-// Event-Specific
+// EventATI
 @Entity(
     foreignKeys = [
         ForeignKey(
@@ -176,50 +221,45 @@ data class Task(
 data class EventATI(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val eventId: Int,
-
     val avgActualVsPredicted: Float?,
     val avgDelayMinutes: Int?,
     val rescheduleCount: Int?,
-
     val bestTimesJson: String?,
     val worstTimesJson: String?
 )
 
-// General User-Wide
+// UserATI
 @Entity
 data class UserATI(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
-
     val productivityByTimeJson: String?,
     val productivityByDayJson: String?,
-
     val reschedulingByTimeJson: String?,
     val reschedulingByDayJson: String?,
-
     val commonPaddingMinutes: Int?
 )
+//</editor-fold>
 
 /* RELATIONS */
+//<editor-fold desc="Relations">
+
 data class TaskBucketWithTasks(
     @Embedded val bucket: TaskBucket,
-    @Relation(
-        parentColumn = "id",
-        entityColumn = "bucketId"
-    )
+    @Relation(parentColumn = "id", entityColumn = "bucketId")
     val tasks: List<Task>
 )
 
 data class EventWithTasks(
     @Embedded val event: Event,
-    @Relation(
-        parentColumn = "id",
-        entityColumn = "eventId"
-    )
+    @Relation(parentColumn = "id", entityColumn = "eventId")
     val tasks: List<Task>
 )
+//</editor-fold>
 
 /* DAOs */
+//<editor-fold desc="DAOs">
 
+// Category
 @Dao
 interface CategoryDao {
     // Create
@@ -242,7 +282,7 @@ interface CategoryDao {
     suspend fun deleteById(categoryId: Int)
 }
 
-
+// Event
 @Dao
 interface EventDao {
     // Create
@@ -260,16 +300,31 @@ interface EventDao {
     // Update
     @Update suspend fun update(event: Event)
 
-    // Delete
+    // Delete this occurrence only
     @Query("DELETE FROM Event WHERE id = :eventId")
-    suspend fun deleteById(eventId: Int)
+    suspend fun deleteThisEvent(eventId: Int)
+
+    // Delete this and following occurrences
+    @Query("""
+    DELETE FROM Event 
+    WHERE id = :eventId 
+       OR (parentRecurrenceId = :parentId AND recurrenceInstanceDate >= :date)
+    """)
+    suspend fun deleteThisAndFollowingEvents(eventId: Int, parentId: Int, date: LocalDate)
+
+    // Delete all occurrences including master
+    @Query("""
+    DELETE FROM Event 
+    WHERE id = :masterId OR parentRecurrenceId = :masterId
+    """)
+    suspend fun deleteAllEvents(masterId: Int)
 
     // Search by date
-    @Query("SELECT * FROM Event WHERE date = :date")
+    @Query("SELECT * FROM Event WHERE recurrenceInstanceDate = :date")
     suspend fun getByDate(date: LocalDate): List<Event>
 }
 
-
+// Deadline
 @Dao
 interface DeadlineDao {
     // Create
@@ -291,7 +346,7 @@ interface DeadlineDao {
     suspend fun getByEvent(eventId: Int): List<Deadline>
 }
 
-
+// TaskBucket
 @Dao
 interface TaskBucketDao {
     // Create
@@ -315,12 +370,32 @@ interface TaskBucketDao {
     // Update
     @Update suspend fun update(bucket: TaskBucket)
 
-    // Delete
+    // Delete this occurrence only
     @Query("DELETE FROM TaskBucket WHERE id = :bucketId")
-    suspend fun deleteById(bucketId: Int)
+    suspend fun deleteThisBucket(bucketId: Int)
+
+    // Delete this and following occurrences
+    @Query("""
+    DELETE FROM TaskBucket 
+    WHERE id = :bucketId 
+       OR (parentRecurrenceId = :parentId AND recurrenceInstanceDate >= :date)
+    """)
+    suspend fun deleteThisAndFollowingBuckets(bucketId: Int, parentId: Int, date: LocalDate)
+
+    // Delete all occurrences including master
+    @Query("""
+    DELETE FROM TaskBucket 
+    WHERE id = :masterId OR parentRecurrenceId = :masterId
+    """)
+    suspend fun deleteAllBuckets(masterId: Int)
+
+
+    // Search by date
+    @Query("SELECT * FROM TaskBucket WHERE recurrenceInstanceDate = :date")
+    suspend fun getByDate(date: LocalDate): List<TaskBucket>
 }
 
-
+// Task
 @Dao
 interface TaskDao {
     // Create
@@ -342,11 +417,11 @@ interface TaskDao {
     suspend fun deleteById(taskId: Int)
 
     // Search tasks by date range
-    @Query("SELECT * FROM Task WHERE startDateTime >= :from AND endDateTime <= :to")
-    suspend fun getTasksByDateRange(from: LocalDateTime, to: LocalDateTime): List<Task>
+    @Query("SELECT * FROM Task WHERE date(startDateTime) = :date")
+    suspend fun getTasksByDate(date: LocalDate): List<Task>
 }
 
-
+// Event ATI
 @Dao
 interface EventATIDao {
     @Insert suspend fun insert(ati: EventATI)
@@ -354,14 +429,18 @@ interface EventATIDao {
     suspend fun get(eventId: Int): EventATI?
 }
 
+// User ATI
 @Dao
 interface UserATIDao {
     @Insert suspend fun insert(ati: UserATI)
     @Query("SELECT * FROM UserATI LIMIT 1")
     suspend fun get(): UserATI?
 }
+//</editor-fold>
 
 /* DATABASE */
+//<editor-fold desc="Database">
+
 @Database(
     entities = [
         Category::class, Event::class, Task::class, TaskBucket::class, Deadline::class,
@@ -369,7 +448,7 @@ interface UserATIDao {
     ],
     version = 1
 )
-@TypeConverters(Converters::class)
+@TypeConverters(Converters::class, RecurrenceConverter::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun categoryDao(): CategoryDao
     abstract fun eventDao(): EventDao
@@ -379,3 +458,4 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun eventATIDao(): EventATIDao
     abstract fun userATIDao(): UserATIDao
 }
+//</editor-fold>
