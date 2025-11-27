@@ -3,10 +3,9 @@ package com.planned
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.room.*
+import com.google.gson.Gson
 import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.Instant
-import java.time.ZoneId
+import java.time.LocalTime
 
 /* RECURRENCE LOGIC */
 //<editor-fold desc="Recurrence">
@@ -14,11 +13,10 @@ import java.time.ZoneId
 enum class RecurrenceFrequency {
     NONE, DAILY, WEEKLY, MONTHLY, YEARLY
 }
-
 data class RecurrenceRule(
-    val frequency: RecurrenceFrequency = RecurrenceFrequency.NONE,
-    val daysOfWeek: List<Int>? = null,       // 1=Mon ... 7=Sun
-    val dayOfMonth: Int? = null              // Dates 1–31
+    val daysOfWeek: List<Int>? = null,      // 1 = Mon ... 7 = Sun
+    val dayOfMonth: Int? = null,            // 1 - 31
+    val monthAndDay: Pair<Int, Int>? = null // DD-MM
 )
 //</editor-fold>
 
@@ -29,44 +27,57 @@ data class RecurrenceRule(
 class Converters {
     @TypeConverter
     fun fromLocalDate(date: LocalDate?): Long? =
-        date?.atStartOfDay(ZoneId.systemDefault())?.toInstant()?.toEpochMilli()
-
+        date?.toEpochDay()
     @TypeConverter
-    fun toLocalDate(millis: Long?): LocalDate? =
-        millis?.let { Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate() }
-
+    fun toLocalDate(days: Long?): LocalDate? =
+        days?.let { LocalDate.ofEpochDay(it) }
     @TypeConverter
-    fun fromLocalDateTime(dateTime: LocalDateTime?): Long? =
-        dateTime?.atZone(ZoneId.systemDefault())?.toInstant()?.toEpochMilli()
-
+    fun fromLocalTime(time: LocalTime?): Int? =
+        time?.toSecondOfDay()
     @TypeConverter
-    fun toLocalDateTime(millis: Long?): LocalDateTime? =
-        millis?.let { Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDateTime() }
+    fun toLocalTime(seconds: Int?): LocalTime? =
+        seconds?.let { LocalTime.ofSecondOfDay(it.toLong()) }
 }
 
 class RecurrenceConverter {
+    // Enum <-> String
     @TypeConverter
-    fun fromRule(rule: RecurrenceRule?): String? =
-        rule?.let { com.google.gson.Gson().toJson(it) }
+    fun fromRecurrenceFrequency(freq: RecurrenceFrequency): String =
+        freq.name
 
     @TypeConverter
-    fun toRule(json: String?): RecurrenceRule? =
-        json?.let { com.google.gson.Gson().fromJson(it, RecurrenceRule::class.java) }
+    fun toRecurrenceFrequency(value: String): RecurrenceFrequency =
+        RecurrenceFrequency.valueOf(value)
+
+    // RecurrenceRule <-> JSON String
+    @TypeConverter
+    fun fromRecurrenceRule(rule: RecurrenceRule): String =
+        Gson().toJson(rule)
+
+    @TypeConverter
+    fun toRecurrenceRule(value: String): RecurrenceRule =
+        Gson().fromJson(value, RecurrenceRule::class.java)
 }
 //</editor-fold>
 
 /* ENTITIES */
-//<editor-fold desc="Entities">
 
 // Category
+//<editor-fold desc="Category">
+
 @Entity
 data class Category(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
+
     val title: String,
-    val notes: String?
+    val notes: String? = null,
+    val color: String
 )
+//</editor-fold>
 
 // Event
+//<editor-fold desc="Event">
+
 @Entity(
     foreignKeys = [
         ForeignKey(
@@ -77,32 +88,63 @@ data class Category(
         )
     ]
 )
-data class Event(
+data class MasterEvent(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
+
     val title: String,
-    val notes: String?,
-    val color: String?,
+    val notes: String? = null,
+    val color: String? = null,
 
-    val startDate: LocalDate,            // first day of occurrence
-    val endDate: LocalDate?,             // optional end date
+    val startDate: LocalDate,
+    val endDate: LocalDate? = null,
 
-    val startTime: LocalDateTime,
-    val endTime: LocalDateTime,
+    val startTime: LocalTime,
+    val endTime: LocalTime,
 
-    val recurrence: RecurrenceRule?,                // master recurrence rule
-    val parentRecurrenceId: Int? = null,            // null if master, else points to master
-    val recurrenceInstanceDate: LocalDate? = null,  // actual date of this occurrence
-    val isException: Boolean = false,               // edited instance exception
+    val recurFreq: RecurrenceFrequency,     // only once / daily / weekly / monthly / yearly
+    val recurRule: RecurrenceRule,          // none / days of week 1-7 / date 1-31 / date DD-MM
 
-    val categoryId: Int?,
-    val linkedDeadlineId: Int?
+    val categoryId: Int? = null,
 )
 
-// Deadline
 @Entity(
     foreignKeys = [
         ForeignKey(
-            entity = Event::class,
+            entity = MasterEvent::class,
+            parentColumns = ["id"],
+            childColumns = ["masterEventId"],
+            onDelete = ForeignKey.CASCADE
+        )
+    ]
+)
+data class EventOccurrence(
+    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+
+    val masterEventId: Int,
+
+    val notes: String? = null,
+
+    val occurDate: LocalDate,
+    val startTime: LocalTime,
+    val endTime: LocalTime,
+
+    val isException: Boolean = false      //  back-end access only, if individually changed
+)
+//</editor-fold>
+
+// Deadline
+//<editor-fold desc="Deadline">
+
+@Entity(
+    foreignKeys = [
+        ForeignKey(
+            entity = Category::class,
+            parentColumns = ["id"],
+            childColumns = ["categoryId"],
+            onDelete = ForeignKey.SET_NULL
+        ),
+        ForeignKey(
+            entity = MasterEvent::class,
             parentColumns = ["id"],
             childColumns = ["eventId"],
             onDelete = ForeignKey.SET_NULL
@@ -111,59 +153,71 @@ data class Event(
 )
 data class Deadline(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
+
     val title: String,
-    val type: String,
-    val notes: String?,
-    val eventId: Int?
+    val notes: String? = null,
+
+    val date: LocalDate,
+    val time: LocalTime,
+
+    val categoryId: Int? = null,
+    val eventId: Int? = null
+)
+//</editor-fold>
+
+// Task Bucket
+//<editor-fold desc="Bucket">
+
+@Entity
+data class MasterTaskBucket(
+    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+
+    val startDate: LocalDate,
+    val endDate: LocalDate? = null,
+
+    val startTime: LocalTime,
+    val endTime: LocalTime,
+
+    val recurFreq: RecurrenceFrequency,     // only once / daily / weekly / monthly / yearly
+    val recurRule: RecurrenceRule,          // none / days of week 1-7 / date 1-31 / date DD-MM
 )
 
-// TaskBucket
 @Entity(
     foreignKeys = [
         ForeignKey(
-            entity = Category::class,
+            entity = MasterTaskBucket::class,
             parentColumns = ["id"],
-            childColumns = ["categoryId"],
-            onDelete = ForeignKey.SET_NULL
-        ),
-        ForeignKey(
-            entity = Event::class,
-            parentColumns = ["id"],
-            childColumns = ["exclusiveToEventId"],
-            onDelete = ForeignKey.SET_NULL
+            childColumns = ["masterBucketId"],
+            onDelete = ForeignKey.CASCADE
         )
     ]
 )
-data class TaskBucket(
+data class TaskBucketOccurrence(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
-    val title: String,
 
-    val recurrence: RecurrenceRule?,
-    val parentRecurrenceId: Int? = null,
-    val recurrenceInstanceDate: LocalDate? = null,
-    val isException: Boolean = false,
+    val masterBucketId: Int,
 
-    val startDate: LocalDate?,
-    val endDate: LocalDate?,
+    val occurDate: LocalDate,
+    val startTime: LocalTime,
+    val endTime: LocalTime,
 
-    val startTime: LocalDateTime,
-    val endTime: LocalDateTime,
-
-    val categoryId: Int?,
-    val exclusiveToEventId: Int? // null = not exclusive
+    val isException: Boolean = false      //  back-end access only, if individually changed
 )
+//</editor-fold>
 
 // Task
+//<editor-fold desc="Task">
+
 @Entity(
     foreignKeys = [
         ForeignKey(
-            entity = TaskBucket::class,
+            entity = MasterTaskBucket::class,
             parentColumns = ["id"],
             childColumns = ["bucketId"],
             onDelete = ForeignKey.SET_NULL
         ),
         ForeignKey(
-            entity = Event::class,
+            entity = MasterEvent::class,
             parentColumns = ["id"],
             childColumns = ["eventId"],
             onDelete = ForeignKey.SET_NULL
@@ -182,25 +236,57 @@ data class TaskBucket(
         )
     ]
 )
-data class Task(
+data class MasterTask(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
+
     val title: String,
-    val notes: String?,
+    val notes: String? = null,
+    val priority: Int,                      // levels 1-5
+    val breakable: Boolean? = false,        // can be checked true
+    val noIntervals: Int,                   // how many intervals, 1 if not breakable
 
-    val startDateTime: LocalDateTime?,
+    val startDate: LocalDate? = null,       // null = auto, otherwise manual
+    val startTime: LocalTime? = null,       // available only if startDate not null
+
     val predictedDuration: Int,
-    val actualDuration: Int?,
+    val actualDuration: Int? = null,        // back-end access to this only, total final duration
 
-    val priority: Int,
-    val breakable: Boolean,
+    val status: Int? = 1,                   // 1 = not started, 2 = in progress, 3 = completed
+    val timeLeft: Int? = null,              // auto calculated (sum of occurrences)
+    val overTime: Int? = null,              // auto-calculated (sum of occurrences)
 
-    val eventId: Int?,
-    val deadlineId: Int?,
-    val bucketId: Int?,
-    val categoryId: Int?,
+    val bucketId: Int? = null,              // back-end access to this only
+    val eventId: Int? = null,
+    val deadlineId: Int? = null,
+    val categoryId: Int? = null
+)
 
-    val status: String,
-    val manuallyAssigned: Boolean
+@Entity(
+    foreignKeys = [
+        ForeignKey(
+            entity = MasterTask::class,
+            parentColumns = ["id"],
+            childColumns = ["masterTaskId"],
+            onDelete = ForeignKey.CASCADE
+        )
+    ]
+)
+data class TaskInterval(
+    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+
+    val masterTaskId: Int,
+
+    val intervalNo: Int,                    // interval number out of all intervals
+    val notes: String? = null,
+
+    val occurDate: LocalDate,
+
+    val startTime: LocalTime,               // updates as task progresses (pomodoro)
+    val endTime: LocalTime,
+
+    val status: Int? = 1,
+    val timeLeft: Int? = null,              // auto calculated (pomodoro)
+    val overTime: Int? = null,              // auto-calculated (pomodoro)
 )
 //</editor-fold>
 
@@ -211,7 +297,7 @@ data class Task(
 @Entity(
     foreignKeys = [
         ForeignKey(
-            entity = Event::class,
+            entity = MasterEvent::class,
             parentColumns = ["id"],
             childColumns = ["eventId"],
             onDelete = ForeignKey.CASCADE
@@ -243,16 +329,79 @@ data class UserATI(
 /* RELATIONS */
 //<editor-fold desc="Relations">
 
-data class TaskBucketWithTasks(
-    @Embedded val bucket: TaskBucket,
-    @Relation(parentColumn = "id", entityColumn = "bucketId")
-    val tasks: List<Task>
+// Category
+data class CategoryWithMasterEvents(
+    @Embedded val category: Category,
+    @Relation(parentColumn = "id", entityColumn = "categoryId")
+    val masterEvents: List<MasterEvent>
+)
+data class CategoryWithDeadlines(
+    @Embedded val category: Category,
+    @Relation(parentColumn = "id", entityColumn = "categoryId")
+    val deadlines: List<Deadline>
+)
+data class CategoryWithMasterTasks(
+    @Embedded val category: Category,
+    @Relation(parentColumn = "id", entityColumn = "categoryId")
+    val masterTasks: List<MasterTask>
 )
 
-data class EventWithTasks(
-    @Embedded val event: Event,
+// MasterEvent
+data class MasterEventWithOccurrences(
+    @Embedded val masterEvent: MasterEvent,
+    @Relation(parentColumn = "id", entityColumn = "masterEventId")
+    val occurrences: List<EventOccurrence>
+)
+data class MasterEventWithDeadlines(
+    @Embedded val masterEvent: MasterEvent,
     @Relation(parentColumn = "id", entityColumn = "eventId")
-    val tasks: List<Task>
+    val deadlines: List<Deadline>
+)
+data class MasterEventWithTasks(
+    @Embedded val masterEvent: MasterEvent,
+    @Relation(parentColumn = "id", entityColumn = "eventId")
+    val masterTasks: List<MasterTask>
+)
+data class MasterEventWithATI(
+    @Embedded val masterEvent: MasterEvent,
+    @Relation(parentColumn = "id", entityColumn = "eventId")
+    val eventATI: EventATI?
+)
+
+// EventOccurrence
+data class EventOccurrenceWithTasks(
+    @Embedded val occurrence: EventOccurrence,
+    @Relation(parentColumn = "masterEventId", entityColumn = "eventId")
+    val tasks: List<MasterTask>
+)
+
+// MasterTaskBucket
+data class MasterTaskBucketWithOccurrences(
+    @Embedded val masterBucket: MasterTaskBucket,
+    @Relation(parentColumn = "id", entityColumn = "masterBucketId")
+    val occurrences: List<TaskBucketOccurrence>
+)
+
+// MasterTask
+data class MasterTaskWithIntervals(
+    @Embedded val masterTask: MasterTask,
+    @Relation(parentColumn = "id", entityColumn = "masterTaskId")
+    val intervals: List<TaskInterval>
+)
+data class MasterTaskWithEvent(
+    @Embedded val masterTask: MasterTask,
+    @Relation(parentColumn = "eventId", entityColumn = "id")
+    val event: MasterEvent?
+)
+data class MasterTaskWithDeadline(
+    @Embedded val masterTask: MasterTask,
+    @Relation(parentColumn = "deadlineId", entityColumn = "id")
+    val deadline: Deadline?
+)
+data class MasterTaskWithBucket(
+    @Embedded val masterTask: MasterTask,
+    @Relation(parentColumn = "bucketId", entityColumn = "id")
+    val bucket: MasterTaskBucket?
 )
 //</editor-fold>
 
@@ -262,179 +411,157 @@ data class EventWithTasks(
 // Category
 @Dao
 interface CategoryDao {
-    // Create
+    // Insert new category
     @Insert suspend fun insert(category: Category)
 
-    // Read
+    // Fetch all categories
     @Query("SELECT * FROM Category") suspend fun getAll(): List<Category>
+
+    // Fetch category by ID
     @Query("SELECT * FROM Category WHERE id = :categoryId") suspend fun getById(categoryId: Int): Category?
 
-    // Fetch all events linked to this category
+    // Fetch all master events linked to this category
     @Transaction
-    @Query("SELECT * FROM Event WHERE categoryId = :categoryId")
-    suspend fun getEventsForCategory(categoryId: Int): List<Event>
+    @Query("SELECT * FROM MasterEvent WHERE categoryId = :categoryId")
+    suspend fun getEventsForCategory(categoryId: Int): List<MasterEvent>
 
-    // Update
+    // Update existing category
     @Update suspend fun update(category: Category)
 
-    // Delete
-    @Query("DELETE FROM Category WHERE id = :categoryId")
-    suspend fun deleteById(categoryId: Int)
+    // Delete category by ID
+    @Query("DELETE FROM Category WHERE id = :categoryId") suspend fun deleteById(categoryId: Int)
 }
 
 // Event
 @Dao
 interface EventDao {
-    // Create
-    @Insert suspend fun insert(event: Event)
+    // Insert new master event
+    @Insert suspend fun insert(event: MasterEvent)
 
-    // Read
-    @Query("SELECT * FROM Event") suspend fun getAll(): List<Event>
-    @Query("SELECT * FROM Event WHERE id = :eventId") suspend fun getById(eventId: Int): Event?
+    // Insert new event occurrence
+    @Insert suspend fun insertOccurrence(occurrence: EventOccurrence)
 
-    // Fetch event with tasks
+    // Fetch all master events ordered by date and time
+    @Query("SELECT * FROM MasterEvent ORDER BY startDate, startTime")
+    suspend fun getAllMasterEvents(): List<MasterEvent>
+
+    // Fetch all event occurrences ordered by date and time
+    @Query("SELECT * FROM EventOccurrence ORDER BY occurDate, startTime")
+    suspend fun getAllOccurrences(): List<EventOccurrence>
+
+    // Fetch master events along with their occurrences
     @Transaction
-    @Query("SELECT * FROM Event WHERE id = :eventId")
-    suspend fun getEventWithTasks(eventId: Int): EventWithTasks
+    @Query("SELECT * FROM MasterEvent")
+    suspend fun getAllEventsWithOccurrences(): List<MasterEventWithOccurrences>
 
-    // Update
-    @Update suspend fun update(event: Event)
+    // Update master event
+    @Update suspend fun update(event: MasterEvent)
 
-    // Delete this occurrence only
-    @Query("DELETE FROM Event WHERE id = :eventId")
-    suspend fun deleteThisEvent(eventId: Int)
+    // Update event occurrence
+    @Update suspend fun updateOccurrence(occurrence: EventOccurrence)
 
-    // Delete this and following occurrences
-    @Query("""
-    DELETE FROM Event 
-    WHERE id = :eventId 
-       OR (parentRecurrenceId = :parentId AND recurrenceInstanceDate >= :date)
-    """)
-    suspend fun deleteThisAndFollowingEvents(eventId: Int, parentId: Int, date: LocalDate)
+    // Delete event occurrence
+    @Query("DELETE FROM EventOccurrence WHERE id = :occurrenceId")
+    suspend fun deleteOccurrence(occurrenceId: Int)
 
-    // Delete all occurrences including master
-    @Query("""
-    DELETE FROM Event 
-    WHERE id = :masterId OR parentRecurrenceId = :masterId
-    """)
-    suspend fun deleteAllEvents(masterId: Int)
-
-    // Search by date
-    @Query("SELECT * FROM Event WHERE recurrenceInstanceDate = :date")
-    suspend fun getByDate(date: LocalDate): List<Event>
+    // Delete master event
+    @Query("DELETE FROM MasterEvent WHERE id = :masterId")
+    suspend fun deleteMasterEvent(masterId: Int)
 }
 
 // Deadline
 @Dao
 interface DeadlineDao {
-    // Create
+    // Insert new deadline
     @Insert suspend fun insert(deadline: Deadline)
 
-    // Read
+    // Fetch all deadlines
     @Query("SELECT * FROM Deadline") suspend fun getAll(): List<Deadline>
+
+    // Fetch deadline by ID
     @Query("SELECT * FROM Deadline WHERE id = :deadlineId") suspend fun getById(deadlineId: Int): Deadline?
 
-    // Update
+    // Update deadline
     @Update suspend fun update(deadline: Deadline)
 
-    // Delete
-    @Query("DELETE FROM Deadline WHERE id = :deadlineId")
-    suspend fun deleteById(deadlineId: Int)
+    // Delete deadline by ID
+    @Query("DELETE FROM Deadline WHERE id = :deadlineId") suspend fun deleteById(deadlineId: Int)
 
-    // Search by event
-    @Query("SELECT * FROM Deadline WHERE eventId = :eventId")
-    suspend fun getByEvent(eventId: Int): List<Deadline>
+    // Fetch all deadlines for a specific event
+    @Query("SELECT * FROM Deadline WHERE eventId = :eventId") suspend fun getByEvent(eventId: Int): List<Deadline>
 }
 
-// TaskBucket
+// Task Bucket
 @Dao
 interface TaskBucketDao {
-    // Create
-    @Insert suspend fun insert(bucket: TaskBucket)
+    // Insert new master task bucket
+    @Insert suspend fun insert(masterBucket: MasterTaskBucket)
 
-    // Read
-    @Query("SELECT * FROM TaskBucket") suspend fun getAll(): List<TaskBucket>
-    @Query("SELECT * FROM TaskBucket WHERE id = :bucketId") suspend fun getById(bucketId: Int): TaskBucket?
+    // Insert new task bucket occurrence
+    @Insert suspend fun insertOccurrence(bucketOccurrence: TaskBucketOccurrence)
 
-    // Fetch buckets with tasks
+    // Fetch all master buckets ordered by date and time
+    @Query("SELECT * FROM MasterTaskBucket ORDER BY startDate, startTime")
+    suspend fun getAllMasterBuckets(): List<MasterTaskBucket>
+
+    // Fetch all bucket occurrences ordered by date and time
+    @Query("SELECT * FROM TaskBucketOccurrence ORDER BY occurDate, startTime")
+    suspend fun getAllBucketOccurrences(): List<TaskBucketOccurrence>
+
+    // Fetch master buckets along with their occurrences
     @Transaction
-    @Query("SELECT * FROM TaskBucket")
-    suspend fun getBucketsWithTasks(): List<TaskBucketWithTasks>
+    @Query("SELECT * FROM MasterTaskBucket")
+    suspend fun getAllBucketsWithOccurrences(): List<MasterTaskBucketWithOccurrences>
 
-    // Fetch exclusive / non-exclusive
-    @Query("SELECT * FROM TaskBucket WHERE exclusiveToEventId = :eventId")
-    suspend fun getExclusiveBucketsForEvent(eventId: Int): List<TaskBucket>
-    @Query("SELECT * FROM TaskBucket WHERE exclusiveToEventId IS NULL")
-    suspend fun getNonExclusiveBuckets(): List<TaskBucket>
+    // Update master bucket
+    @Update suspend fun update(masterBucket: MasterTaskBucket)
 
-    // Update
-    @Update suspend fun update(bucket: TaskBucket)
+    // Update bucket occurrence
+    @Update suspend fun updateOccurrence(bucketOccurrence: TaskBucketOccurrence)
 
-    // Delete this occurrence only
-    @Query("DELETE FROM TaskBucket WHERE id = :bucketId")
-    suspend fun deleteThisBucket(bucketId: Int)
+    // Delete bucket occurrence
+    @Query("DELETE FROM TaskBucketOccurrence WHERE id = :occurrenceId")
+    suspend fun deleteOccurrence(occurrenceId: Int)
 
-    // Delete this and following occurrences
-    @Query("""
-    DELETE FROM TaskBucket 
-    WHERE id = :bucketId 
-       OR (parentRecurrenceId = :parentId AND recurrenceInstanceDate >= :date)
-    """)
-    suspend fun deleteThisAndFollowingBuckets(bucketId: Int, parentId: Int, date: LocalDate)
-
-    // Delete all occurrences including master
-    @Query("""
-    DELETE FROM TaskBucket 
-    WHERE id = :masterId OR parentRecurrenceId = :masterId
-    """)
-    suspend fun deleteAllBuckets(masterId: Int)
-
-
-    // Search by date
-    @Query("SELECT * FROM TaskBucket WHERE recurrenceInstanceDate = :date")
-    suspend fun getByDate(date: LocalDate): List<TaskBucket>
+    // Delete master bucket
+    @Query("DELETE FROM MasterTaskBucket WHERE id = :masterId")
+    suspend fun deleteMasterBucket(masterId: Int)
 }
 
 // Task
 @Dao
 interface TaskDao {
-    // Create
-    @Insert suspend fun insert(task: Task)
+    // Insert new master task
+    @Insert suspend fun insert(task: MasterTask)
 
-    // Read
-    @Query("SELECT * FROM Task") suspend fun getAll(): List<Task>
-    @Query("SELECT * FROM Task WHERE id = :taskId") suspend fun getById(taskId: Int): Task?
+    // Insert new task interval
+    @Insert suspend fun insertInterval(interval: TaskInterval)
 
-    // Fetch all tasks for a bucket
-    @Query("SELECT * FROM Task WHERE bucketId = :bucketId")
-    suspend fun getTasksForBucket(bucketId: Int): List<Task>
+    // Fetch all master tasks
+    @Query("SELECT * FROM MasterTask") suspend fun getAllMasterTasks(): List<MasterTask>
 
-    // Update
-    @Update suspend fun update(task: Task)
+    // Fetch all task intervals
+    @Query("SELECT * FROM TaskInterval") suspend fun getAllIntervals(): List<TaskInterval>
 
-    // Delete
-    @Query("DELETE FROM Task WHERE id = :taskId")
-    suspend fun deleteById(taskId: Int)
+    // Fetch master task by ID
+    @Query("SELECT * FROM MasterTask WHERE id = :taskId") suspend fun getMasterTaskById(taskId: Int): MasterTask?
 
-    // Search tasks by date range
-    @Query("SELECT * FROM Task WHERE date(startDateTime) = :date")
-    suspend fun getTasksByDate(date: LocalDate): List<Task>
-}
+    // Fetch all intervals for a specific master task
+    @Query("SELECT * FROM TaskInterval WHERE masterTaskId = :taskId") suspend fun getIntervalsForTask(taskId: Int): List<TaskInterval>
 
-// Event ATI
-@Dao
-interface EventATIDao {
-    @Insert suspend fun insert(ati: EventATI)
-    @Query("SELECT * FROM EventATI WHERE eventId = :eventId")
-    suspend fun get(eventId: Int): EventATI?
-}
+    // Update master task
+    @Update suspend fun update(task: MasterTask)
 
-// User ATI
-@Dao
-interface UserATIDao {
-    @Insert suspend fun insert(ati: UserATI)
-    @Query("SELECT * FROM UserATI LIMIT 1")
-    suspend fun get(): UserATI?
+    // Update task interval
+    @Update suspend fun updateInterval(interval: TaskInterval)
+
+    // Delete task interval
+    @Query("DELETE FROM TaskInterval WHERE id = :intervalId")
+    suspend fun deleteInterval(intervalId: Int)
+
+    // Delete master task
+    @Query("DELETE FROM MasterTask WHERE id = :taskId")
+    suspend fun deleteMasterTask(taskId: Int)
 }
 //</editor-fold>
 
@@ -443,7 +570,11 @@ interface UserATIDao {
 
 @Database(
     entities = [
-        Category::class, Event::class, Task::class, TaskBucket::class, Deadline::class,
+        Category::class,
+        MasterEvent::class, EventOccurrence::class,
+        Deadline::class,
+        MasterTaskBucket::class, TaskBucketOccurrence::class,
+        MasterTask::class, TaskInterval::class,
         EventATI::class, UserATI::class
     ],
     version = 1
@@ -455,7 +586,5 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun deadlineDao(): DeadlineDao
     abstract fun taskBucketDao(): TaskBucketDao
     abstract fun taskDao(): TaskDao
-    abstract fun eventATIDao(): EventATIDao
-    abstract fun userATIDao(): UserATIDao
 }
 //</editor-fold>

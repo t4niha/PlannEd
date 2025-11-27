@@ -2,107 +2,98 @@ package com.planned
 
 import android.os.Build
 import androidx.annotation.RequiresApi
-import java.time.DayOfWeek
 import java.time.LocalDate
-import java.time.temporal.TemporalAdjusters
 
-/**
- * Generate individual occurrence dates from a master startDate and recurrence rule.
- * Only generates future occurrences (from today) up to 1 year or master endDate.
- */
+/* Generate individual EventOccurrence objects from a MasterEvent */
+
 @RequiresApi(Build.VERSION_CODES.O)
-fun generateOccurrenceDates(
-    masterStartDate: LocalDate,
-    masterEndDate: LocalDate?,
-    recurrence: RecurrenceRule?
-): List<LocalDate> {
-    if (recurrence == null || recurrence.frequency == RecurrenceFrequency.NONE) {
-        return listOf(masterStartDate)
-    }
-
-    val occurrences = mutableListOf<LocalDate>()
+fun generateEventOccurrences(master: MasterEvent): List<EventOccurrence> {
     val today = LocalDate.now()
-    var date = if (masterStartDate.isBefore(today)) today else masterStartDate
+    val occurrences = mutableListOf<EventOccurrence>()
 
-    val maxEnd = listOfNotNull(date.plusYears(1), masterEndDate).minOrNull()!!
+    val endLimit = master.endDate?.let { if (it.isBefore(today.plusYears(1))) it else today.plusYears(1) }
+        ?: today.plusYears(1)
 
-    while (!date.isAfter(maxEnd)) {
-        when (recurrence.frequency) {
-            RecurrenceFrequency.DAILY -> {
-                occurrences.add(date)
-                date = date.plusDays(1)
-            }
+    var current = if (master.startDate.isBefore(today)) today else master.startDate
 
-            RecurrenceFrequency.WEEKLY -> {
-                val daysOfWeek = recurrence.daysOfWeek ?: listOf(date.dayOfWeek.value)
-                for (dow in daysOfWeek.sorted()) {
-                    val nextDate = date.with(TemporalAdjusters.nextOrSame(DayOfWeek.of(dow)))
-                    if (!nextDate.isAfter(maxEnd) && !occurrences.contains(nextDate) && !nextDate.isBefore(masterStartDate)) {
-                        occurrences.add(nextDate)
-                    }
-                }
-                date = date.plusWeeks(1)
-            }
+    while (!current.isAfter(endLimit)) {
+        // Determine if this date matches the recurrence rule
+        val matchesRule = when (master.recurFreq) {
+            RecurrenceFrequency.NONE -> current == master.startDate
+            RecurrenceFrequency.DAILY -> true
+            RecurrenceFrequency.WEEKLY -> master.recurRule.daysOfWeek?.contains(current.dayOfWeek.value) ?: true
+            RecurrenceFrequency.MONTHLY -> master.recurRule.dayOfMonth?.let { it == current.dayOfMonth } ?: true
+            RecurrenceFrequency.YEARLY -> master.recurRule.monthAndDay?.let { it.first == current.dayOfMonth && it.second == current.monthValue } ?: true
+        }
 
-            RecurrenceFrequency.MONTHLY -> {
-                val dayOfMonth = recurrence.dayOfMonth
-                val lastDay = date.with(TemporalAdjusters.lastDayOfMonth()).dayOfMonth
-                val actualDay = if (dayOfMonth != null && dayOfMonth > lastDay) lastDay else dayOfMonth ?: date.dayOfMonth
-                val nextDate = date.withDayOfMonth(actualDay)
-                if (!nextDate.isAfter(maxEnd) && !occurrences.contains(nextDate) && !nextDate.isBefore(masterStartDate)) {
-                    occurrences.add(nextDate)
-                }
-                date = date.plusMonths(1)
-            }
+        if (matchesRule) {
+            occurrences.add(
+                EventOccurrence(
+                    masterEventId = master.id,
+                    notes = master.notes,
+                    occurDate = current,
+                    startTime = master.startTime,
+                    endTime = master.endTime
+                )
+            )
+        }
 
-            RecurrenceFrequency.YEARLY -> {
-                val nextDate = LocalDate.of(date.year, masterStartDate.monthValue, masterStartDate.dayOfMonth)
-                if (!nextDate.isAfter(maxEnd) && !occurrences.contains(nextDate) && !nextDate.isBefore(masterStartDate)) {
-                    occurrences.add(nextDate)
-                }
-                date = date.plusYears(1)
-            }
-
-            else -> break
+        // Increment current date based on frequency
+        current = when (master.recurFreq) {
+            RecurrenceFrequency.NONE, RecurrenceFrequency.DAILY -> current.plusDays(1)
+            RecurrenceFrequency.WEEKLY -> current.plusWeeks(1)
+            RecurrenceFrequency.MONTHLY -> current.plusMonths(1)
+            RecurrenceFrequency.YEARLY -> current.plusYears(1)
         }
     }
 
-    return occurrences.sorted()
+    return occurrences
 }
 
-/**
- * Generate Event occurrences from a master Event.
- * Each occurrence gets a new auto-generated ID (id = 0),
- * parentRecurrenceId = master.id, and recurrenceInstanceDate set.
- */
+/* Generate individual TaskBucketOccurrence objects from a MasterTaskBucket
+* */
 @RequiresApi(Build.VERSION_CODES.O)
-fun generateEventOccurrences(master: Event): List<Event> {
-    val dates = generateOccurrenceDates(master.startDate, master.endDate, master.recurrence)
-    return dates.map { date ->
-        master.copy(
-            id = 0, // new auto-generated ID
-            parentRecurrenceId = master.id,
-            recurrenceInstanceDate = date,
-            isException = false
-        )
+fun generateTaskBucketOccurrences(master: MasterTaskBucket): List<TaskBucketOccurrence> {
+    val today = LocalDate.now()
+    val occurrences = mutableListOf<TaskBucketOccurrence>()
+
+    val endLimit = master.endDate?.let { if (it.isBefore(today.plusYears(1))) it else today.plusYears(1) }
+        ?: today.plusYears(1)
+
+    var current = if (master.startDate.isBefore(today)) today else master.startDate
+
+    while (!current.isAfter(endLimit)) {
+        // Determine if this date matches the recurrence rule
+        val matchesRule = when (master.recurFreq) {
+            RecurrenceFrequency.NONE -> current == master.startDate
+            RecurrenceFrequency.DAILY -> true
+            RecurrenceFrequency.WEEKLY -> master.recurRule.daysOfWeek?.contains(current.dayOfWeek.value) ?: true
+            RecurrenceFrequency.MONTHLY -> master.recurRule.dayOfMonth?.let { it == current.dayOfMonth } ?: true
+            RecurrenceFrequency.YEARLY -> master.recurRule.monthAndDay?.let { it.first == current.dayOfMonth && it.second == current.monthValue } ?: true
+        }
+
+        if (matchesRule) {
+            occurrences.add(
+                TaskBucketOccurrence(
+                    masterBucketId = master.id,
+                    occurDate = current,
+                    startTime = master.startTime,
+                    endTime = master.endTime
+                )
+            )
+        }
+
+        // Increment current date based on frequency
+        current = when (master.recurFreq) {
+            RecurrenceFrequency.NONE, RecurrenceFrequency.DAILY -> current.plusDays(1)
+            RecurrenceFrequency.WEEKLY -> current.plusWeeks(1)
+            RecurrenceFrequency.MONTHLY -> current.plusMonths(1)
+            RecurrenceFrequency.YEARLY -> current.plusYears(1)
+        }
     }
+
+    return occurrences
 }
 
-/**
- * Generate TaskBucket occurrences from a master TaskBucket.
- * Each occurrence gets a new auto-generated ID (id = 0),
- * parentRecurrenceId = master.id, and recurrenceInstanceDate set.
- */
-@RequiresApi(Build.VERSION_CODES.O)
-fun generateTaskBucketOccurrences(master: TaskBucket): List<TaskBucket> {
-    val start = master.startDate ?: LocalDate.now()
-    val dates = generateOccurrenceDates(start, master.endDate, master.recurrence)
-    return dates.map { date ->
-        master.copy(
-            id = 0,
-            parentRecurrenceId = master.id,
-            recurrenceInstanceDate = date,
-            isException = false
-        )
-    }
-}
+/* Generate task intervals from a master task */
+
