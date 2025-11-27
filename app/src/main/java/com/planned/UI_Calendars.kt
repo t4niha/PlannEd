@@ -40,7 +40,8 @@ import java.util.*
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
 fun Calendars() {
-    var currentView by remember { mutableStateOf("Day") }
+    // Global states
+    val currentView = currentCalendarView
     val today = LocalDate.now()
     var selectedDate by remember { mutableStateOf(today) }
     val currentTime by produceState(initialValue = LocalTime.now()) {
@@ -61,88 +62,70 @@ fun Calendars() {
         }
     }
 
-    var isDrawerOpen by remember { mutableStateOf(false) }
+    // Reset scroll states
+    LaunchedEffect(calendarResetTrigger) {
+        dayInitialScrollDone = false
+        weekInitialScrollDone = false
+        selectedDate = today
+        pagerState.scrollToPage(INITIAL_PAGE)
+    }
 
-    NavigationDrawer(
-        isDrawerOpen = isDrawerOpen,
-        onDrawerToggle = { isDrawerOpen = !isDrawerOpen }
+    Column(modifier = Modifier
+        .fillMaxSize()
+        .background(BackgroundColor)
     ) {
-        Scaffold(
-            topBar = {
-                Header(
-                    currentView = currentView,
-                    onViewSelected = { view ->
-                        currentView = view
-                        selectedDate = today
-                        if (view == "Day") dayInitialScrollDone = false
-                        if (view == "Week") weekInitialScrollDone = false
-                        coroutineScope.launch { pagerState.scrollToPage(INITIAL_PAGE) }
-                        if (isDrawerOpen) isDrawerOpen = false
-                    },
-                    onMenuClick = { isDrawerOpen = !isDrawerOpen },
-                    onCreateClick = {
-                        /* your create action */
-                        if (isDrawerOpen) isDrawerOpen = false
+        // Date header
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 10.dp, horizontal = 15.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = when (currentView) {
+                    "Day" -> displayedDate.format(DateTimeFormatter.ofPattern("EEEE, MMM d, yyyy"))
+                    "Week" -> {
+                        val startOfWeek = displayedDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.SUNDAY))
+                        val endOfWeek = displayedDate.with(TemporalAdjusters.nextOrSame(DayOfWeek.SATURDAY))
+                        val startMonth = startOfWeek.format(DateTimeFormatter.ofPattern("MMM"))
+                        val endMonth = endOfWeek.format(DateTimeFormatter.ofPattern("MMM"))
+                        if (startOfWeek.month == endOfWeek.month)
+                            "$startMonth ${startOfWeek.dayOfMonth} - ${endOfWeek.dayOfMonth}, ${endOfWeek.year}"
+                        else
+                            "$startMonth ${startOfWeek.dayOfMonth} - $endMonth ${endOfWeek.dayOfMonth}, ${endOfWeek.year}"
                     }
-                )
-            },
-            content = { padding ->
-                Column(modifier = Modifier.fillMaxSize().padding(padding)) {
-                    // Date header
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 10.dp, horizontal = 15.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = when (currentView) {
-                                "Day" -> displayedDate.format(DateTimeFormatter.ofPattern("EEEE, MMM d, yyyy"))
-                                "Week" -> {
-                                    val startOfWeek = displayedDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.SUNDAY))
-                                    val endOfWeek = displayedDate.with(TemporalAdjusters.nextOrSame(DayOfWeek.SATURDAY))
-                                    val startMonth = startOfWeek.format(DateTimeFormatter.ofPattern("MMM"))
-                                    val endMonth = endOfWeek.format(DateTimeFormatter.ofPattern("MMM"))
-                                    if (startOfWeek.month == endOfWeek.month)
-                                        "$startMonth ${startOfWeek.dayOfMonth} - ${endOfWeek.dayOfMonth}, ${endOfWeek.year}"
-                                    else
-                                        "$startMonth ${startOfWeek.dayOfMonth} - $endMonth ${endOfWeek.dayOfMonth}, ${endOfWeek.year}"
-                                }
-                                "Month" -> displayedDate.format(DateTimeFormatter.ofPattern("MMMM, yyyy"))
-                                else -> ""
-                            },
-                            fontSize = 16.sp,
-                            textAlign = TextAlign.Center
-                        )
-                    }
+                    "Month" -> displayedDate.format(DateTimeFormatter.ofPattern("MMMM, yyyy"))
+                    else -> ""
+                },
+                fontSize = 16.sp,
+                textAlign = TextAlign.Center
+            )
+        }
 
-                    // Calendar views
-                    Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
-                        when (currentView) {
-                            "Day" -> DayView(displayedDate, pagerState, dayInitialScrollDone, onScrollDone = { dayInitialScrollDone = true }, currentTime)
-                            "Week" -> WeekView(displayedDate, pagerState, weekInitialScrollDone, onScrollDone = { weekInitialScrollDone = true }, currentTime)
-                            "Month" -> MonthView(selectedDate, { selectedDate = it }, pagerState)
-                        }
-                    }
-
-                    // Navigation buttons
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(all = 20.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        IconButton(
-                            onClick = { coroutineScope.launch { pagerState.animateScrollToPage(pagerState.currentPage - 1) } },
-                            modifier = Modifier.size(40.dp).background(PrimaryColor, shape = CircleShapePrimary)
-                        ) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Previous ${currentView.lowercase()}", tint = Color.White) }
-
-                        IconButton(
-                            onClick = { coroutineScope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) } },
-                            modifier = Modifier.size(40.dp).background(PrimaryColor, shape = CircleShapePrimary)
-                        ) { Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Next ${currentView.lowercase()}", tint = Color.White) }
-                    }
-                }
+        // Calendar views
+        Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+            when (currentView) {
+                "Day" -> DayView(displayedDate, pagerState, dayInitialScrollDone, onScrollDone = { dayInitialScrollDone = true }, currentTime)
+                "Week" -> WeekView(displayedDate, pagerState, weekInitialScrollDone, onScrollDone = { weekInitialScrollDone = true }, currentTime)
+                "Month" -> MonthView(selectedDate, { selectedDate = it }, pagerState)
             }
-        )
+        }
+
+        // Navigation buttons
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(all = 20.dp),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            IconButton(
+                onClick = { coroutineScope.launch { pagerState.animateScrollToPage(pagerState.currentPage - 1) } },
+                modifier = Modifier.size(40.dp).background(PrimaryColor, shape = CircleShapePrimary)
+            ) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Previous ${currentView.lowercase()}", tint = Color.White) }
+
+            IconButton(
+                onClick = { coroutineScope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) } },
+                modifier = Modifier.size(40.dp).background(PrimaryColor, shape = CircleShapePrimary)
+            ) { Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Next ${currentView.lowercase()}", tint = Color.White) }
+        }
     }
 }
 

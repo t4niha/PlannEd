@@ -18,6 +18,6 @@ fun TaskBuckets() {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(BackgroundColor)
     )
 }

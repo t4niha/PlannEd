@@ -18,6 +18,6 @@ fun Deadlines() {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(BackgroundColor)
     )
 }

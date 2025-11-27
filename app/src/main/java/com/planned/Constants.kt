@@ -15,6 +15,7 @@ var showTaskBuckets by mutableStateOf(true)
 var showTasks by mutableStateOf(true)
 
 /* COLORS */
+val BackgroundColor = Color.White
 val PrimaryColor = Color(0xFF1976D2)
 
 /* SHAPES */

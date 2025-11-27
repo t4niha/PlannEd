@@ -18,6 +18,6 @@ fun Tasks() {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(BackgroundColor)
     )
 }

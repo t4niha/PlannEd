@@ -13,7 +13,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             PlanEdTheme {
-                Calendars()
+                AppNavigation()
             }
         }
     }

@@ -18,6 +18,6 @@ fun Developer() {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(BackgroundColor)
     )
 }

@@ -1,5 +1,7 @@
 package com.planned
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -31,6 +33,56 @@ import androidx.compose.material.icons.filled.Android
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.ui.graphics.graphicsLayer
 
+var currentScreen by mutableStateOf("Calendars")
+var currentCalendarView by mutableStateOf("Day")
+var calendarResetTrigger by mutableIntStateOf(0)
+
+/* APP NAVIGATION */
+
+@RequiresApi(Build.VERSION_CODES.O)
+@Composable
+fun AppNavigation() {
+    var isDrawerOpen by remember { mutableStateOf(false) }
+
+    NavigationDrawer(
+        isDrawerOpen = isDrawerOpen,
+        onDrawerToggle = { isDrawerOpen = !isDrawerOpen }
+    ) {
+        Scaffold(
+            topBar = {
+                Header(
+                    currentView = currentCalendarView,
+                    onViewSelected = { view ->
+                        currentCalendarView = view
+                        currentScreen = "Calendars"
+                        if (isDrawerOpen) isDrawerOpen = false
+                    },
+                    onMenuClick = { isDrawerOpen = !isDrawerOpen },
+                    onCreateClick = {
+                        currentScreen = "Creation"
+                        if (isDrawerOpen) isDrawerOpen = false
+                    }
+                )
+            },
+            content = { padding ->
+                Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+                    when (currentScreen) {
+                        "Calendars" -> Calendars()
+                        "Categories" -> Categories()
+                        "Events" -> Events()
+                        "Deadlines" -> Deadlines()
+                        "TaskBuckets" -> TaskBuckets()
+                        "Tasks" -> Tasks()
+                        "Settings" -> Settings()
+                        "Developer" -> Developer()
+                        "Creation" -> Creation()
+                    }
+                }
+            }
+        )
+    }
+}
+
 /* HEADER */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,7 +92,7 @@ fun Header(
     onMenuClick: () -> Unit,
     onCreateClick: () -> Unit
 ) {
-    Column {
+    Column(modifier = Modifier.background(BackgroundColor)) {
         CenterAlignedTopAppBar(
             // Menu button
             navigationIcon = {
@@ -58,21 +110,26 @@ fun Header(
                         val options = listOf("Day", "Week", "Month")
                         options.forEachIndexed { index, view ->
                             SegmentedButton(
-                                selected = currentView == view,
-                                onClick = { onViewSelected(view) },
+                                selected = currentView == view && currentScreen == "Calendars",
+                                onClick = {
+                                    currentScreen = "Calendars"
+                                    currentCalendarView = view
+                                    calendarResetTrigger++
+                                    onViewSelected(view)
+                                },
                                 shape = SegmentedButtonDefaults.itemShape(index, options.size),
                                 icon = {},
                                 colors = SegmentedButtonDefaults.colors(
                                     activeContainerColor = PrimaryColor,
-                                    activeContentColor = Color.White,
-                                    inactiveContainerColor = Color.White,
+                                    activeContentColor = BackgroundColor,
+                                    inactiveContainerColor = BackgroundColor,
                                     inactiveContentColor = Color.Black,
                                 ),
                                 label = {
                                     Text(
                                         view,
                                         fontSize = 14.sp,
-                                        fontWeight = if (currentView == view) FontWeight.Bold else FontWeight.Normal
+                                        fontWeight = if (currentView == view && currentScreen == "Calendars") FontWeight.Bold else FontWeight.Normal
                                     )
                                 }
                             )
@@ -83,13 +140,17 @@ fun Header(
 
                     // Create button
                     IconButton(onClick = onCreateClick) {
-                        Icon(Icons.Filled.Add, contentDescription = "Create", modifier = Modifier.size(32.dp))
+                        Icon(Icons.Filled.Add,
+                            contentDescription = "Create",
+                            modifier = Modifier.size(32.dp))
                     }
                 }
             },
+            colors = TopAppBarDefaults.topAppBarColors(
+                containerColor = BackgroundColor
+            ),
             modifier = Modifier.fillMaxWidth()
         )
-
         Spacer(modifier = Modifier.height(10.dp))
         HorizontalDivider(thickness = 1.dp, color = Color.LightGray)
     }
@@ -125,7 +186,7 @@ fun NavigationDrawer(
                 .fillMaxHeight()
                 .padding(top = 128.dp)
                 .width(DrawerWidth)
-                .background(MaterialTheme.colorScheme.background)
+                .background(BackgroundColor)
                 .border(
                     width = 1.dp,
                     color = Color.LightGray,
@@ -178,7 +239,7 @@ fun NavigationDrawer(
                         modifier = Modifier
                             .size(24.dp)
                             .border(1.dp, Color.Black, RoundedCornerShape(4.dp))
-                            .background(Color.White)
+                            .background(BackgroundColor)
                             .clickable { onToggle() },
                         contentAlignment = Alignment.Center
                     ) {
@@ -242,29 +303,40 @@ fun NavigationDrawer(
 
                 // Drawer content rows
                 DrawerRow("Categories", calendarIcon) {
-                    /* Categories action */
+                    currentScreen = "Categories"
+                    onDrawerToggle()
                 }
                 CheckableDrawerRow("Events", showEvents, {
-                    showEvents = !showEvents }) {
-                    /* Events action */
+                    showEvents = !showEvents
+                }) {
+                    currentScreen = "Events"
+                    onDrawerToggle()
                 }
                 CheckableDrawerRow("Deadlines", showDeadlines, {
-                    showDeadlines = !showDeadlines }) {
-                    /* Deadlines action */
+                    showDeadlines = !showDeadlines
+                }) {
+                    currentScreen = "Deadlines"
+                    onDrawerToggle()
                 }
                 CheckableDrawerRow("Task Buckets", showTaskBuckets, {
-                    showTaskBuckets = !showTaskBuckets }) {
-                    /* Task Buckets action */
+                    showTaskBuckets = !showTaskBuckets
+                }) {
+                    currentScreen = "TaskBuckets"
+                    onDrawerToggle()
                 }
                 CheckableDrawerRow("Tasks", showTasks, {
-                    showTasks = !showTasks }) {
-                    /* Tasks action */
+                    showTasks = !showTasks
+                }) {
+                    currentScreen = "Tasks"
+                    onDrawerToggle()
                 }
                 DrawerRow("Settings", gearIcon) {
-                    /* Settings action */
+                    currentScreen = "Settings"
+                    onDrawerToggle()
                 }
                 DrawerRow("Developer", androidIcon) {
-                    /* Developer action */
+                    currentScreen = "Developer"
+                    onDrawerToggle()
                 }
             }
         }
