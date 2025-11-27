@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,6 +36,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.ui.graphics.RectangleShape
 import com.planned.ui.theme.PlanEdTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -44,13 +46,12 @@ import java.time.format.TextStyle
 import java.time.temporal.TemporalAdjusters
 import java.util.*
 
-// UI constants
+/* CONSTANTS */
 private val PrimaryColor = Color(0xFF1976D2)
 private val CircleShapePrimary = CircleShape
-
-// Calendar constants
 private const val INITIAL_PAGE = 10000
 private const val TOTAL_PAGES = 20000
+private val HourHeight = 80.dp
 
 class MainActivity : ComponentActivity() {
     @RequiresApi(Build.VERSION_CODES.O)
@@ -64,7 +65,71 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-// Home screen
+/* HEADER */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun Header(
+    currentView: String,
+    onViewSelected: (String) -> Unit,
+    onMenuClick: () -> Unit,
+    onCreateClick: () -> Unit
+) {
+    Column {
+        CenterAlignedTopAppBar(
+            // Menu button
+            navigationIcon = {
+                IconButton(onClick = onMenuClick) {
+                    Icon(Icons.Filled.Menu, contentDescription = "Menu", modifier = Modifier.size(32.dp))
+                }
+            },
+            title = {
+                // View selector buttons
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    SingleChoiceSegmentedButtonRow(modifier = Modifier.weight(1.8f)) {
+                        val options = listOf("Day", "Week", "Month")
+                        options.forEachIndexed { index, view ->
+                            SegmentedButton(
+                                selected = currentView == view,
+                                onClick = { onViewSelected(view) },
+                                shape = SegmentedButtonDefaults.itemShape(index, options.size),
+                                icon = {},
+                                colors = SegmentedButtonDefaults.colors(
+                                    activeContainerColor = PrimaryColor,
+                                    activeContentColor = Color.White,
+                                    inactiveContainerColor = Color.White,
+                                    inactiveContentColor = Color.Black,
+                                ),
+                                label = {
+                                    Text(
+                                        view,
+                                        fontSize = 14.sp,
+                                        fontWeight = if (currentView == view) FontWeight.Bold else FontWeight.Normal
+                                    )
+                                }
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    // Create button
+                    IconButton(onClick = onCreateClick) {
+                        Icon(Icons.Filled.Add, contentDescription = "Create", modifier = Modifier.size(32.dp))
+                    }
+                }
+            },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(10.dp))
+        HorizontalDivider(thickness = 1.dp, color = Color.LightGray)
+    }
+}
+
+/* HOME SCREEN */
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
@@ -72,27 +137,13 @@ fun HomeScreen() {
     var currentView by remember { mutableStateOf("Day") }
     val today = LocalDate.now()
     var selectedDate by remember { mutableStateOf(today) }
-
-    // Shared current time state using produceState
     val currentTime by produceState(initialValue = LocalTime.now()) {
-        while (true) {
-            value = LocalTime.now()
-            delay(60_000)
-        }
+        while (true) { value = LocalTime.now(); delay(60_000) }
     }
-
-    // Scroll state
     var dayInitialScrollDone by remember { mutableStateOf(false) }
     var weekInitialScrollDone by remember { mutableStateOf(false) }
-
-    // Pager state
-    val pagerState = rememberPagerState(
-        initialPage = INITIAL_PAGE,
-        pageCount = { TOTAL_PAGES }
-    )
+    val pagerState = rememberPagerState(initialPage = INITIAL_PAGE, pageCount = { TOTAL_PAGES })
     val coroutineScope = rememberCoroutineScope()
-
-    // Displayed date
     val displayedDate by remember(pagerState.currentPage, currentView) {
         derivedStateOf {
             when (currentView) {
@@ -104,171 +155,92 @@ fun HomeScreen() {
         }
     }
 
-    Scaffold(
-        topBar = {
-            CenterAlignedTopAppBar(
-                navigationIcon = {
-                    // Menu button
-                    IconButton(onClick = { }) {
-                        Icon(Icons.Filled.Menu, contentDescription = "Menu", modifier = Modifier.size(32.dp))
+    var isDrawerOpen by remember { mutableStateOf(false) }
+
+    NavigationDrawer(
+        isDrawerOpen = isDrawerOpen,
+        onDrawerToggle = { isDrawerOpen = !isDrawerOpen }
+    ) {
+        Scaffold(
+            topBar = {
+                Header(
+                    currentView = currentView,
+                    onViewSelected = { view ->
+                        currentView = view
+                        selectedDate = today
+                        if (view == "Day") dayInitialScrollDone = false
+                        if (view == "Week") weekInitialScrollDone = false
+                        coroutineScope.launch { pagerState.scrollToPage(INITIAL_PAGE) }
+                        if (isDrawerOpen) isDrawerOpen = false
+                    },
+                    onMenuClick = { isDrawerOpen = !isDrawerOpen },
+                    onCreateClick = {
+                        /* your create action */
+                        if (isDrawerOpen) isDrawerOpen = false
                     }
-                },
-                title = {
+                )
+            },
+            content = { padding ->
+                Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+                    // Date header
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 10.dp, horizontal = 15.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = when (currentView) {
+                                "Day" -> displayedDate.format(DateTimeFormatter.ofPattern("EEEE, MMM d, yyyy"))
+                                "Week" -> {
+                                    val startOfWeek = displayedDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.SUNDAY))
+                                    val endOfWeek = displayedDate.with(TemporalAdjusters.nextOrSame(DayOfWeek.SATURDAY))
+                                    val startMonth = startOfWeek.format(DateTimeFormatter.ofPattern("MMM"))
+                                    val endMonth = endOfWeek.format(DateTimeFormatter.ofPattern("MMM"))
+                                    if (startOfWeek.month == endOfWeek.month)
+                                        "$startMonth ${startOfWeek.dayOfMonth} - ${endOfWeek.dayOfMonth}, ${endOfWeek.year}"
+                                    else
+                                        "$startMonth ${startOfWeek.dayOfMonth} - $endMonth ${endOfWeek.dayOfMonth}, ${endOfWeek.year}"
+                                }
+                                "Month" -> displayedDate.format(DateTimeFormatter.ofPattern("MMMM, yyyy"))
+                                else -> ""
+                            },
+                            fontSize = 16.sp,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+
+                    // Calendar views
+                    Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                        when (currentView) {
+                            "Day" -> DayView(displayedDate, pagerState, dayInitialScrollDone, onScrollDone = { dayInitialScrollDone = true }, currentTime)
+                            "Week" -> WeekView(displayedDate, pagerState, weekInitialScrollDone, onScrollDone = { weekInitialScrollDone = true }, currentTime)
+                            "Month" -> MonthView(selectedDate, { selectedDate = it }, pagerState)
+                        }
+                    }
+
+                    // Navigation buttons
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
+                        modifier = Modifier.fillMaxWidth().padding(all = 20.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        // View selector buttons
-                        SingleChoiceSegmentedButtonRow(
-                            modifier = Modifier.weight(1.8f)
-                        ) {
-                            val options = listOf("Day", "Week", "Month")
+                        IconButton(
+                            onClick = { coroutineScope.launch { pagerState.animateScrollToPage(pagerState.currentPage - 1) } },
+                            modifier = Modifier.size(40.dp).background(PrimaryColor, shape = CircleShapePrimary)
+                        ) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Previous ${currentView.lowercase()}", tint = Color.White) }
 
-                            options.forEachIndexed { index, view ->
-                                SegmentedButton(
-                                    selected = currentView == view,
-                                    onClick = {
-                                        currentView = view
-                                        selectedDate = today
-                                        if (view == "Day") dayInitialScrollDone = false
-                                        if (view == "Week") weekInitialScrollDone = false
-                                        coroutineScope.launch { pagerState.scrollToPage(INITIAL_PAGE) }
-                                    },
-                                    shape = SegmentedButtonDefaults.itemShape(index, options.size),
-
-                                    // REMOVE THE CHECK MARK
-                                    icon = {},
-
-                                    colors = SegmentedButtonDefaults.colors(
-                                        activeContainerColor = PrimaryColor,
-                                        activeContentColor = Color.White,
-                                        inactiveContainerColor = Color.White,
-                                        inactiveContentColor = Color.Black,
-                                    ),
-
-                                    label = {
-                                        Text(
-                                            view,
-                                            fontSize = 14.sp,
-                                            fontWeight = if (currentView == view) FontWeight.Bold else FontWeight.Normal
-                                        )
-                                    }
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.width(8.dp))
-
-                        // Create button
-                        IconButton(onClick = { }) {
-                            Icon(Icons.Filled.Add, contentDescription = "Create", modifier = Modifier.size(32.dp))
-                        }
-                    }
-                }
-            )
-        },
-        content = { padding ->
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-            ) {
-                // Header
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 10.dp, horizontal = 15.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = when (currentView) {
-                            "Day" -> displayedDate.format(DateTimeFormatter.ofPattern("EEEE, MMM d, yyyy"))
-                            "Week" -> {
-                                val startOfWeek = displayedDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.SUNDAY))
-                                val endOfWeek = displayedDate.with(TemporalAdjusters.nextOrSame(DayOfWeek.SATURDAY))
-                                val startMonth = startOfWeek.format(DateTimeFormatter.ofPattern("MMM"))
-                                val endMonth = endOfWeek.format(DateTimeFormatter.ofPattern("MMM"))
-                                if (startOfWeek.month == endOfWeek.month)
-                                    "$startMonth ${startOfWeek.dayOfMonth} - ${endOfWeek.dayOfMonth}, ${endOfWeek.year}"
-                                else
-                                    "$startMonth ${startOfWeek.dayOfMonth} - $endMonth ${endOfWeek.dayOfMonth}, ${endOfWeek.year}"
-                            }
-                            "Month" -> displayedDate.format(DateTimeFormatter.ofPattern("MMMM, yyyy"))
-                            else -> ""
-                        },
-                        fontSize = 16.sp,
-                        textAlign = TextAlign.Center
-                    )
-                }
-
-                // Calendar views
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth()
-                ) {
-                    when (currentView) {
-                        "Day" -> DayView(
-                            displayedDate,
-                            pagerState,
-                            dayInitialScrollDone,
-                            onScrollDone = { dayInitialScrollDone = true },
-                            currentTime = currentTime
-                        )
-                        "Week" -> WeekView(
-                            displayedDate,
-                            pagerState,
-                            weekInitialScrollDone,
-                            onScrollDone = { weekInitialScrollDone = true },
-                            currentTime = currentTime
-                        )
-                        "Month" -> MonthView(
-                            selectedDate,
-                            { selectedDate = it },
-                            pagerState
-                        )
-                    }
-                }
-
-                // Navigation buttons
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(all = 20.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    IconButton(
-                        onClick = {
-                            coroutineScope.launch { pagerState.animateScrollToPage(pagerState.currentPage - 1) }
-                        },
-                        modifier = Modifier.size(40.dp).background(PrimaryColor, shape = CircleShapePrimary)
-                    ) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Previous ${currentView.lowercase()}",
-                            tint = Color.White
-                        )
-                    }
-
-                    IconButton(
-                        onClick = {
-                            coroutineScope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) }
-                        },
-                        modifier = Modifier.size(40.dp).background(PrimaryColor, shape = CircleShapePrimary)
-                    ) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowForward,
-                            contentDescription = "Next ${currentView.lowercase()}",
-                            tint = Color.White
-                        )
+                        IconButton(
+                            onClick = { coroutineScope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) } },
+                            modifier = Modifier.size(40.dp).background(PrimaryColor, shape = CircleShapePrimary)
+                        ) { Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Next ${currentView.lowercase()}", tint = Color.White) }
                     }
                 }
             }
-        }
-    )
+        )
+    }
 }
 
-// Day view
+/* DAY VIEW */
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun DayView(
@@ -278,13 +250,12 @@ fun DayView(
     onScrollDone: () -> Unit,
     currentTime: LocalTime
 ) {
-    val hourHeight = 80.dp
     val hours = (0..23).toList()
 
     // Auto scroll
     val scrollState = rememberScrollState()
     val density = LocalDensity.current
-    val totalHeight = hourHeight.value * 24
+    val totalHeight = HourHeight.value * 24
     val yOffset = (currentTime.hour * 60 + currentTime.minute) * (totalHeight / 1440)
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
@@ -306,7 +277,7 @@ fun DayView(
                 hours.forEach { hour ->
                     val displayHour = "${if (hour % 12 == 0) 12 else hour % 12} ${if (hour < 12) "AM" else "PM"}"
                     Box(
-                        modifier = Modifier.width(60.dp).height(hourHeight).padding(start = 8.dp),
+                        modifier = Modifier.width(60.dp).height(HourHeight).padding(start = 8.dp),
                         contentAlignment = Alignment.TopStart
                     ) {
                         Text(displayHour, fontSize = 14.sp, color = Color.Black, modifier = Modifier.offset(y = (-7).dp))
@@ -320,7 +291,7 @@ fun DayView(
                 Box(modifier = Modifier.verticalScroll(scrollState).fillMaxWidth()) {
                     Column(modifier = Modifier.padding(start = 10.dp, end = 10.dp, top = 10.dp)) {
                         hours.forEach { _ ->
-                            Box(modifier = Modifier.height(hourHeight).fillMaxWidth().border(0.5.dp, Color.LightGray))
+                            Box(modifier = Modifier.height(HourHeight).fillMaxWidth().border(0.5.dp, Color.LightGray))
                         }
                     }
 
@@ -341,7 +312,7 @@ fun DayView(
     }
 }
 
-// Week view
+/* WEEK VIEW */
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun WeekView(
@@ -351,7 +322,6 @@ fun WeekView(
     onScrollDone: () -> Unit,
     currentTime: LocalTime
 ) {
-    val hourHeight = 80.dp
     val hours = (0..23).toList()
     val today = LocalDate.now()
     val scrollState = rememberScrollState()
@@ -361,7 +331,7 @@ fun WeekView(
     var headerHeightPx by remember { mutableFloatStateOf(0f) }
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-        val totalHeight = hourHeight.value * 24
+        val totalHeight = HourHeight.value * 24
         val yOffset = (currentTime.hour * 60 + currentTime.minute) * (totalHeight / 1440)
         val viewportHeightPx = with(density) { maxHeight.toPx() }
         val linePositionPx = with(density) { yOffset.dp.toPx() }
@@ -427,7 +397,7 @@ fun WeekView(
                     hours.forEach { hour ->
                         val displayHour = "${if (hour % 12 == 0) 12 else hour % 12} ${if (hour < 12) "AM" else "PM"}"
                         Box(
-                            modifier = Modifier.height(hourHeight).fillMaxWidth().padding(start = 8.dp),
+                            modifier = Modifier.height(HourHeight).fillMaxWidth().padding(start = 8.dp),
                             contentAlignment = Alignment.TopStart
                         ) {
                             Text(displayHour, fontSize = 14.sp, color = Color.Black, modifier = Modifier.offset(y = (-7).dp))
@@ -452,7 +422,7 @@ fun WeekView(
                                 Column(modifier = Modifier.fillMaxWidth()) {
                                     hours.forEach { _ ->
                                         Box(
-                                            modifier = Modifier.height(hourHeight).fillMaxWidth().border(0.5.dp, Color.LightGray)
+                                            modifier = Modifier.height(HourHeight).fillMaxWidth().border(0.5.dp, Color.LightGray)
                                         )
                                     }
                                 }
@@ -479,7 +449,7 @@ fun WeekView(
     }
 }
 
-// Month view
+/* MONTH VIEW */
 @RequiresApi(Build.VERSION_CODES.O)
 @SuppressLint("UnusedContentLambdaTargetStateParameter")
 @OptIn(ExperimentalAnimationApi::class, ExperimentalFoundationApi::class)
