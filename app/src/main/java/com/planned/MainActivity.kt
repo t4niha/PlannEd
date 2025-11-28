@@ -8,7 +8,6 @@ import androidx.annotation.RequiresApi
 import androidx.room.Room
 import com.planned.ui.theme.PlanEdTheme
 import android.content.Context
-import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 
 object AppDatabaseProvider {
@@ -33,29 +32,19 @@ class MainActivity : ComponentActivity() {
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Load DB
+        val db = AppDatabaseProvider.getDatabase(this)
         setContent {
-            val db = AppDatabaseProvider.getDatabase(this)
+
+            // Load settings
+            LaunchedEffect(Unit) {
+                SettingsManager.load(db)
+            }
+            // Home page
             PlanEdTheme {
-                SetupDefaultSettings(db)
                 AppNavigation()
             }
-        }
-    }
-}
-
-// Default settings
-@Composable
-fun SetupDefaultSettings(db: AppDatabase) {
-    LaunchedEffect(Unit) {
-        val currentSettings = db.settingsDao().getSettings()
-        if (currentSettings == null) {
-            val defaultSetting = AppSetting(
-                id = 0,
-                startWeekOnMonday = false,
-                primaryColor = Converters.fromColor(Preset19),
-                showDeveloper = true
-            )
-            db.settingsDao().insertOrUpdate(defaultSetting)
         }
     }
 }

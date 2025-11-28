@@ -565,13 +565,21 @@ interface ReminderDao {
 // AppSetting
 @Dao
 interface SettingsDao {
-    // Insert or replace
+    // Insert all settings
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertOrUpdate(setting: AppSetting)
+    suspend fun insert(setting: AppSetting)
 
-    // Get settings
+    // Field Updates
+    @Query("UPDATE AppSetting SET primaryColor = :color WHERE id = 0")
+    suspend fun updatePrimaryColor(color: String)
+    @Query("UPDATE AppSetting SET startWeekOnMonday = :value WHERE id = 0")
+    suspend fun updateStartWeekOnMonday(value: Boolean)
+    @Query("UPDATE AppSetting SET showDeveloper = :value WHERE id = 0")
+    suspend fun updateShowDeveloper(value: Boolean)
+
+    // Fetch all settings
     @Query("SELECT * FROM AppSetting WHERE id = 0")
-    suspend fun getSettings(): AppSetting?
+    suspend fun getAll(): AppSetting?
 
     // Delete all settings
     @Query("DELETE FROM AppSetting")

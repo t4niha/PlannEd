@@ -59,7 +59,7 @@ fun Developer() {
             buckets = db.taskBucketDao().getAllMasterBuckets()
             tasks = db.taskDao().getAllMasterTasks()
             reminders = db.reminderDao().getAll()
-            db.settingsDao().getSettings()?.let { settings = listOf(it) } ?: run { settings = emptyList() } // NEW
+            db.settingsDao().getAll()?.let { settings = listOf(it) } ?: run { settings = emptyList() }
         }
     }
     LaunchedEffect(Unit) { refreshData() }
@@ -212,7 +212,7 @@ fun Developer() {
         Table(
             title = "Settings",
             data = settings,
-            headers = listOf("ID", "StartWeekOnMonday", "PrimaryColor", "ShowDeveloper")
+            headers = listOf("ID", "Monday", "Primary", "Developer")
         ) { s -> listOf(s.id.toString(), s.startWeekOnMonday.toString(), s.primaryColor, s.showDeveloper.toString()) }
     }
 }

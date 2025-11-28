@@ -460,7 +460,7 @@ fun MonthView(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(vertical = 4.dp)
-                        .border(1.dp, PrimaryColor, RoundedCornerShape(8.dp))
+                        .border(1.dp, Color.LightGray, RoundedCornerShape(8.dp))
                         .background(Color.Transparent, RoundedCornerShape(8.dp))
                         .padding(12.dp)
                 ) {
