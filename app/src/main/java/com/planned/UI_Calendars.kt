@@ -35,6 +35,16 @@ import java.time.format.TextStyle
 import java.time.temporal.TemporalAdjusters
 import java.util.*
 
+/* WEEK START LOGIC */
+@RequiresApi(Build.VERSION_CODES.O)
+fun getFirstDayOfWeek(): DayOfWeek {
+    return if (startWeekOnMonday) DayOfWeek.MONDAY else DayOfWeek.SUNDAY
+}
+@RequiresApi(Build.VERSION_CODES.O)
+fun getLastDayOfWeek(): DayOfWeek {
+    return getFirstDayOfWeek().minus(1)
+}
+
 /* CALENDARS */
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
@@ -85,8 +95,8 @@ fun Calendars() {
                 text = when (currentView) {
                     "Day" -> displayedDate.format(DateTimeFormatter.ofPattern("EEEE, MMM d, yyyy"))
                     "Week" -> {
-                        val startOfWeek = displayedDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.SUNDAY))
-                        val endOfWeek = displayedDate.with(TemporalAdjusters.nextOrSame(DayOfWeek.SATURDAY))
+                        val startOfWeek = displayedDate.with(TemporalAdjusters.previousOrSame(getFirstDayOfWeek()))
+                        val endOfWeek = displayedDate.with(TemporalAdjusters.nextOrSame(getLastDayOfWeek()))
                         val startMonth = startOfWeek.format(DateTimeFormatter.ofPattern("MMM"))
                         val endMonth = endOfWeek.format(DateTimeFormatter.ofPattern("MMM"))
                         if (startOfWeek.month == endOfWeek.month)
@@ -228,8 +238,8 @@ fun WeekView(
         // Auto scroll
         LaunchedEffect(displayedDate, initialScrollDone, headerHeightPx, scrollState.maxValue) {
             if (!initialScrollDone && headerHeightPx > 0 && scrollState.maxValue > 0) {
-                val startOfWeek = displayedDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.SUNDAY))
-                val endOfWeek = displayedDate.with(TemporalAdjusters.nextOrSame(DayOfWeek.SATURDAY))
+                val startOfWeek = displayedDate.with(TemporalAdjusters.previousOrSame(getFirstDayOfWeek()))
+                val endOfWeek = displayedDate.with(TemporalAdjusters.nextOrSame(getLastDayOfWeek()))
                 if (!today.isBefore(startOfWeek) && !today.isAfter(endOfWeek)) {
                     val targetScroll = (linePositionPx - viewportHeightPx / 2f + headerHeightPx)
                         .coerceIn(0f, scrollState.maxValue.toFloat())
@@ -241,7 +251,7 @@ fun WeekView(
 
         Column(modifier = Modifier.fillMaxSize()) {
             // Weekday headers
-            val startOfWeek = displayedDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.SUNDAY))
+            val startOfWeek = displayedDate.with(TemporalAdjusters.previousOrSame(getFirstDayOfWeek()))
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -302,8 +312,8 @@ fun WeekView(
                     modifier = Modifier.fillMaxWidth().padding(end = 10.dp)
                 ) { page ->
                     val pageDate = LocalDate.now().plusWeeks((page - INITIAL_PAGE).toLong())
-                    val pageStartOfWeek = pageDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.SUNDAY))
-                    val todayIndex = today.dayOfWeek.value % 7
+                    val pageStartOfWeek = pageDate.with(TemporalAdjusters.previousOrSame(getFirstDayOfWeek()))
+                    val todayIndex = ((today.dayOfWeek.value - getFirstDayOfWeek().value + 7) % 7)
 
                     Row(modifier = Modifier.verticalScroll(scrollState).fillMaxWidth().padding(top = 10.dp)) {
                         (0..6).forEachIndexed { index, _ ->
@@ -353,11 +363,15 @@ fun MonthView(
     val coroutineScope = rememberCoroutineScope()
 
     Column(modifier = Modifier.fillMaxSize().padding(horizontal = 10.dp)) {
+
         // Weekday labels
         Row(modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)) {
-            listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat").forEach { day ->
+            val daysOfWeek = (0..6).map { i ->
+                DayOfWeek.of(((getFirstDayOfWeek().value - 1 + i) % 7 + 1))
+            }
+            daysOfWeek.forEach { day ->
                 Box(modifier = Modifier.weight(1f).height(40.dp), contentAlignment = Alignment.Center) {
-                    Text(day, fontSize = 14.sp)
+                    Text(day.getDisplayName(TextStyle.SHORT, Locale.getDefault()), fontSize = 14.sp)
                 }
             }
         }
@@ -372,8 +386,8 @@ fun MonthView(
             Box(modifier = Modifier.fillMaxSize().padding(bottom = 4.dp)) {
                 val pageDate = LocalDate.now().plusMonths((page - INITIAL_PAGE).toLong())
                 val firstDayOfMonth = pageDate.withDayOfMonth(1)
-                val startDayOfWeek = firstDayOfMonth.dayOfWeek.value % 7
-                var currentDate = firstDayOfMonth.minusDays(startDayOfWeek.toLong())
+                val daysToSubtract = (firstDayOfMonth.dayOfWeek.value - getFirstDayOfWeek().value + 7) % 7
+                var currentDate = firstDayOfMonth.minusDays(daysToSubtract.toLong())
 
                 val weeks = List(6) {
                     List(7) { currentDate.also { currentDate = currentDate.plusDays(1) } }

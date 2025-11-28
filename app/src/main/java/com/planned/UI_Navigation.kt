@@ -38,7 +38,6 @@ var currentCalendarView by mutableStateOf("Day")
 var calendarResetTrigger by mutableIntStateOf(0)
 
 /* APP NAVIGATION */
-
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun AppNavigation() {
@@ -214,26 +213,6 @@ fun NavigationDrawer(
                     HorizontalDivider(thickness = 1.dp, color = Color.LightGray)
                 }
 
-                // Icons
-                val calendarIcon: @Composable () -> Unit = {
-                    Icon(Icons.Filled.CalendarToday,
-                        contentDescription = "Calendar",
-                        modifier = Modifier.size(24.dp),
-                        tint = PrimaryColor)
-                }
-                val gearIcon: @Composable () -> Unit = {
-                    Icon(Icons.Filled.Settings,
-                        contentDescription = "Settings",
-                        modifier = Modifier.size(24.dp),
-                        tint = PrimaryColor)
-                }
-                val androidIcon: @Composable () -> Unit = {
-                    Icon(Icons.Filled.Android,
-                        contentDescription = "Developer",
-                        modifier = Modifier.size(24.dp),
-                        tint = PrimaryColor)
-                }
-
                 // Checkable boxes
                 @Composable
                 fun CheckableBox(isChecked: Boolean, onToggle: () -> Unit) {
@@ -261,7 +240,7 @@ fun NavigationDrawer(
                     }
                 }
 
-                // Row items
+                // Drawer rows
                 @Composable
                 fun DrawerRow(
                     label: String,
@@ -272,12 +251,10 @@ fun NavigationDrawer(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        // Icon on the left
                         Box(modifier = Modifier.size(24.dp), contentAlignment = Alignment.Center) {
                             icon()
                         }
                         Spacer(modifier = Modifier.width(12.dp))
-                        // Text button
                         DrawerItem(label, onClick)
                     }
                 }
@@ -293,18 +270,45 @@ fun NavigationDrawer(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        // Checkbox on the left
                         Box(modifier = Modifier.size(24.dp), contentAlignment = Alignment.Center) {
                             CheckableBox(isChecked = isChecked, onToggle = onCheckToggle)
                         }
                         Spacer(modifier = Modifier.width(12.dp))
-                        // Text button
                         DrawerItem(label, onClick)
                     }
                 }
 
-                // Drawer content rows
-                DrawerRow("Categories", calendarIcon) {
+                // Icons
+                @Composable
+                fun CalendarIcon() {
+                    Icon(
+                        Icons.Filled.CalendarToday,
+                        contentDescription = "Calendar",
+                        modifier = Modifier.size(24.dp),
+                        tint = PrimaryColor
+                    )
+                }
+                @Composable
+                fun GearIcon() {
+                    Icon(
+                        Icons.Filled.Settings,
+                        contentDescription = "Settings",
+                        modifier = Modifier.size(24.dp),
+                        tint = PrimaryColor
+                    )
+                }
+                @Composable
+                fun AndroidIcon() {
+                    Icon(
+                        Icons.Filled.Android,
+                        contentDescription = "Developer",
+                        modifier = Modifier.size(24.dp),
+                        tint = PrimaryColor
+                    )
+                }
+
+                // Drawer Contents
+                DrawerRow("Categories", { CalendarIcon() }) {
                     currentScreen = "Categories"
                     onDrawerToggle()
                 }
@@ -338,12 +342,12 @@ fun NavigationDrawer(
                     currentScreen = "Reminders"
                     onDrawerToggle()
                 }
-                DrawerRow("Settings", gearIcon) {
+                DrawerRow("Settings", { GearIcon() }) {
                     currentScreen = "Settings"
                     onDrawerToggle()
                 }
                 if (showDeveloper) {
-                    DrawerRow("Developer", androidIcon) {
+                    DrawerRow("Developer", { AndroidIcon() }) {
                         currentScreen = "Developer"
                         onDrawerToggle()
                     }
