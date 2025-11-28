@@ -78,6 +78,8 @@ object Converters {
     }
 }
 
+// TODO: Generate up to 1 year? Change to a few months instead.
+
 /* Generate EventOccurrences from MasterEvent */
 @RequiresApi(Build.VERSION_CODES.O)
 fun generateEventOccurrences(master: MasterEvent): List<EventOccurrence> {
@@ -168,6 +170,8 @@ fun generateTaskBucketOccurrences(master: MasterTaskBucket): List<TaskBucketOccu
 
     return occurrences
 }
+
+// TODO: Set up after heuristic algorithm
 
 /* Generate TaskIntervals from MasterTask */
 
