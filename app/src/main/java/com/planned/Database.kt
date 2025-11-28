@@ -95,8 +95,8 @@ data class MasterEvent(
     val notes: String? = null,
     val color: String? = null,
 
-    val startDate: LocalDate,
-    val endDate: LocalDate? = null,
+    val startDate: LocalDate,               // date when event occurs
+    val endDate: LocalDate? = null,         // for recurring events only, date when occurrences stop
 
     val startTime: LocalTime,
     val endTime: LocalTime,
@@ -172,8 +172,8 @@ data class Deadline(
 data class MasterTaskBucket(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
 
-    val startDate: LocalDate,
-    val endDate: LocalDate? = null,
+    val startDate: LocalDate,               // date when event occurs
+    val endDate: LocalDate? = null,         // for recurring events only, date when occurrences stop
 
     val startTime: LocalTime,
     val endTime: LocalTime,

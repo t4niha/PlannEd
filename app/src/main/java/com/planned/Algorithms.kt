@@ -40,7 +40,8 @@ fun generateEventOccurrences(master: MasterEvent): List<EventOccurrence> {
 
         // Increment current date based on frequency
         current = when (master.recurFreq) {
-            RecurrenceFrequency.NONE, RecurrenceFrequency.DAILY -> current.plusDays(1)
+            RecurrenceFrequency.NONE,
+            RecurrenceFrequency.DAILY -> current.plusDays(1)
             RecurrenceFrequency.WEEKLY -> current.plusWeeks(1)
             RecurrenceFrequency.MONTHLY -> current.plusMonths(1)
             RecurrenceFrequency.YEARLY -> current.plusYears(1)
@@ -50,8 +51,8 @@ fun generateEventOccurrences(master: MasterEvent): List<EventOccurrence> {
     return occurrences
 }
 
-/* Generate individual TaskBucketOccurrence objects from a MasterTaskBucket
-* */
+/* Generate individual TaskBucketOccurrence objects from a MasterTaskBucket */
+
 @RequiresApi(Build.VERSION_CODES.O)
 fun generateTaskBucketOccurrences(master: MasterTaskBucket): List<TaskBucketOccurrence> {
     val today = LocalDate.now()
@@ -85,7 +86,8 @@ fun generateTaskBucketOccurrences(master: MasterTaskBucket): List<TaskBucketOccu
 
         // Increment current date based on frequency
         current = when (master.recurFreq) {
-            RecurrenceFrequency.NONE, RecurrenceFrequency.DAILY -> current.plusDays(1)
+            RecurrenceFrequency.NONE,
+            RecurrenceFrequency.DAILY -> current.plusDays(1)
             RecurrenceFrequency.WEEKLY -> current.plusWeeks(1)
             RecurrenceFrequency.MONTHLY -> current.plusMonths(1)
             RecurrenceFrequency.YEARLY -> current.plusYears(1)
