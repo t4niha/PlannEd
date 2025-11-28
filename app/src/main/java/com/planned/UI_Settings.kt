@@ -17,14 +17,21 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.launch
 
 /* GLOBAL SETTINGS */
-var startWeekOnMonday = false
-var PrimaryColor by mutableStateOf(Preset19)
-var showDeveloper = true
+val startWeekOnMonday: Boolean
+    get() = SettingsManager.settings?.startWeekOnMonday ?: false
+val PrimaryColor: Color
+    get() = SettingsManager.settings?.let {
+        Converters.toColor(it.primaryColor)
+    } ?: Preset19
+val showDeveloper: Boolean
+    get() = SettingsManager.settings?.showDeveloper ?: true
 val colorPresets = listOf(
     Preset13, Preset14, Preset15, Preset16,
     Preset17, Preset18, Preset19, Preset20,
@@ -35,11 +42,19 @@ val colorPresets = listOf(
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
 fun Settings() {
+    val context = LocalContext.current
+    val db = remember { AppDatabaseProvider.getDatabase(context) }
+    val scope = rememberCoroutineScope()
 
-    var localWeekStartMonday by remember { mutableStateOf(startWeekOnMonday) }
-    var localDeveloper by remember { mutableStateOf(showDeveloper) }
+    // Derived state from SettingsManager
+    val settings = SettingsManager.settings
+
     var showColorPicker by remember { mutableStateOf(false) }
-    var localPrimary by remember { mutableStateOf(PrimaryColor) }
+
+    // Local state for UI
+    settings?.startWeekOnMonday ?: false
+    val localDeveloper = settings?.showDeveloper ?: true
+    val localPrimary = settings?.let { Converters.toColor(it.primaryColor) } ?: Preset19
 
     Column(
         modifier = Modifier
@@ -47,7 +62,6 @@ fun Settings() {
             .background(BackgroundColor)
             .padding(16.dp)
     ) {
-
         // Week start switch
         Box(
             modifier = Modifier
@@ -62,27 +76,27 @@ fun Settings() {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     WeekButton(
                         label = "Sun",
-                        selected = !localWeekStartMonday,
-                        color = localPrimary
+                        selected = !startWeekOnMonday,
+                        color = PrimaryColor
                     ) {
-                        localWeekStartMonday = false
-                        startWeekOnMonday = false
+                        scope.launch {
+                            SettingsManager.setStartWeek(db, false)
+                        }
                     }
-
                     Spacer(modifier = Modifier.width(8.dp))
 
                     WeekButton(
                         label = "Mon",
-                        selected = localWeekStartMonday,
-                        color = localPrimary
+                        selected = startWeekOnMonday,
+                        color = PrimaryColor
                     ) {
-                        localWeekStartMonday = true
-                        startWeekOnMonday = true
+                        scope.launch {
+                            SettingsManager.setStartWeek(db, true)
+                        }
                     }
                 }
             }
         }
-
         Spacer(modifier = Modifier.height(12.dp))
 
         // App accent
@@ -129,8 +143,9 @@ fun Settings() {
                                     .clip(CircleShape)
                                     .background(c)
                                     .clickable {
-                                        localPrimary = c
-                                        PrimaryColor = c
+                                        scope.launch {
+                                            SettingsManager.setPrimaryColor(db, c)
+                                        }
                                         showColorPicker = false
                                     }
                             )
@@ -139,7 +154,6 @@ fun Settings() {
                 }
             }
         }
-
         Spacer(modifier = Modifier.height(12.dp))
 
         // Developer mode switch
@@ -156,8 +170,9 @@ fun Settings() {
                 Switch(
                     checked = localDeveloper,
                     onCheckedChange = {
-                        localDeveloper = it
-                        showDeveloper = it
+                        scope.launch {
+                            SettingsManager.setDeveloperMode(db, it)
+                        }
                     },
                     colors = SwitchDefaults.colors(
                         checkedThumbColor = Color.White,

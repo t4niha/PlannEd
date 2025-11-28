@@ -72,7 +72,7 @@ object Converters {
     fun toColor(value: String): Color {
         return try {
             Color(value.toColorInt())
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             Color.LightGray
         }
     }

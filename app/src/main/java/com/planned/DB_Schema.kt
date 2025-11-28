@@ -3,7 +3,6 @@ package com.planned
 import androidx.room.*
 import java.time.LocalDate
 import java.time.LocalTime
-import androidx.compose.ui.graphics.Color
 
 /* ENTITIES */
 
