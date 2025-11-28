@@ -176,7 +176,7 @@ fun WeekButton(label: String, selected: Boolean, color: Color, onClick: () -> Un
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(12.dp))
-            .background(if (selected) color else Color(0xFFEAEAEA))
+            .background(if (selected) color else Color.LightGray)
             .clickable { onClick() }
             .padding(horizontal = 18.dp, vertical = 10.dp)
     ) {

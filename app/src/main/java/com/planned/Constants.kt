@@ -1,15 +1,9 @@
 package com.planned
 
-import android.os.Build
-import androidx.annotation.RequiresApi
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import java.time.DayOfWeek
 
 /* COLOR PRESETS */
 //<editor-fold desc="Colors">
@@ -64,5 +58,5 @@ const val AnimationDuration = 300
 
 /* SETTINGS & CREATION FIELDS*/
 //<editor-fold desc="Fields">
-const val cardColor = 0xFFF8F8F8
+const val cardColor = 0xFFF1F1F1
 //</editor-fold desc="Navigation">
