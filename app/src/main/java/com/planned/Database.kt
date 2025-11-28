@@ -290,6 +290,23 @@ data class TaskInterval(
 )
 //</editor-fold>
 
+// Reminder
+//<editor-fold desc="Category">
+
+@Entity
+data class Reminder(
+    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+
+    val title: String,
+    val notes: String? = null,
+    val color: String,
+
+    val date: LocalDate,
+    val time: LocalTime,                // available if all day false
+    val allDay: Boolean? = false        // can be checked true
+)
+//</editor-fold>
+
 /* ATI MODULE */
 //<editor-fold desc="ATI">
 
@@ -563,6 +580,31 @@ interface TaskDao {
     @Query("DELETE FROM MasterTask WHERE id = :taskId")
     suspend fun deleteMasterTask(taskId: Int)
 }
+
+// Reminder
+@Dao
+interface ReminderDao {
+
+    // Insert new reminder
+    @Insert
+    suspend fun insert(reminder: Reminder)
+
+    // Fetch all reminders
+    @Query("SELECT * FROM Reminder ORDER BY date, time")
+    suspend fun getAll(): List<Reminder>
+
+    // Fetch reminder by ID
+    @Query("SELECT * FROM Reminder WHERE id = :reminderId")
+    suspend fun getById(reminderId: Int): Reminder?
+
+    // Update reminder
+    @Update
+    suspend fun update(reminder: Reminder)
+
+    // Delete reminder
+    @Query("DELETE FROM Reminder WHERE id = :reminderId")
+    suspend fun deleteById(reminderId: Int)
+}
 //</editor-fold>
 
 /* DATABASE */
@@ -575,6 +617,7 @@ interface TaskDao {
         Deadline::class,
         MasterTaskBucket::class, TaskBucketOccurrence::class,
         MasterTask::class, TaskInterval::class,
+        Reminder::class,
         EventATI::class, UserATI::class
     ],
     version = 1
@@ -586,5 +629,6 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun deadlineDao(): DeadlineDao
     abstract fun taskBucketDao(): TaskBucketDao
     abstract fun taskDao(): TaskDao
+    abstract fun reminderDao(): ReminderDao
 }
 //</editor-fold>

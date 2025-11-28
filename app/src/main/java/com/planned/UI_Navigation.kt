@@ -49,6 +49,7 @@ fun AppNavigation() {
         onDrawerToggle = { isDrawerOpen = !isDrawerOpen }
     ) {
         Scaffold(
+            containerColor = BackgroundColor,
             topBar = {
                 Header(
                     currentView = currentCalendarView,
@@ -73,6 +74,7 @@ fun AppNavigation() {
                         "Deadlines" -> Deadlines()
                         "TaskBuckets" -> TaskBuckets()
                         "Tasks" -> Tasks()
+                        "Reminders" -> Reminders()
                         "Settings" -> Settings()
                         "Developer" -> Developer()
                         "Creation" -> Creation()
@@ -217,19 +219,19 @@ fun NavigationDrawer(
                     Icon(Icons.Filled.CalendarToday,
                         contentDescription = "Calendar",
                         modifier = Modifier.size(24.dp),
-                        tint = Color(0xFF1976D2))
+                        tint = PrimaryColor)
                 }
                 val gearIcon: @Composable () -> Unit = {
                     Icon(Icons.Filled.Settings,
                         contentDescription = "Settings",
                         modifier = Modifier.size(24.dp),
-                        tint = Color(0xFF1976D2))
+                        tint = PrimaryColor)
                 }
                 val androidIcon: @Composable () -> Unit = {
                     Icon(Icons.Filled.Android,
                         contentDescription = "Developer",
                         modifier = Modifier.size(24.dp),
-                        tint = Color(0xFF1976D2))
+                        tint = PrimaryColor)
                 }
 
                 // Checkable boxes
@@ -247,7 +249,7 @@ fun NavigationDrawer(
                             Icon(
                                 Icons.Filled.Check,
                                 contentDescription = "Checked",
-                                tint = Color(0xFF1976D2),
+                                tint = PrimaryColor,
                                 modifier = Modifier
                                     .size(16.dp)
                                     .graphicsLayer {
@@ -330,13 +332,21 @@ fun NavigationDrawer(
                     currentScreen = "Tasks"
                     onDrawerToggle()
                 }
+                CheckableDrawerRow("Reminders", showReminders, {
+                    showReminders = !showReminders
+                }) {
+                    currentScreen = "Reminders"
+                    onDrawerToggle()
+                }
                 DrawerRow("Settings", gearIcon) {
                     currentScreen = "Settings"
                     onDrawerToggle()
                 }
-                DrawerRow("Developer", androidIcon) {
-                    currentScreen = "Developer"
-                    onDrawerToggle()
+                if (showDeveloper) {
+                    DrawerRow("Developer", androidIcon) {
+                        currentScreen = "Developer"
+                        onDrawerToggle()
+                    }
                 }
             }
         }
