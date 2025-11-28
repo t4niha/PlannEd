@@ -6,9 +6,9 @@ import kotlinx.coroutines.runBlocking
 import java.time.LocalDate
 import java.time.LocalTime
 
-/* LOAD DUMMY OBJECTS INTO DATABASE */
+/* LOAD SAMPLE OBJECTS INTO DATABASE */
 @RequiresApi(Build.VERSION_CODES.O)
-fun runDummy(db: AppDatabase) = runBlocking {
+fun runSample(db: AppDatabase) = runBlocking {
 
     // Create category
     val catSchool = Category(

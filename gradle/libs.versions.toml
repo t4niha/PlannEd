@@ -1,6 +1,5 @@
 [versions]
-agp = "8.13.0"
-animationVersion = "1.9.5"
+agp = "8.13.1"
 kotlin = "2.2.21"
 coreKtx = "1.17.0"
 junit = "4.13.2"

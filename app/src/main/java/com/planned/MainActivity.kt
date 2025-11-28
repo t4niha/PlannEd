@@ -7,9 +7,6 @@ import androidx.activity.compose.setContent
 import androidx.annotation.RequiresApi
 import androidx.room.Room
 import com.planned.ui.theme.PlanEdTheme
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import android.content.Context
 
 object AppDatabaseProvider {
@@ -34,16 +31,6 @@ class MainActivity : ComponentActivity() {
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        val db = AppDatabaseProvider.getDatabase(this)
-
-        // DB dummy objects if developer enabled
-        if (showDeveloper) {
-            CoroutineScope(Dispatchers.IO).launch {
-                runDummy(db)
-            }
-        }
-
         setContent {
             PlanEdTheme {
                 AppNavigation()

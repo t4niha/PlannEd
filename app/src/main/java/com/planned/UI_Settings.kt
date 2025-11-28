@@ -22,7 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 /* GLOBAL SETTINGS */
-var startWeekOnMonday = true
+var startWeekOnMonday = false
 var PrimaryColor by mutableStateOf(Preset19)
 var showDeveloper = true
 val colorPresets = listOf(

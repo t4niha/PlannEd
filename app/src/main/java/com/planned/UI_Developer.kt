@@ -96,11 +96,11 @@ fun Developer() {
 
             Spacer(modifier = Modifier.width(16.dp))
 
-            // Dummy button
+            // Sample button
             Button(
                 onClick = {
                     CoroutineScope(Dispatchers.IO).launch {
-                        runDummy(db)
+                        runSample(db)
                         refreshData()
                     }
                 },
@@ -110,7 +110,7 @@ fun Developer() {
                     contentColor = BackgroundColor
                 )
             ) {
-                Text("Dummy", fontSize = 16.sp)
+                Text("Sample", fontSize = 16.sp)
             }
         }
 
