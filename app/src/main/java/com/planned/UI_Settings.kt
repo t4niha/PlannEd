@@ -52,7 +52,7 @@ fun Settings() {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color(cardColor), RoundedCornerShape(12.dp))
+                .background(Color(CardColor), RoundedCornerShape(12.dp))
                 .padding(16.dp)
         ) {
             Column {
@@ -89,7 +89,7 @@ fun Settings() {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color(cardColor), RoundedCornerShape(12.dp))
+                .background(Color(CardColor), RoundedCornerShape(12.dp))
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null
@@ -146,7 +146,7 @@ fun Settings() {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color(cardColor), RoundedCornerShape(12.dp))
+                .background(Color(CardColor), RoundedCornerShape(12.dp))
                 .padding(16.dp)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {

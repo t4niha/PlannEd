@@ -8,6 +8,7 @@ import androidx.compose.ui.unit.dp
 /* COLOR PRESETS */
 //<editor-fold desc="Colors">
 val BackgroundColor = Color.White
+const val CardColor = 0xFFF1F1F1
 
 // Object Presets
 val Preset1 = Color(0xFFEF6E6E)
@@ -55,8 +56,3 @@ val HourHeight = 80.dp
 val DrawerWidth: Dp = 200.dp
 const val AnimationDuration = 300
 //</editor-fold>
-
-/* SETTINGS & CREATION FIELDS*/
-//<editor-fold desc="Fields">
-const val cardColor = 0xFFF1F1F1
-//</editor-fold desc="Navigation">

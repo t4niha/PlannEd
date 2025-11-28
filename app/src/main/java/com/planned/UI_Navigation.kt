@@ -4,6 +4,7 @@ import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -120,10 +121,11 @@ fun Header(
                                 },
                                 shape = SegmentedButtonDefaults.itemShape(index, options.size),
                                 icon = {},
+                                border = BorderStroke(0.dp, Color.Transparent),
                                 colors = SegmentedButtonDefaults.colors(
                                     activeContainerColor = PrimaryColor,
                                     activeContentColor = BackgroundColor,
-                                    inactiveContainerColor = BackgroundColor,
+                                    inactiveContainerColor = Color(CardColor),
                                     inactiveContentColor = Color.Black,
                                 ),
                                 label = {
