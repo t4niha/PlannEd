@@ -1,64 +1,9 @@
 package com.planned
 
-import android.os.Build
-import androidx.annotation.RequiresApi
 import androidx.room.*
-import com.google.gson.Gson
 import java.time.LocalDate
 import java.time.LocalTime
-
-/* RECURRENCE LOGIC */
-//<editor-fold desc="Recurrence">
-
-enum class RecurrenceFrequency {
-    NONE, DAILY, WEEKLY, MONTHLY, YEARLY
-}
-data class RecurrenceRule(
-    val daysOfWeek: List<Int>? = null,      // 1 = Mon ... 7 = Sun
-    val dayOfMonth: Int? = null,            // 1 - 31
-    val monthAndDay: Pair<Int, Int>? = null // DD-MM
-)
-//</editor-fold>
-
-/* TYPE CONVERTERS */
-//<editor-fold desc="Converters">
-
-@RequiresApi(Build.VERSION_CODES.O)
-class Converters {
-    @TypeConverter
-    fun fromLocalDate(date: LocalDate?): Long? =
-        date?.toEpochDay()
-    @TypeConverter
-    fun toLocalDate(days: Long?): LocalDate? =
-        days?.let { LocalDate.ofEpochDay(it) }
-    @TypeConverter
-    fun fromLocalTime(time: LocalTime?): Int? =
-        time?.toSecondOfDay()
-    @TypeConverter
-    fun toLocalTime(seconds: Int?): LocalTime? =
-        seconds?.let { LocalTime.ofSecondOfDay(it.toLong()) }
-}
-
-class RecurrenceConverter {
-    // Enum <-> String
-    @TypeConverter
-    fun fromRecurrenceFrequency(freq: RecurrenceFrequency): String =
-        freq.name
-
-    @TypeConverter
-    fun toRecurrenceFrequency(value: String): RecurrenceFrequency =
-        RecurrenceFrequency.valueOf(value)
-
-    // RecurrenceRule <-> JSON String
-    @TypeConverter
-    fun fromRecurrenceRule(rule: RecurrenceRule): String =
-        Gson().toJson(rule)
-
-    @TypeConverter
-    fun toRecurrenceRule(value: String): RecurrenceRule =
-        Gson().fromJson(value, RecurrenceRule::class.java)
-}
-//</editor-fold>
+import androidx.compose.ui.graphics.Color
 
 /* ENTITIES */
 
@@ -304,6 +249,18 @@ data class Reminder(
     val date: LocalDate,
     val time: LocalTime,                // available if all day false
     val allDay: Boolean? = false        // can be checked true
+)
+//</editor-fold>
+
+// AppSetting
+//<editor-fold desc="Settings">
+
+@Entity
+data class AppSetting(
+    @PrimaryKey val id: Int = 0,
+    val startWeekOnMonday: Boolean,
+    val primaryColor: String,
+    val showDeveloper: Boolean
 )
 //</editor-fold>
 
@@ -584,7 +541,6 @@ interface TaskDao {
 // Reminder
 @Dao
 interface ReminderDao {
-
     // Insert new reminder
     @Insert
     suspend fun insert(reminder: Reminder)
@@ -605,6 +561,22 @@ interface ReminderDao {
     @Query("DELETE FROM Reminder WHERE id = :reminderId")
     suspend fun deleteById(reminderId: Int)
 }
+
+// AppSetting
+@Dao
+interface SettingsDao {
+    // Insert or replace
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertOrUpdate(setting: AppSetting)
+
+    // Get settings
+    @Query("SELECT * FROM AppSetting WHERE id = 0")
+    suspend fun getSettings(): AppSetting?
+
+    // Delete all settings
+    @Query("DELETE FROM AppSetting")
+    suspend fun deleteAll()
+}
 //</editor-fold>
 
 /* DATABASE */
@@ -618,11 +590,12 @@ interface ReminderDao {
         MasterTaskBucket::class, TaskBucketOccurrence::class,
         MasterTask::class, TaskInterval::class,
         Reminder::class,
+        AppSetting::class,
         EventATI::class, UserATI::class
     ],
-    version = 1
+    version = 2
 )
-@TypeConverters(Converters::class, RecurrenceConverter::class)
+@TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun categoryDao(): CategoryDao
     abstract fun eventDao(): EventDao
@@ -630,5 +603,6 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun taskBucketDao(): TaskBucketDao
     abstract fun taskDao(): TaskDao
     abstract fun reminderDao(): ReminderDao
+    abstract fun settingsDao(): SettingsDao
 }
 //</editor-fold>

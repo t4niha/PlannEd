@@ -2,10 +2,83 @@ package com.planned
 
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
+import androidx.core.graphics.toColorInt
+import androidx.room.TypeConverter
+import com.google.gson.Gson
 import java.time.LocalDate
+import java.time.LocalTime
 
-/* Generate individual EventOccurrence objects from a MasterEvent */
+/* RECURRENCE LOGIC */
+//<editor-fold desc="Recurrence">
 
+enum class RecurrenceFrequency {
+    NONE, DAILY, WEEKLY, MONTHLY, YEARLY
+}
+data class RecurrenceRule(
+    val daysOfWeek: List<Int>? = null,      // 1 = Mon ... 7 = Sun
+    val dayOfMonth: Int? = null,            // 1 - 31
+    val monthAndDay: Pair<Int, Int>? = null // DD-MM
+)
+//</editor-fold>
+
+/* TYPE CONVERTERS */
+object Converters {
+    @RequiresApi(Build.VERSION_CODES.O)
+    @TypeConverter
+    // LocalDate -> Long
+    fun fromLocalDate(date: LocalDate?): Long? = date?.toEpochDay()
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    @TypeConverter
+    // Long -> LocalDate
+    fun toLocalDate(days: Long?): LocalDate? = days?.let { LocalDate.ofEpochDay(it) }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    @TypeConverter
+    // LocalTime -> Int
+    fun fromLocalTime(time: LocalTime?): Int? = time?.toSecondOfDay()
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    @TypeConverter
+    // Int -> LocalTime
+    fun toLocalTime(seconds: Int?): LocalTime? = seconds?.let { LocalTime.ofSecondOfDay(it.toLong()) }
+
+    @TypeConverter
+    // RecurrenceFrequency -> String
+    fun fromRecurrenceFrequency(freq: RecurrenceFrequency): String = freq.name
+
+    @TypeConverter
+    // String -> RecurrenceFrequency
+    fun toRecurrenceFrequency(value: String): RecurrenceFrequency = RecurrenceFrequency.valueOf(value)
+
+    @TypeConverter
+    // RecurrenceRule -> JSON String
+    fun fromRecurrenceRule(rule: RecurrenceRule): String = Gson().toJson(rule)
+
+    @TypeConverter
+    // JSON String -> RecurrenceRule
+    fun toRecurrenceRule(value: String): RecurrenceRule = Gson().fromJson(value, RecurrenceRule::class.java)
+
+    @TypeConverter
+    // Color -> String
+    fun fromColor(color: Color): String {
+        return "#${color.toArgb().toUInt().toString(16).padStart(8, '0')}"
+    }
+
+    @TypeConverter
+    // String -> Color
+    fun toColor(value: String): Color {
+        return try {
+            Color(value.toColorInt())
+        } catch (e: Exception) {
+            Color.LightGray
+        }
+    }
+}
+
+/* Generate EventOccurrences from MasterEvent */
 @RequiresApi(Build.VERSION_CODES.O)
 fun generateEventOccurrences(master: MasterEvent): List<EventOccurrence> {
     val today = LocalDate.now()
@@ -51,8 +124,7 @@ fun generateEventOccurrences(master: MasterEvent): List<EventOccurrence> {
     return occurrences
 }
 
-/* Generate individual TaskBucketOccurrence objects from a MasterTaskBucket */
-
+/* Generate TaskBucketOccurrences from MasterTaskBucket */
 @RequiresApi(Build.VERSION_CODES.O)
 fun generateTaskBucketOccurrences(master: MasterTaskBucket): List<TaskBucketOccurrence> {
     val today = LocalDate.now()
@@ -97,5 +169,5 @@ fun generateTaskBucketOccurrences(master: MasterTaskBucket): List<TaskBucketOccu
     return occurrences
 }
 
-/* Generate task intervals from a master task */
+/* Generate TaskIntervals from MasterTask */
 

@@ -48,6 +48,7 @@ fun Developer() {
     var buckets by remember { mutableStateOf(listOf<MasterTaskBucket>()) }
     var tasks by remember { mutableStateOf(listOf<MasterTask>()) }
     var reminders by remember { mutableStateOf(listOf<Reminder>()) }
+    var settings by remember { mutableStateOf(listOf<AppSetting>()) }
 
     // Load DB
     fun refreshData() {
@@ -58,6 +59,7 @@ fun Developer() {
             buckets = db.taskBucketDao().getAllMasterBuckets()
             tasks = db.taskDao().getAllMasterTasks()
             reminders = db.reminderDao().getAll()
+            db.settingsDao().getSettings()?.let { settings = listOf(it) } ?: run { settings = emptyList() } // NEW
         }
     }
     LaunchedEffect(Unit) { refreshData() }
@@ -71,8 +73,6 @@ fun Developer() {
     ) {
         // Buttons
         Row(modifier = Modifier.padding(bottom = 16.dp)) {
-
-            // Clear button
             Button(
                 onClick = {
                     CoroutineScope(Dispatchers.IO).launch {
@@ -82,21 +82,16 @@ fun Developer() {
                         db.deadlineDao().getAll().forEach { db.deadlineDao().deleteById(it.id) }
                         db.eventDao().getAllMasterEvents().forEach { db.eventDao().deleteMasterEvent(it.id) }
                         db.categoryDao().getAll().forEach { db.categoryDao().deleteById(it.id) }
+                        /* db.settingsDao().deleteAll() */
                         refreshData()
                     }
                 },
                 shape = buttonShape,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = PrimaryColor,
-                    contentColor = BackgroundColor
-                )
-            ) {
-                Text("Clear", fontSize = 16.sp)
-            }
+                colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor, contentColor = BackgroundColor)
+            ) { Text("Clear", fontSize = 16.sp) }
 
             Spacer(modifier = Modifier.width(16.dp))
 
-            // Sample button
             Button(
                 onClick = {
                     CoroutineScope(Dispatchers.IO).launch {
@@ -105,16 +100,11 @@ fun Developer() {
                     }
                 },
                 shape = buttonShape,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = PrimaryColor,
-                    contentColor = BackgroundColor
-                )
-            ) {
-                Text("Sample", fontSize = 16.sp)
-            }
+                colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor, contentColor = BackgroundColor)
+            ) { Text("Sample", fontSize = 16.sp) }
         }
 
-        // Database view table
+        // Database table
         @Composable
         fun <T> Table(
             title: String,
@@ -124,18 +114,9 @@ fun Developer() {
         ) {
             Text(title, style = MaterialTheme.typography.titleMedium, color = Color.Black)
             Spacer(Modifier.height(8.dp))
-
-            Column(
-                modifier = Modifier
-                    .border(1.dp, GRID_COLOR)
-            ) {
-                // Header row
-                Row(
-                    modifier = Modifier
-                        .background(HEADER_BG)
-                        .fillMaxWidth()
-                        .height(IntrinsicSize.Min)
-                ) {
+            Column(modifier = Modifier.border(1.dp, GRID_COLOR)) {
+                // Header
+                Row(modifier = Modifier.background(HEADER_BG).fillMaxWidth().height(IntrinsicSize.Min)) {
                     headers.forEachIndexed { index, header ->
                         Box(
                             modifier = Modifier
@@ -143,39 +124,29 @@ fun Developer() {
                                 .fillMaxHeight()
                                 .drawWithContent {
                                     drawContent()
-                                    if (index < headers.lastIndex) {
-                                        drawLine(
-                                            color = GRID_COLOR,
-                                            start = Offset(size.width, 0f),
-                                            end = Offset(size.width, size.height),
-                                            strokeWidth = 1.dp.toPx()
-                                        )
-                                    }
+                                    if (index < headers.lastIndex) drawLine(
+                                        color = GRID_COLOR,
+                                        start = Offset(size.width, 0f),
+                                        end = Offset(size.width, size.height),
+                                        strokeWidth = 1.dp.toPx()
+                                    )
                                 }
                                 .padding(8.dp)
-                        ) {
-                            Text(header, color = Color.Black)
-                        }
+                        ) { Text(header, color = Color.Black) }
                     }
                 }
 
-                // Data rows
+                // Rows
                 val rows = data.ifEmpty { listOf(null) }
                 rows.forEach { row ->
                     val values = row?.let { rowContent(it) } ?: headers.map { "" }
-
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(IntrinsicSize.Min)
                             .drawWithContent {
                                 drawContent()
-                                drawLine(
-                                    color = GRID_COLOR,
-                                    start = Offset(0f, size.height),
-                                    end = Offset(size.width, size.height),
-                                    strokeWidth = 1.dp.toPx()
-                                )
+                                drawLine(color = GRID_COLOR, start = Offset(0f, size.height), end = Offset(size.width, size.height), strokeWidth = 1.dp.toPx())
                             }
                     ) {
                         values.forEachIndexed { index, value ->
@@ -185,19 +156,15 @@ fun Developer() {
                                     .fillMaxHeight()
                                     .drawWithContent {
                                         drawContent()
-                                        if (index < values.lastIndex) {
-                                            drawLine(
-                                                color = GRID_COLOR,
-                                                start = Offset(size.width, 0f),
-                                                end = Offset(size.width, size.height),
-                                                strokeWidth = 1.dp.toPx()
-                                            )
-                                        }
+                                        if (index < values.lastIndex) drawLine(
+                                            color = GRID_COLOR,
+                                            start = Offset(size.width, 0f),
+                                            end = Offset(size.width, size.height),
+                                            strokeWidth = 1.dp.toPx()
+                                        )
                                     }
                                     .padding(8.dp)
-                            ) {
-                                Text(value, color = Color.Black)
-                            }
+                            ) { Text(value, color = Color.Black) }
                         }
                     }
                 }
@@ -216,81 +183,36 @@ fun Developer() {
             title = "Events",
             data = events,
             headers = listOf("ID", "Title", "Notes", "Color", "StartDate", "EndDate", "StartTime", "EndTime", "Freq", "CategoryId")
-        ) { e ->
-            listOf(
-                e.id.toString(),
-                e.title,
-                e.notes ?: "",
-                e.color ?: "",
-                e.startDate.toString(),
-                e.endDate?.toString() ?: "",
-                e.startTime.toString(),
-                e.endTime.toString(),
-                e.recurFreq.name,
-                e.categoryId?.toString() ?: ""
-            )
-        }
+        ) { e -> listOf(e.id.toString(), e.title, e.notes ?: "", e.color ?: "", e.startDate.toString(), e.endDate?.toString() ?: "", e.startTime.toString(), e.endTime.toString(), e.recurFreq.name, e.categoryId?.toString() ?: "") }
 
         Table(
             title = "Deadlines",
             data = deadlines,
             headers = listOf("ID", "Title", "Notes", "Date", "Time", "CategoryId", "EventId")
-        ) { d ->
-            listOf(
-                d.id.toString(),
-                d.title,
-                d.notes ?: "",
-                d.date.toString(),
-                d.time.toString(),
-                d.categoryId?.toString() ?: "",
-                d.eventId?.toString() ?: ""
-            )
-        }
+        ) { d -> listOf(d.id.toString(), d.title, d.notes ?: "", d.date.toString(), d.time.toString(), d.categoryId?.toString() ?: "", d.eventId?.toString() ?: "") }
 
         Table(
             title = "Task Buckets",
             data = buckets,
             headers = listOf("ID", "StartDate", "EndDate", "StartTime", "EndTime", "Freq")
-        ) { b ->
-            listOf(
-                b.id.toString(),
-                b.startDate.toString(),
-                b.endDate?.toString() ?: "",
-                b.startTime.toString(),
-                b.endTime.toString(),
-                b.recurFreq.name
-            )
-        }
+        ) { b -> listOf(b.id.toString(), b.startDate.toString(), b.endDate?.toString() ?: "", b.startTime.toString(), b.endTime.toString(), b.recurFreq.name) }
 
         Table(
             title = "Tasks",
             data = tasks,
             headers = listOf("ID", "Title", "Notes", "Priority", "Breakable", "NoIntervals")
-        ) { t ->
-            listOf(
-                t.id.toString(),
-                t.title,
-                t.notes ?: "",
-                t.priority.toString(),
-                t.breakable?.toString() ?: "",
-                t.noIntervals.toString()
-            )
-        }
+        ) { t -> listOf(t.id.toString(), t.title, t.notes ?: "", t.priority.toString(), t.breakable?.toString() ?: "", t.noIntervals.toString()) }
 
         Table(
             title = "Reminders",
             data = reminders,
             headers = listOf("ID", "Title", "Notes", "Color", "Date", "Time", "AllDay")
-        ) { r ->
-            listOf(
-                r.id.toString(),
-                r.title,
-                r.notes ?: "",
-                r.color,
-                r.date.toString(),
-                r.time.toString(),
-                r.allDay?.toString() ?: ""
-            )
-        }
+        ) { r -> listOf(r.id.toString(), r.title, r.notes ?: "", r.color, r.date.toString(), r.time.toString(), r.allDay?.toString() ?: "") }
+
+        Table(
+            title = "Settings",
+            data = settings,
+            headers = listOf("ID", "StartWeekOnMonday", "PrimaryColor", "ShowDeveloper")
+        ) { s -> listOf(s.id.toString(), s.startWeekOnMonday.toString(), s.primaryColor, s.showDeveloper.toString()) }
     }
 }
