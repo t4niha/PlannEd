@@ -187,7 +187,7 @@ data class MasterTask(
     val notes: String? = null,
     val priority: Int,                      // levels 1-5
     val breakable: Boolean? = false,        // can be checked true
-    val noIntervals: Int,                   // how many intervals, 1 if not breakable
+    val noIntervals: Int,                   // back-end only, how many intervals, 1 if not breakable
 
     val startDate: LocalDate? = null,       // null = auto, otherwise manual
     val startTime: LocalTime? = null,       // available only if startDate not null
