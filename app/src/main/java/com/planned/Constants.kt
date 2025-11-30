@@ -53,6 +53,7 @@ val CircleShapePrimary = CircleShape
 
 /* CALENDAR */
 //<editor-fold desc="Calendar">
+const val OCCURRENCE_GENERATION_MONTHS = 2
 const val INITIAL_PAGE = 10000
 const val TOTAL_PAGES = 20000
 val HourHeight = 80.dp

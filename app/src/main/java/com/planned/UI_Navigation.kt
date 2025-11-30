@@ -41,7 +41,7 @@ var calendarResetTrigger by mutableIntStateOf(0)
 /* APP NAVIGATION */
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun AppNavigation() {
+fun AppNavigation(db: AppDatabase) {
     var isDrawerOpen by remember { mutableStateOf(false) }
 
     NavigationDrawer(
@@ -77,7 +77,7 @@ fun AppNavigation() {
                         "Reminders" -> Reminders()
                         "Settings" -> Settings()
                         "Developer" -> Developer()
-                        "Creation" -> Creation()
+                        "Creation" -> Creation(db)
                     }
                 }
             }

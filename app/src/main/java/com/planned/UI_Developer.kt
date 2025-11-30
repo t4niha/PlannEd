@@ -43,10 +43,13 @@ fun Developer() {
 
     // State holders
     var categories by remember { mutableStateOf(listOf<Category>()) }
-    var events by remember { mutableStateOf(listOf<MasterEvent>()) }
+    var masterEvents by remember { mutableStateOf(listOf<MasterEvent>()) }
+    var eventOccurrences by remember { mutableStateOf(listOf<EventOccurrence>()) }
     var deadlines by remember { mutableStateOf(listOf<Deadline>()) }
-    var buckets by remember { mutableStateOf(listOf<MasterTaskBucket>()) }
-    var tasks by remember { mutableStateOf(listOf<MasterTask>()) }
+    var masterBuckets by remember { mutableStateOf(listOf<MasterTaskBucket>()) }
+    var bucketOccurrences by remember { mutableStateOf(listOf<TaskBucketOccurrence>()) }
+    var masterTasks by remember { mutableStateOf(listOf<MasterTask>()) }
+    var taskIntervals by remember { mutableStateOf(listOf<TaskInterval>()) }
     var reminders by remember { mutableStateOf(listOf<Reminder>()) }
     var settings by remember { mutableStateOf(listOf<AppSetting>()) }
 
@@ -54,10 +57,13 @@ fun Developer() {
     fun refreshData() {
         CoroutineScope(Dispatchers.IO).launch {
             categories = db.categoryDao().getAll()
-            events = db.eventDao().getAllMasterEvents()
+            masterEvents = db.eventDao().getAllMasterEvents()
+            eventOccurrences = db.eventDao().getAllOccurrences()
             deadlines = db.deadlineDao().getAll()
-            buckets = db.taskBucketDao().getAllMasterBuckets()
-            tasks = db.taskDao().getAllMasterTasks()
+            masterBuckets = db.taskBucketDao().getAllMasterBuckets()
+            bucketOccurrences = db.taskBucketDao().getAllBucketOccurrences()
+            masterTasks = db.taskDao().getAllMasterTasks()
+            taskIntervals = db.taskDao().getAllIntervals()
             reminders = db.reminderDao().getAll()
             db.settingsDao().getAll()?.let { settings = listOf(it) } ?: run { settings = emptyList() }
         }
@@ -172,47 +178,159 @@ fun Developer() {
             Spacer(Modifier.height(16.dp))
         }
 
+        // Helper function to format RecurrenceRule
+        fun formatRecurrenceRule(rule: RecurrenceRule, freq: RecurrenceFrequency): String {
+            return when (freq) {
+                RecurrenceFrequency.NONE, RecurrenceFrequency.DAILY -> ""
+                RecurrenceFrequency.WEEKLY -> rule.daysOfWeek?.joinToString(", ") ?: ""
+                RecurrenceFrequency.MONTHLY -> rule.daysOfMonth?.joinToString(", ") ?: ""
+                RecurrenceFrequency.YEARLY -> rule.monthAndDay?.let { "${it.first}/${it.second}" } ?: ""
+            }
+        }
+
         // Tables
         Table(
             title = "Categories",
             data = categories,
             headers = listOf("ID", "Title", "Notes", "Color")
-        ) { c -> listOf(c.id.toString(), c.title, c.notes ?: "", c.color) }
+        ) { c -> listOf(
+            c.id.toString(),
+            c.title,
+            c.notes ?: "",
+            c.color
+        ) }
 
         Table(
-            title = "Events",
-            data = events,
-            headers = listOf("ID", "Title", "Notes", "Color", "StartDate", "EndDate", "StartTime", "EndTime", "Freq", "CategoryId")
-        ) { e -> listOf(e.id.toString(), e.title, e.notes ?: "", e.color ?: "", e.startDate.toString(), e.endDate?.toString() ?: "", e.startTime.toString(), e.endTime.toString(), e.recurFreq.name, e.categoryId?.toString() ?: "") }
+            title = "Master Events",
+            data = masterEvents,
+            headers = listOf("ID", "Title", "Notes", "Color", "StartDate", "EndDate", "StartTime", "EndTime", "Freq", "Rule", "CategoryId")
+        ) { e -> listOf(
+            e.id.toString(),
+            e.title,
+            e.notes ?: "",
+            e.color ?: "",
+            e.startDate.toString(),
+            e.endDate?.toString() ?: "",
+            e.startTime.toString(),
+            e.endTime.toString(),
+            e.recurFreq.name,
+            formatRecurrenceRule(e.recurRule, e.recurFreq),
+            e.categoryId?.toString() ?: ""
+        ) }
+
+        Table(
+            title = "Event Occurrences",
+            data = eventOccurrences,
+            headers = listOf("ID", "MasterEventId", "Notes", "OccurDate", "StartTime", "EndTime", "IsException")
+        ) { o -> listOf(
+            o.id.toString(),
+            o.masterEventId.toString(),
+            o.notes ?: "",
+            o.occurDate.toString(),
+            o.startTime.toString(),
+            o.endTime.toString(),
+            o.isException.toString()
+        ) }
 
         Table(
             title = "Deadlines",
             data = deadlines,
             headers = listOf("ID", "Title", "Notes", "Date", "Time", "CategoryId", "EventId")
-        ) { d -> listOf(d.id.toString(), d.title, d.notes ?: "", d.date.toString(), d.time.toString(), d.categoryId?.toString() ?: "", d.eventId?.toString() ?: "") }
+        ) { d -> listOf(
+            d.id.toString(),
+            d.title,
+            d.notes ?: "",
+            d.date.toString(),
+            d.time.toString(),
+            d.categoryId?.toString() ?: "",
+            d.eventId?.toString() ?: ""
+        ) }
 
         Table(
-            title = "Task Buckets",
-            data = buckets,
-            headers = listOf("ID", "StartDate", "EndDate", "StartTime", "EndTime", "Freq")
-        ) { b -> listOf(b.id.toString(), b.startDate.toString(), b.endDate?.toString() ?: "", b.startTime.toString(), b.endTime.toString(), b.recurFreq.name) }
+            title = "Master Task Buckets",
+            data = masterBuckets,
+            headers = listOf("ID", "StartDate", "EndDate", "StartTime", "EndTime", "Freq", "Rule")
+        ) { b -> listOf(
+            b.id.toString(),
+            b.startDate.toString(),
+            b.endDate?.toString() ?: "",
+            b.startTime.toString(),
+            b.endTime.toString(),
+            b.recurFreq.name,
+            formatRecurrenceRule(b.recurRule, b.recurFreq)
+        ) }
 
         Table(
-            title = "Tasks",
-            data = tasks,
-            headers = listOf("ID", "Title", "Notes", "Priority", "Breakable", "NoIntervals")
-        ) { t -> listOf(t.id.toString(), t.title, t.notes ?: "", t.priority.toString(), t.breakable?.toString() ?: "", t.noIntervals.toString()) }
+            title = "Task Bucket Occurrences",
+            data = bucketOccurrences,
+            headers = listOf("ID", "MasterBucketId", "OccurDate", "StartTime", "EndTime", "IsException")
+        ) { o -> listOf(
+            o.id.toString(),
+            o.masterBucketId.toString(),
+            o.occurDate.toString(),
+            o.startTime.toString(),
+            o.endTime.toString(),
+            o.isException.toString()
+        ) }
+
+        Table(
+            title = "Master Tasks",
+            data = masterTasks,
+            headers = listOf("ID", "Title", "Notes", "Priority", "Breakable", "NoIntervals", "StartDate", "StartTime", "Duration", "CategoryId", "EventId", "DeadlineId", "BucketId")
+        ) { t -> listOf(
+            t.id.toString(),
+            t.title,
+            t.notes ?: "",
+            t.priority.toString(),
+            t.breakable?.toString() ?: "",
+            t.noIntervals.toString(),
+            t.startDate?.toString() ?: "",
+            t.startTime?.toString() ?: "",
+            t.predictedDuration.toString(),
+            t.categoryId?.toString() ?: "",
+            t.eventId?.toString() ?: "",
+            t.deadlineId?.toString() ?: "",
+            t.bucketId?.toString() ?: ""
+        ) }
+
+        Table(
+            title = "Task Intervals",
+            data = taskIntervals,
+            headers = listOf("ID", "MasterTaskId", "IntervalNo", "Notes", "OccurDate", "StartTime", "EndTime", "Status")
+        ) { i -> listOf(
+            i.id.toString(),
+            i.masterTaskId.toString(),
+            i.intervalNo.toString(),
+            i.notes ?: "",
+            i.occurDate.toString(),
+            i.startTime.toString(),
+            i.endTime.toString(),
+            i.status?.toString() ?: ""
+        ) }
 
         Table(
             title = "Reminders",
             data = reminders,
             headers = listOf("ID", "Title", "Notes", "Color", "Date", "Time", "AllDay")
-        ) { r -> listOf(r.id.toString(), r.title, r.notes ?: "", r.color, r.date.toString(), r.time.toString(), r.allDay?.toString() ?: "") }
+        ) { r -> listOf(
+            r.id.toString(),
+            r.title,
+            r.notes ?: "",
+            r.color,
+            r.date.toString(),
+            r.time?.toString() ?: "",
+            r.allDay.toString()
+        ) }
 
         Table(
             title = "Settings",
             data = settings,
             headers = listOf("ID", "Monday", "Primary", "Developer")
-        ) { s -> listOf(s.id.toString(), s.startWeekOnMonday.toString(), s.primaryColor, s.showDeveloper.toString()) }
+        ) { s -> listOf(
+            s.id.toString(),
+            s.startWeekOnMonday.toString(),
+            s.primaryColor,
+            s.showDeveloper.toString()
+        ) }
     }
 }

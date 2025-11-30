@@ -18,7 +18,7 @@ enum class RecurrenceFrequency {
 }
 data class RecurrenceRule(
     val daysOfWeek: List<Int>? = null,      // 1 = Mon ... 7 = Sun
-    val dayOfMonth: Int? = null,            // 1 - 31
+    val daysOfMonth: List<Int>? = null,     // 1 - 31
     val monthAndDay: Pair<Int, Int>? = null // DD-MM
 )
 //</editor-fold>
@@ -78,16 +78,16 @@ object Converters {
     }
 }
 
-// TODO: Generate up to 1 year? Change to a few months instead.
-
 /* Generate EventOccurrences from MasterEvent */
 @RequiresApi(Build.VERSION_CODES.O)
 fun generateEventOccurrences(master: MasterEvent): List<EventOccurrence> {
     val today = LocalDate.now()
     val occurrences = mutableListOf<EventOccurrence>()
 
-    val endLimit = master.endDate?.let { if (it.isBefore(today.plusYears(1))) it else today.plusYears(1) }
-        ?: today.plusYears(1)
+    val endLimit = master.endDate?.let {
+        if (it.isBefore(today.plusMonths(OCCURRENCE_GENERATION_MONTHS.toLong()))) it
+        else today.plusMonths(OCCURRENCE_GENERATION_MONTHS.toLong())
+    } ?: today.plusMonths(OCCURRENCE_GENERATION_MONTHS.toLong())
 
     var current = if (master.startDate.isBefore(today)) today else master.startDate
 
@@ -97,7 +97,7 @@ fun generateEventOccurrences(master: MasterEvent): List<EventOccurrence> {
             RecurrenceFrequency.NONE -> current == master.startDate
             RecurrenceFrequency.DAILY -> true
             RecurrenceFrequency.WEEKLY -> master.recurRule.daysOfWeek?.contains(current.dayOfWeek.value) ?: true
-            RecurrenceFrequency.MONTHLY -> master.recurRule.dayOfMonth?.let { it == current.dayOfMonth } ?: true
+            RecurrenceFrequency.MONTHLY -> master.recurRule.daysOfMonth?.contains(current.dayOfMonth) ?: true
             RecurrenceFrequency.YEARLY -> master.recurRule.monthAndDay?.let { it.first == current.dayOfMonth && it.second == current.monthValue } ?: true
         }
 
@@ -114,11 +114,12 @@ fun generateEventOccurrences(master: MasterEvent): List<EventOccurrence> {
         }
 
         // Increment current date based on frequency
+        // FIXED: Always increment by 1 day for WEEKLY and MONTHLY to catch all selected days
         current = when (master.recurFreq) {
             RecurrenceFrequency.NONE,
-            RecurrenceFrequency.DAILY -> current.plusDays(1)
-            RecurrenceFrequency.WEEKLY -> current.plusWeeks(1)
-            RecurrenceFrequency.MONTHLY -> current.plusMonths(1)
+            RecurrenceFrequency.DAILY,
+            RecurrenceFrequency.WEEKLY,
+            RecurrenceFrequency.MONTHLY -> current.plusDays(1)
             RecurrenceFrequency.YEARLY -> current.plusYears(1)
         }
     }
@@ -126,14 +127,17 @@ fun generateEventOccurrences(master: MasterEvent): List<EventOccurrence> {
     return occurrences
 }
 
-/* Generate TaskBucketOccurrences from MasterTaskBucket */
+// TODO: Merge overlapping TaskBuckets
+/* Generate TaskBucketOccurrences from MasterTaskBucket, merge overlapping TaskBuckets */
 @RequiresApi(Build.VERSION_CODES.O)
 fun generateTaskBucketOccurrences(master: MasterTaskBucket): List<TaskBucketOccurrence> {
     val today = LocalDate.now()
     val occurrences = mutableListOf<TaskBucketOccurrence>()
 
-    val endLimit = master.endDate?.let { if (it.isBefore(today.plusYears(1))) it else today.plusYears(1) }
-        ?: today.plusYears(1)
+    val endLimit = master.endDate?.let {
+        if (it.isBefore(today.plusMonths(OCCURRENCE_GENERATION_MONTHS.toLong()))) it
+        else today.plusMonths(OCCURRENCE_GENERATION_MONTHS.toLong())
+    } ?: today.plusMonths(OCCURRENCE_GENERATION_MONTHS.toLong())
 
     var current = if (master.startDate.isBefore(today)) today else master.startDate
 
@@ -143,7 +147,7 @@ fun generateTaskBucketOccurrences(master: MasterTaskBucket): List<TaskBucketOccu
             RecurrenceFrequency.NONE -> current == master.startDate
             RecurrenceFrequency.DAILY -> true
             RecurrenceFrequency.WEEKLY -> master.recurRule.daysOfWeek?.contains(current.dayOfWeek.value) ?: true
-            RecurrenceFrequency.MONTHLY -> master.recurRule.dayOfMonth?.let { it == current.dayOfMonth } ?: true
+            RecurrenceFrequency.MONTHLY -> master.recurRule.daysOfMonth?.contains(current.dayOfMonth) ?: true
             RecurrenceFrequency.YEARLY -> master.recurRule.monthAndDay?.let { it.first == current.dayOfMonth && it.second == current.monthValue } ?: true
         }
 
@@ -159,11 +163,12 @@ fun generateTaskBucketOccurrences(master: MasterTaskBucket): List<TaskBucketOccu
         }
 
         // Increment current date based on frequency
+        // FIXED: Always increment by 1 day for WEEKLY and MONTHLY to catch all selected days
         current = when (master.recurFreq) {
             RecurrenceFrequency.NONE,
-            RecurrenceFrequency.DAILY -> current.plusDays(1)
-            RecurrenceFrequency.WEEKLY -> current.plusWeeks(1)
-            RecurrenceFrequency.MONTHLY -> current.plusMonths(1)
+            RecurrenceFrequency.DAILY,
+            RecurrenceFrequency.WEEKLY,
+            RecurrenceFrequency.MONTHLY -> current.plusDays(1)
             RecurrenceFrequency.YEARLY -> current.plusYears(1)
         }
     }
@@ -172,6 +177,5 @@ fun generateTaskBucketOccurrences(master: MasterTaskBucket): List<TaskBucketOccu
 }
 
 // TODO: Set up after heuristic algorithm
-
 /* Generate TaskIntervals from MasterTask */
 

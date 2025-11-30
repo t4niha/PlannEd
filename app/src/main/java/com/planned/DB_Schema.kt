@@ -246,8 +246,8 @@ data class Reminder(
     val color: String,
 
     val date: LocalDate,
-    val time: LocalTime,                // available if all day false
-    val allDay: Boolean? = false        // can be checked true
+    val time: LocalTime?,               // available if all day false
+    val allDay: Boolean = true          // can be checked true
 )
 //</editor-fold>
 
@@ -600,7 +600,7 @@ interface SettingsDao {
         AppSetting::class,
         EventATI::class, UserATI::class
     ],
-    version = 2
+    version = 3
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {

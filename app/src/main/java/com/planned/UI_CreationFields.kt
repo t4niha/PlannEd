@@ -31,10 +31,15 @@ import java.time.format.DateTimeFormatter
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun typePickerField(
-    initialType: String = "Task"
+    initialType: String = "Task",
+    key: Int = 0
 ): String {
-    var selectedType by remember { mutableStateOf(initialType) }
-    var showTypePicker by remember { mutableStateOf(false) }
+    var selectedType by remember(key) { mutableStateOf(initialType) }
+    var showTypePicker by remember(key) { mutableStateOf(false) }
+
+    LaunchedEffect(key, initialType) {
+        selectedType = initialType
+    }
 
     val types = listOf("Task", "Reminder", "Deadline", "Event", "Task Bucket", "Category")
 
@@ -102,9 +107,14 @@ fun typePickerField(
 @Composable
 fun textInputField(
     label: String,
-    initialValue: String = ""
+    initialValue: String = "",
+    key: Int = 0
 ): String {
-    var textValue by remember { mutableStateOf(initialValue) }
+    var textValue by remember(key) { mutableStateOf(initialValue) }
+
+    LaunchedEffect(key, initialValue) {
+        textValue = initialValue
+    }
 
     Box(
         modifier = Modifier
@@ -139,9 +149,14 @@ fun textInputField(
 @Composable
 fun notesInputField(
     label: String,
-    initialValue: String = ""
+    initialValue: String = "",
+    key: Int = 0
 ): String {
-    var notesValue by remember { mutableStateOf(initialValue) }
+    var notesValue by remember(key) { mutableStateOf(initialValue) }
+
+    LaunchedEffect(key, initialValue) {
+        notesValue = initialValue
+    }
 
     Box(
         modifier = Modifier
@@ -179,10 +194,15 @@ fun notesInputField(
 @Composable
 fun colorPickerField(
     label: String,
-    initialColor: Color = Preset1
+    initialColor: Color = Preset1,
+    key: Int = 0
 ): Color {
-    var selectedColor by remember { mutableStateOf(initialColor) }
-    var showColorPicker by remember { mutableStateOf(false) }
+    var selectedColor by remember(key) { mutableStateOf(initialColor) }
+    var showColorPicker by remember(key) { mutableStateOf(false) }
+
+    LaunchedEffect(key, initialColor) {
+        selectedColor = initialColor
+    }
 
     val colorPresets = listOf(
         Preset1, Preset2, Preset3, Preset4,
@@ -261,10 +281,15 @@ fun colorPickerField(
 fun datePickerField(
     label: String,
     initialDate: LocalDate? = LocalDate.now(),
-    isOptional: Boolean = false
+    isOptional: Boolean = false,
+    key: Int = 0
 ): LocalDate? {
-    var selectedDate by remember { mutableStateOf(initialDate ?: LocalDate.now()) }
-    var showDatePicker by remember { mutableStateOf(false) }
+    var selectedDate by remember(key) { mutableStateOf(initialDate ?: LocalDate.now()) }
+    var showDatePicker by remember(key) { mutableStateOf(false) }
+
+    LaunchedEffect(key, initialDate) {
+        selectedDate = initialDate ?: LocalDate.now()
+    }
 
     // Format date as "Nov 19, 2025"
     val dateFormatter = DateTimeFormatter.ofPattern("MMM d, yyyy")
@@ -327,10 +352,23 @@ fun datePickerField(
 @Composable
 fun timePickerField(
     label: String,
-    initialTime: LocalTime = LocalTime.now()
+    initialTime: LocalTime = LocalTime.now(),
+    minTime: LocalTime? = null,
+    key: Int = 0
 ): LocalTime {
-    var selectedTime by remember { mutableStateOf(initialTime) }
-    var showTimePicker by remember { mutableStateOf(false) }
+    var selectedTime by remember(key) { mutableStateOf(initialTime) }
+    var showTimePicker by remember(key) { mutableStateOf(false) }
+
+    LaunchedEffect(key, initialTime) {
+        selectedTime = initialTime
+    }
+
+    // Enforce minimum time if provided
+    LaunchedEffect(minTime) {
+        if (minTime != null && selectedTime.isBefore(minTime)) {
+            selectedTime = minTime.plusMinutes(5).withSecond(0).withNano(0)
+        }
+    }
 
     // Format time as "10:00 AM"
     val timeFormatter = DateTimeFormatter.ofPattern("h:mm a")
@@ -367,7 +405,14 @@ fun timePickerField(
                 onDismissRequest = { showTimePicker = false },
                 confirmButton = {
                     TextButton(onClick = {
-                        selectedTime = LocalTime.of(timePickerState.hour, timePickerState.minute)
+                        var newTime = LocalTime.of(timePickerState.hour, timePickerState.minute, 0, 0)
+
+                        // Enforce minimum time if provided
+                        if (minTime != null && newTime.isBefore(minTime)) {
+                            newTime = minTime.plusMinutes(5).withSecond(0).withNano(0)
+                        }
+
+                        selectedTime = newTime
                         showTimePicker = false
                     }) {
                         Text("OK")
@@ -397,14 +442,23 @@ fun recurrencePickerField(
     initialDaysOfWeek: Set<Int> = setOf(7),
     initialDaysOfMonth: Set<Int> = setOf(1),
     initialEndDate: LocalDate? = null,
-    startDate: LocalDate = LocalDate.now()
+    startDate: LocalDate = LocalDate.now(),
+    key: Int = 0
 ): Pair<Triple<RecurrenceFrequency, Set<Int>, Set<Int>>, LocalDate?> {
-    var recurrenceFreq by remember { mutableStateOf(initialFrequency) }
-    var showRecurrenceDropdown by remember { mutableStateOf(false) }
-    var selectedDaysOfWeek by remember { mutableStateOf(initialDaysOfWeek) }
-    var selectedDaysOfMonth by remember { mutableStateOf(initialDaysOfMonth) }
-    var repeatForever by remember { mutableStateOf(true) }
-    var endDate by remember { mutableStateOf(initialEndDate) }
+    var recurrenceFreq by remember(key) { mutableStateOf(initialFrequency) }
+    var showRecurrenceDropdown by remember(key) { mutableStateOf(false) }
+    var selectedDaysOfWeek by remember(key) { mutableStateOf(initialDaysOfWeek) }
+    var selectedDaysOfMonth by remember(key) { mutableStateOf(initialDaysOfMonth) }
+    var repeatForever by remember(key) { mutableStateOf(initialEndDate == null) }
+    var endDate by remember(key) { mutableStateOf(initialEndDate) }
+
+    LaunchedEffect(key, initialFrequency, initialDaysOfWeek, initialDaysOfMonth, initialEndDate) {
+        recurrenceFreq = initialFrequency
+        selectedDaysOfWeek = initialDaysOfWeek
+        selectedDaysOfMonth = initialDaysOfMonth
+        repeatForever = initialEndDate == null
+        endDate = initialEndDate
+    }
 
     Box(
         modifier = Modifier
@@ -667,9 +721,14 @@ fun recurrencePickerField(
 @Composable
 fun priorityPickerField(
     label: String,
-    initialPriority: Int = 3
+    initialPriority: Int = 3,
+    key: Int = 0
 ): Int {
-    var priority by remember { mutableIntStateOf(initialPriority) }
+    var priority by remember(key) { mutableIntStateOf(initialPriority) }
+
+    LaunchedEffect(key, initialPriority) {
+        priority = initialPriority
+    }
 
     Box(
         modifier = Modifier
@@ -730,11 +789,17 @@ fun priorityPickerField(
 @Composable
 fun durationPickerField(
     initialHours: Int = 1,
-    initialMinutes: Int = 0
+    initialMinutes: Int = 0,
+    key: Int = 0
 ): Pair<Int, Int> {
-    var durationHours by remember { mutableIntStateOf(initialHours) }
-    var durationMinutes by remember { mutableIntStateOf(initialMinutes) }
-    var showDurationPicker by remember { mutableStateOf(false) }
+    var durationHours by remember(key) { mutableIntStateOf(initialHours) }
+    var durationMinutes by remember(key) { mutableIntStateOf(initialMinutes) }
+    var showDurationPicker by remember(key) { mutableStateOf(false) }
+
+    LaunchedEffect(key, initialHours, initialMinutes) {
+        durationHours = initialHours
+        durationMinutes = initialMinutes
+    }
 
     Box(
         modifier = Modifier
@@ -869,11 +934,18 @@ fun durationPickerField(
 fun schedulePickerField(
     initialAutoSchedule: Boolean = true,
     initialDate: LocalDate? = null,
-    initialTime: LocalTime? = null
+    initialTime: LocalTime? = null,
+    key: Int = 0
 ): Triple<Boolean, LocalDate?, LocalTime?> {
-    var isAutoSchedule by remember { mutableStateOf(initialAutoSchedule) }
-    var startDate by remember { mutableStateOf(initialDate) }
-    var startTime by remember { mutableStateOf(initialTime) }
+    var isAutoSchedule by remember(key) { mutableStateOf(initialAutoSchedule) }
+    var startDate by remember(key) { mutableStateOf(initialDate) }
+    var startTime by remember(key) { mutableStateOf(initialTime) }
+
+    LaunchedEffect(key, initialAutoSchedule, initialDate, initialTime) {
+        isAutoSchedule = initialAutoSchedule
+        startDate = initialDate
+        startTime = initialTime
+    }
 
     Box(
         modifier = Modifier
@@ -897,7 +969,7 @@ fun schedulePickerField(
                         } else {
                             // Set defaults when switching to manual
                             if (startDate == null) startDate = LocalDate.now()
-                            if (startTime == null) startTime = LocalTime.now()
+                            if (startTime == null) startTime = LocalTime.now().withSecond(0).withNano(0)
                         }
                     },
                     colors = CheckboxDefaults.colors(checkedColor = PrimaryColor)
@@ -990,7 +1062,7 @@ fun schedulePickerField(
                                 onDismissRequest = { showTimePicker = false },
                                 confirmButton = {
                                     TextButton(onClick = {
-                                        startTime = LocalTime.of(timePickerState.hour, timePickerState.minute)
+                                        startTime = LocalTime.of(timePickerState.hour, timePickerState.minute, 0, 0)
                                         showTimePicker = false
                                     }) {
                                         Text("OK")
@@ -1019,9 +1091,14 @@ fun schedulePickerField(
 @Composable
 fun checkboxField(
     label: String,
-    initialChecked: Boolean = false
+    initialChecked: Boolean = false,
+    key: Int = 0
 ): Boolean {
-    var isChecked by remember { mutableStateOf(initialChecked) }
+    var isChecked by remember(key) { mutableStateOf(initialChecked) }
+
+    LaunchedEffect(key, initialChecked) {
+        isChecked = initialChecked
+    }
 
     Box(
         modifier = Modifier
@@ -1052,10 +1129,16 @@ fun checkboxField(
 @Composable
 fun allDayPickerField(
     initialAllDay: Boolean = true,
-    initialTime: LocalTime = LocalTime.now()
+    initialTime: LocalTime = LocalTime.now(),
+    key: Int = 0
 ): Pair<Boolean, LocalTime> {
-    var isAllDay by remember { mutableStateOf(initialAllDay) }
-    var time by remember { mutableStateOf(initialTime) }
+    var isAllDay by remember(key) { mutableStateOf(initialAllDay) }
+    var time by remember(key) { mutableStateOf(initialTime) }
+
+    LaunchedEffect(key, initialAllDay, initialTime) {
+        isAllDay = initialAllDay
+        time = initialTime
+    }
 
     Box(
         modifier = Modifier
@@ -1072,9 +1155,8 @@ fun allDayPickerField(
                     checked = isAllDay,
                     onCheckedChange = {
                         isAllDay = it
-                        if (!it && time == initialTime) {
-                            // Set to current time when unchecking
-                            time = LocalTime.now()
+                        if (!it) {
+                            time = LocalTime.now().withSecond(0).withNano(0)
                         }
                     },
                     colors = CheckboxDefaults.colors(checkedColor = PrimaryColor)
@@ -1083,7 +1165,7 @@ fun allDayPickerField(
                 Text("All Day", fontSize = 16.sp, fontWeight = FontWeight.Medium)
             }
 
-            // Time picker (only visible when "All Day" is unchecked)
+            // Time picker
             AnimatedVisibility(
                 visible = !isAllDay,
                 enter = fadeIn() + expandVertically(),
@@ -1118,7 +1200,7 @@ fun allDayPickerField(
                                 onDismissRequest = { showTimePicker = false },
                                 confirmButton = {
                                     TextButton(onClick = {
-                                        time = LocalTime.of(timePickerState.hour, timePickerState.minute)
+                                        time = LocalTime.of(timePickerState.hour, timePickerState.minute, 0, 0)
                                         showTimePicker = false
                                     }) {
                                         Text("OK")
@@ -1149,10 +1231,15 @@ fun allDayPickerField(
 fun dropdownField(
     label: String,
     items: List<String>,
-    initialSelection: Int? = null
+    initialSelection: Int? = null,
+    key: Int = 0
 ): Int? {
-    var selectedIndex by remember { mutableStateOf(initialSelection) }
-    var showDropdown by remember { mutableStateOf(false) }
+    var selectedIndex by remember(key) { mutableStateOf(initialSelection) }
+    var showDropdown by remember(key) { mutableStateOf(false) }
+
+    LaunchedEffect(key, initialSelection) {
+        selectedIndex = initialSelection
+    }
 
     Box(
         modifier = Modifier

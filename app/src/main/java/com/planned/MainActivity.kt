@@ -43,7 +43,7 @@ class MainActivity : ComponentActivity() {
             }
             // Home page
             PlanEdTheme {
-                AppNavigation()
+                AppNavigation(db)
             }
         }
     }
