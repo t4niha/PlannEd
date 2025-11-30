@@ -31,12 +31,12 @@ import java.time.format.DateTimeFormatter
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun typePickerField(
-    initialType: String = "Category"
+    initialType: String = "Task"
 ): String {
     var selectedType by remember { mutableStateOf(initialType) }
     var showTypePicker by remember { mutableStateOf(false) }
 
-    val types = listOf("Category", "Event", "Deadline", "Task Bucket", "Task", "Reminder")
+    val types = listOf("Task", "Reminder", "Deadline", "Event", "Task Bucket", "Category")
 
     Box(
         modifier = Modifier
@@ -121,7 +121,7 @@ fun textInputField(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(Color.White, RoundedCornerShape(8.dp))
-                    .border(1.dp, Color.Black, RoundedCornerShape(8.dp)),
+                    .border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)),
                 colors = TextFieldDefaults.colors(
                     focusedContainerColor = Color.White,
                     unfocusedContainerColor = Color.White,
@@ -159,7 +159,7 @@ fun notesInputField(
                     .fillMaxWidth()
                     .height(100.dp)
                     .background(Color.White, RoundedCornerShape(8.dp))
-                    .border(1.dp, Color.Black, RoundedCornerShape(8.dp)),
+                    .border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)),
                 colors = TextFieldDefaults.colors(
                     focusedContainerColor = Color.White,
                     unfocusedContainerColor = Color.White,
@@ -260,7 +260,7 @@ fun colorPickerField(
 @Composable
 fun datePickerField(
     label: String,
-    initialDate: LocalDate? = null,
+    initialDate: LocalDate? = LocalDate.now(),
     isOptional: Boolean = false
 ): LocalDate? {
     var selectedDate by remember { mutableStateOf(initialDate ?: LocalDate.now()) }
@@ -327,7 +327,7 @@ fun datePickerField(
 @Composable
 fun timePickerField(
     label: String,
-    initialTime: LocalTime = LocalTime.of(9, 0)
+    initialTime: LocalTime = LocalTime.now()
 ): LocalTime {
     var selectedTime by remember { mutableStateOf(initialTime) }
     var showTimePicker by remember { mutableStateOf(false) }
@@ -389,17 +389,22 @@ fun timePickerField(
 }
 
 /* RECURRENCE PICKER FIELD */
-@OptIn(ExperimentalAnimationApi::class)
+@RequiresApi(Build.VERSION_CODES.O)
+@OptIn(ExperimentalAnimationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun recurrencePickerField(
     initialFrequency: RecurrenceFrequency = RecurrenceFrequency.NONE,
     initialDaysOfWeek: Set<Int> = setOf(7),
-    initialDaysOfMonth: Set<Int> = setOf(1)
-): Triple<RecurrenceFrequency, Set<Int>, Set<Int>> {
+    initialDaysOfMonth: Set<Int> = setOf(1),
+    initialEndDate: LocalDate? = null,
+    startDate: LocalDate = LocalDate.now()
+): Pair<Triple<RecurrenceFrequency, Set<Int>, Set<Int>>, LocalDate?> {
     var recurrenceFreq by remember { mutableStateOf(initialFrequency) }
     var showRecurrenceDropdown by remember { mutableStateOf(false) }
     var selectedDaysOfWeek by remember { mutableStateOf(initialDaysOfWeek) }
     var selectedDaysOfMonth by remember { mutableStateOf(initialDaysOfMonth) }
+    var repeatForever by remember { mutableStateOf(true) }
+    var endDate by remember { mutableStateOf(initialEndDate) }
 
     Box(
         modifier = Modifier
@@ -428,7 +433,7 @@ fun recurrencePickerField(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(Color.White, RoundedCornerShape(8.dp))
-                    .border(1.dp, Color.Black, RoundedCornerShape(8.dp))
+                    .border(1.dp, Color.LightGray, RoundedCornerShape(8.dp))
                     .padding(12.dp)
             ) {
                 Text(recurrenceText)
@@ -460,6 +465,11 @@ fun recurrencePickerField(
                                 .clickable {
                                     recurrenceFreq = freq
                                     showRecurrenceDropdown = false
+                                    // Reset end date when switching to "Don't Repeat"
+                                    if (freq == RecurrenceFrequency.NONE) {
+                                        endDate = null
+                                        repeatForever = true
+                                    }
                                 }
                                 .padding(12.dp)
                         ) {
@@ -481,30 +491,26 @@ fun recurrencePickerField(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    val days = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
+                    val days = listOf("Su", "Mo", "Tu", "We", "Th", "Fr", "Sa")
                     days.forEachIndexed { index, day ->
-                        // Map index to day number (Sunday = 7, Monday = 1, etc.)
                         val dayNum = if (index == 0) 7 else index
                         val isSelected = selectedDaysOfWeek.contains(dayNum)
 
                         Box(
                             modifier = Modifier
-                                .size(48.dp)
+                                .size(40.dp)
                                 .clip(CircleShape)
                                 .background(if (isSelected) PrimaryColor else Color.LightGray)
                                 .clickable {
                                     selectedDaysOfWeek = if (isSelected && selectedDaysOfWeek.size > 1) {
-                                        // Deselect if more than 1 day selected
                                         selectedDaysOfWeek - dayNum
                                     } else if (!isSelected) {
                                         val newSet = selectedDaysOfWeek + dayNum
-                                        // If all 7 days selected, switch to Daily
                                         if (newSet.size == 7) {
                                             recurrenceFreq = RecurrenceFrequency.DAILY
                                         }
                                         newSet
                                     } else {
-                                        // Keep at least 1 day selected
                                         selectedDaysOfWeek
                                     }
                                 },
@@ -541,17 +547,14 @@ fun recurrencePickerField(
                                 .background(if (isSelected) PrimaryColor else Color.LightGray)
                                 .clickable {
                                     selectedDaysOfMonth = if (isSelected && selectedDaysOfMonth.size > 1) {
-                                        // Deselect if more than 1 day selected
                                         selectedDaysOfMonth - dayNum
                                     } else if (!isSelected) {
                                         val newSet = selectedDaysOfMonth + dayNum
-                                        // If all 31 days selected, switch to Daily
                                         if (newSet.size == 31) {
                                             recurrenceFreq = RecurrenceFrequency.DAILY
                                         }
                                         newSet
                                     } else {
-                                        // Keep at least 1 day selected
                                         selectedDaysOfMonth
                                     }
                                 },
@@ -567,10 +570,97 @@ fun recurrencePickerField(
                     }
                 }
             }
+
+            // End date options (only if recurrence is NOT "Don't Repeat")
+            if (recurrenceFreq != RecurrenceFrequency.NONE) {
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // "Repeat Forever" checkbox
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Checkbox(
+                        checked = repeatForever,
+                        onCheckedChange = {
+                            repeatForever = it
+                            if (it) {
+                                endDate = null
+                            }
+                        },
+                        colors = CheckboxDefaults.colors(checkedColor = PrimaryColor)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Repeat Forever", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                }
+
+                // End date picker (only visible when "Repeat Forever" is unchecked)
+                AnimatedVisibility(
+                    visible = !repeatForever,
+                    enter = fadeIn() + expandVertically(),
+                    exit = fadeOut() + shrinkVertically()
+                ) {
+                    Column(modifier = Modifier.padding(top = 12.dp)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("End Date", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                            Spacer(modifier = Modifier.width(16.dp))
+
+                            var showEndDatePicker by remember { mutableStateOf(false) }
+                            val dateFormatter = DateTimeFormatter.ofPattern("MMM d, yyyy")
+
+                            // Set default to startDate if endDate is null
+                            val displayEndDate = endDate ?: startDate
+                            val displayDate = displayEndDate.format(dateFormatter)
+
+                            Button(
+                                onClick = { showEndDatePicker = true },
+                                colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
+                            ) {
+                                Text(displayDate)
+                            }
+
+                            if (showEndDatePicker) {
+                                val datePickerState = rememberDatePickerState(
+                                    initialSelectedDateMillis = (endDate ?: startDate).toEpochDay() * 86400000L
+                                )
+                                DatePickerDialog(
+                                    onDismissRequest = { showEndDatePicker = false },
+                                    confirmButton = {
+                                        TextButton(onClick = {
+                                            datePickerState.selectedDateMillis?.let {
+                                                val selectedDate = LocalDate.ofEpochDay(it / 86400000L)
+                                                // Ensure end date is not before start date
+                                                endDate = if (selectedDate.isBefore(startDate)) {
+                                                    startDate
+                                                } else {
+                                                    selectedDate
+                                                }
+                                            }
+                                            showEndDatePicker = false
+                                        }) {
+                                            Text("OK")
+                                        }
+                                    },
+                                    dismissButton = {
+                                        TextButton(onClick = { showEndDatePicker = false }) {
+                                            Text("Cancel")
+                                        }
+                                    }
+                                ) {
+                                    DatePicker(state = datePickerState)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 
-    return Triple(recurrenceFreq, selectedDaysOfWeek, selectedDaysOfMonth)
+    return Pair(Triple(recurrenceFreq, selectedDaysOfWeek, selectedDaysOfMonth), endDate)
 }
 
 /* PRIORITY PICKER FIELD */
@@ -639,8 +729,8 @@ fun priorityPickerField(
 /* DURATION PICKER FIELD */
 @Composable
 fun durationPickerField(
-    initialHours: Int = 0,
-    initialMinutes: Int = 5
+    initialHours: Int = 1,
+    initialMinutes: Int = 0
 ): Pair<Int, Int> {
     var durationHours by remember { mutableIntStateOf(initialHours) }
     var durationMinutes by remember { mutableIntStateOf(initialMinutes) }
@@ -772,6 +862,159 @@ fun durationPickerField(
     return Pair(durationHours, durationMinutes)
 }
 
+/* SCHEDULE PICKER FIELD */
+@RequiresApi(Build.VERSION_CODES.O)
+@OptIn(ExperimentalAnimationApi::class, ExperimentalMaterial3Api::class)
+@Composable
+fun schedulePickerField(
+    initialAutoSchedule: Boolean = true,
+    initialDate: LocalDate? = null,
+    initialTime: LocalTime? = null
+): Triple<Boolean, LocalDate?, LocalTime?> {
+    var isAutoSchedule by remember { mutableStateOf(initialAutoSchedule) }
+    var startDate by remember { mutableStateOf(initialDate) }
+    var startTime by remember { mutableStateOf(initialTime) }
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(CardColor), RoundedCornerShape(12.dp))
+            .padding(16.dp)
+    ) {
+        Column {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Checkbox(
+                    checked = isAutoSchedule,
+                    onCheckedChange = {
+                        isAutoSchedule = it
+                        if (it) {
+                            // Reset manual fields when switching to auto
+                            startDate = null
+                            startTime = null
+                        } else {
+                            // Set defaults when switching to manual
+                            if (startDate == null) startDate = LocalDate.now()
+                            if (startTime == null) startTime = LocalTime.now()
+                        }
+                    },
+                    colors = CheckboxDefaults.colors(checkedColor = PrimaryColor)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Auto Schedule", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+            }
+
+            // Manual schedule fields (only visible when checkbox is unchecked)
+            AnimatedVisibility(
+                visible = !isAutoSchedule,
+                enter = fadeIn() + expandVertically(),
+                exit = fadeOut() + shrinkVertically()
+            ) {
+                Column(modifier = Modifier.padding(top = 12.dp)) {
+                    // Start date picker
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Start Date", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                        Spacer(modifier = Modifier.width(16.dp))
+
+                        var showDatePicker by remember { mutableStateOf(false) }
+                        val dateFormatter = DateTimeFormatter.ofPattern("MMM d, yyyy")
+                        val displayDate = startDate?.format(dateFormatter) ?: "Select Date"
+
+                        Button(
+                            onClick = { showDatePicker = true },
+                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
+                        ) {
+                            Text(displayDate)
+                        }
+
+                        if (showDatePicker) {
+                            val datePickerState = rememberDatePickerState(
+                                initialSelectedDateMillis = (startDate ?: LocalDate.now()).toEpochDay() * 86400000L
+                            )
+                            DatePickerDialog(
+                                onDismissRequest = { showDatePicker = false },
+                                confirmButton = {
+                                    TextButton(onClick = {
+                                        datePickerState.selectedDateMillis?.let {
+                                            startDate = LocalDate.ofEpochDay(it / 86400000L)
+                                        }
+                                        showDatePicker = false
+                                    }) {
+                                        Text("OK")
+                                    }
+                                },
+                                dismissButton = {
+                                    TextButton(onClick = { showDatePicker = false }) {
+                                        Text("Cancel")
+                                    }
+                                }
+                            ) {
+                                DatePicker(state = datePickerState)
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Start time picker
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Start Time", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                        Spacer(modifier = Modifier.width(16.dp))
+
+                        var showTimePicker by remember { mutableStateOf(false) }
+                        val timeFormatter = DateTimeFormatter.ofPattern("h:mm a")
+                        val displayTime = startTime?.format(timeFormatter) ?: "Select Time"
+
+                        Button(
+                            onClick = { showTimePicker = true },
+                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
+                        ) {
+                            Text(displayTime)
+                        }
+
+                        if (showTimePicker) {
+                            val timePickerState = rememberTimePickerState(
+                                initialHour = startTime?.hour ?: LocalTime.now().hour,
+                                initialMinute = startTime?.minute ?: LocalTime.now().minute,
+                                is24Hour = false
+                            )
+                            AlertDialog(
+                                onDismissRequest = { showTimePicker = false },
+                                confirmButton = {
+                                    TextButton(onClick = {
+                                        startTime = LocalTime.of(timePickerState.hour, timePickerState.minute)
+                                        showTimePicker = false
+                                    }) {
+                                        Text("OK")
+                                    }
+                                },
+                                dismissButton = {
+                                    TextButton(onClick = { showTimePicker = false }) {
+                                        Text("Cancel")
+                                    }
+                                },
+                                text = {
+                                    TimePicker(state = timePickerState)
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    return Triple(isAutoSchedule, startDate, startTime)
+}
+
 /* CHECKBOX FIELD */
 @Composable
 fun checkboxField(
@@ -801,6 +1044,103 @@ fun checkboxField(
     }
 
     return isChecked
+}
+
+/* ALL DAY PICKER FIELD */
+@RequiresApi(Build.VERSION_CODES.O)
+@OptIn(ExperimentalAnimationApi::class, ExperimentalMaterial3Api::class)
+@Composable
+fun allDayPickerField(
+    initialAllDay: Boolean = true,
+    initialTime: LocalTime = LocalTime.now()
+): Pair<Boolean, LocalTime> {
+    var isAllDay by remember { mutableStateOf(initialAllDay) }
+    var time by remember { mutableStateOf(initialTime) }
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(CardColor), RoundedCornerShape(12.dp))
+            .padding(16.dp)
+    ) {
+        Column {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Checkbox(
+                    checked = isAllDay,
+                    onCheckedChange = {
+                        isAllDay = it
+                        if (!it && time == initialTime) {
+                            // Set to current time when unchecking
+                            time = LocalTime.now()
+                        }
+                    },
+                    colors = CheckboxDefaults.colors(checkedColor = PrimaryColor)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("All Day", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+            }
+
+            // Time picker (only visible when "All Day" is unchecked)
+            AnimatedVisibility(
+                visible = !isAllDay,
+                enter = fadeIn() + expandVertically(),
+                exit = fadeOut() + shrinkVertically()
+            ) {
+                Column(modifier = Modifier.padding(top = 12.dp)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Time", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                        Spacer(modifier = Modifier.width(16.dp))
+
+                        var showTimePicker by remember { mutableStateOf(false) }
+                        val timeFormatter = DateTimeFormatter.ofPattern("h:mm a")
+                        val displayTime = time.format(timeFormatter)
+
+                        Button(
+                            onClick = { showTimePicker = true },
+                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
+                        ) {
+                            Text(displayTime)
+                        }
+
+                        if (showTimePicker) {
+                            val timePickerState = rememberTimePickerState(
+                                initialHour = time.hour,
+                                initialMinute = time.minute,
+                                is24Hour = false
+                            )
+                            AlertDialog(
+                                onDismissRequest = { showTimePicker = false },
+                                confirmButton = {
+                                    TextButton(onClick = {
+                                        time = LocalTime.of(timePickerState.hour, timePickerState.minute)
+                                        showTimePicker = false
+                                    }) {
+                                        Text("OK")
+                                    }
+                                },
+                                dismissButton = {
+                                    TextButton(onClick = { showTimePicker = false }) {
+                                        Text("Cancel")
+                                    }
+                                },
+                                text = {
+                                    TimePicker(state = timePickerState)
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    return Pair(isAllDay, time)
 }
 
 /* DROPDOWN FIELD */
@@ -833,7 +1173,7 @@ fun dropdownField(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(Color.White, RoundedCornerShape(8.dp))
-                    .border(1.dp, Color.Black, RoundedCornerShape(8.dp))
+                    .border(1.dp, Color.LightGray, RoundedCornerShape(8.dp))
                     .padding(12.dp)
             ) {
                 Text(

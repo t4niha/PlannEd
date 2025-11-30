@@ -20,27 +20,7 @@ import java.time.LocalTime
 @Composable
 fun Creation() {
     val scrollState = rememberScrollState()
-
-    // State variables for all fields
-    var selectedType by remember { mutableStateOf("Category") }
-    var textValue by remember { mutableStateOf("") }
-    var notesValue by remember { mutableStateOf("") }
-    var selectedColor by remember { mutableStateOf(Preset1) }
-    var startDate by remember { mutableStateOf(LocalDate.now()) }
-    var endDate by remember { mutableStateOf<LocalDate?>(null) }
-    var startTime by remember { mutableStateOf(LocalTime.of(9, 0)) }
-    var endTime by remember { mutableStateOf(LocalTime.of(10, 0)) }
-    var recurrenceFreq by remember { mutableStateOf(RecurrenceFrequency.NONE) }
-    var selectedDaysOfWeek by remember { mutableStateOf(setOf(7)) }
-    var selectedDaysOfMonth by remember { mutableStateOf(setOf(1)) }
-    var priority by remember { mutableIntStateOf(3) }
-    var durationHours by remember { mutableIntStateOf(0) }
-    var durationMinutes by remember { mutableIntStateOf(5) }
-    var isBreakable by remember { mutableStateOf(false) }
-    var isAllDay by remember { mutableStateOf(true) }
-    var selectedCategory by remember { mutableStateOf<Int?>(null) }
-    var selectedEvent by remember { mutableStateOf<Int?>(null) }
-    var selectedDeadline by remember { mutableStateOf<Int?>(null) }
+    var selectedType by remember { mutableStateOf("Task") }
 
     Column(
         modifier = Modifier
@@ -55,67 +35,280 @@ fun Creation() {
         )
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Title field
-        textValue = textInputField(
+        // Display appropriate form based on selected type
+        when (selectedType) {
+            "Task" -> TaskForm()
+            "Reminder" -> ReminderForm()
+            "Deadline" -> DeadlineForm()
+            "Event" -> EventForm()
+            "Task Bucket" -> TaskBucketForm()
+            "Category" -> CategoryForm()
+        }
+    }
+}
+
+/* CATEGORY FORM */
+@RequiresApi(Build.VERSION_CODES.O)
+@Composable
+fun CategoryForm() {
+    var title by remember { mutableStateOf("") }
+    var notes by remember { mutableStateOf("") }
+    var color by remember { mutableStateOf(Preset1) }
+
+    Column {
+        // Title field (required)
+        title = textInputField(
             label = "Title",
-            initialValue = textValue
+            initialValue = title
         )
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Notes field
-        notesValue = notesInputField(
+        // Notes field (optional)
+        notes = notesInputField(
             label = "Notes",
-            initialValue = notesValue
+            initialValue = notes
         )
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Start date picker
+        // Color picker (required)
+        color = colorPickerField(
+            label = "Color",
+            initialColor = color
+        )
+    }
+}
+
+/* EVENT FORM */
+@RequiresApi(Build.VERSION_CODES.O)
+@Composable
+fun EventForm() {
+    var title by remember { mutableStateOf("") }
+    var notes by remember { mutableStateOf("") }
+    var color by remember { mutableStateOf(Preset1) }
+    var startDate by remember { mutableStateOf(LocalDate.now()) }
+    var endDate by remember { mutableStateOf<LocalDate?>(null) }
+    var startTime by remember { mutableStateOf(LocalTime.now()) }
+    var endTime by remember { mutableStateOf(LocalTime.now().plusHours(1)) }
+    var recurrenceFreq by remember { mutableStateOf(RecurrenceFrequency.NONE) }
+    var selectedDaysOfWeek by remember { mutableStateOf(setOf(7)) }
+    var selectedDaysOfMonth by remember { mutableStateOf(setOf(1)) }
+    var selectedCategory by remember { mutableStateOf<Int?>(null) }
+
+    Column {
+        // Title field (required)
+        title = textInputField(
+            label = "Title",
+            initialValue = title
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Notes field (optional)
+        notes = notesInputField(
+            label = "Notes",
+            initialValue = notes
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Start date picker (required)
         startDate = datePickerField(
             label = "Start Date",
-            initialDate = startDate
-        )
+            initialDate = startDate,
+            isOptional = false
+        )!!
         Spacer(modifier = Modifier.height(12.dp))
 
-        // End date picker
-        endDate = datePickerField(
-            label = "End Date",
-            initialDate = endDate
+        // Recurrence frequency and rule with end date
+        val (recurrence, recurrenceEndDate) = recurrencePickerField(
+            initialFrequency = recurrenceFreq,
+            initialDaysOfWeek = selectedDaysOfWeek,
+            initialDaysOfMonth = selectedDaysOfMonth,
+            initialEndDate = endDate,
+            startDate = startDate
         )
+        recurrenceFreq = recurrence.first
+        selectedDaysOfWeek = recurrence.second
+        selectedDaysOfMonth = recurrence.third
+        endDate = recurrenceEndDate
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Start time picker
+        // Start time picker (required)
         startTime = timePickerField(
             label = "Start Time",
             initialTime = startTime
         )
         Spacer(modifier = Modifier.height(12.dp))
 
-        // End time picker
+        // End time picker (required)
         endTime = timePickerField(
             label = "End Time",
             initialTime = endTime
         )
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Recurrence frequency and rule
-        val (freq, daysWeek, daysMonth) = recurrencePickerField(
-            initialFrequency = recurrenceFreq,
-            initialDaysOfWeek = selectedDaysOfWeek,
-            initialDaysOfMonth = selectedDaysOfMonth
+        // Category dropdown (optional)
+        selectedCategory = dropdownField(
+            label = "Category",
+            items = listOf("Work", "Personal", "Study", "Fitness"), // TODO: Load from DB
+            initialSelection = selectedCategory
         )
-        recurrenceFreq = freq
-        selectedDaysOfWeek = daysWeek
-        selectedDaysOfMonth = daysMonth
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Priority selector
+        // Color picker (optional)
+        color = colorPickerField(
+            label = "Color",
+            initialColor = color
+        )
+    }
+}
+
+/* DEADLINE FORM */
+@RequiresApi(Build.VERSION_CODES.O)
+@Composable
+fun DeadlineForm() {
+    var title by remember { mutableStateOf("") }
+    var notes by remember { mutableStateOf("") }
+    var date by remember { mutableStateOf(LocalDate.now()) }
+    var time by remember { mutableStateOf(LocalTime.of(23, 59)) }
+    var selectedCategory by remember { mutableStateOf<Int?>(null) }
+    var selectedEvent by remember { mutableStateOf<Int?>(null) }
+
+    Column {
+        // Title field (required)
+        title = textInputField(
+            label = "Title",
+            initialValue = title
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Notes field (optional)
+        notes = notesInputField(
+            label = "Notes",
+            initialValue = notes
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Date picker (required)
+        date = datePickerField(
+            label = "Date",
+            initialDate = date,
+            isOptional = false
+        )!!
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Time picker (required)
+        time = timePickerField(
+            label = "Time",
+            initialTime = time
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Category dropdown (optional)
+        selectedCategory = dropdownField(
+            label = "Category",
+            items = listOf("Work", "Personal", "Study", "Fitness"), // TODO: Load from DB
+            initialSelection = selectedCategory
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Event dropdown (optional)
+        selectedEvent = dropdownField(
+            label = "Event",
+            items = listOf("Meeting", "Conference", "Workshop"), // TODO: Load from DB
+            initialSelection = selectedEvent
+        )
+    }
+}
+
+/* TASK BUCKET FORM */
+@RequiresApi(Build.VERSION_CODES.O)
+@Composable
+fun TaskBucketForm() {
+    var startDate by remember { mutableStateOf(LocalDate.now()) }
+    var endDate by remember { mutableStateOf<LocalDate?>(null) }
+    var startTime by remember { mutableStateOf(LocalTime.now()) }
+    var endTime by remember { mutableStateOf(LocalTime.now().plusHours(8)) }
+    var recurrenceFreq by remember { mutableStateOf(RecurrenceFrequency.NONE) }
+    var selectedDaysOfWeek by remember { mutableStateOf(setOf(7)) }
+    var selectedDaysOfMonth by remember { mutableStateOf(setOf(1)) }
+
+    Column {
+        // Start date picker (required)
+        startDate = datePickerField(
+            label = "Start Date",
+            initialDate = startDate,
+            isOptional = false
+        )!!
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Recurrence frequency and rule (required)
+        val (recurrence, recurrenceEndDate) = recurrencePickerField(
+            initialFrequency = recurrenceFreq,
+            initialDaysOfWeek = selectedDaysOfWeek,
+            initialDaysOfMonth = selectedDaysOfMonth,
+            initialEndDate = endDate,
+            startDate = startDate
+        )
+        recurrenceFreq = recurrence.first
+        selectedDaysOfWeek = recurrence.second
+        selectedDaysOfMonth = recurrence.third
+        endDate = recurrenceEndDate
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Start time picker (required)
+        startTime = timePickerField(
+            label = "Start Time",
+            initialTime = startTime
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // End time picker (required)
+        endTime = timePickerField(
+            label = "End Time",
+            initialTime = endTime
+        )
+    }
+}
+
+/* TASK FORM */
+@RequiresApi(Build.VERSION_CODES.O)
+@Composable
+fun TaskForm() {
+    var title by remember { mutableStateOf("") }
+    var notes by remember { mutableStateOf("") }
+    var priority by remember { mutableIntStateOf(3) }
+    var isBreakable by remember { mutableStateOf(false) }
+    var isAutoSchedule by remember { mutableStateOf(true) }
+    var startDate by remember { mutableStateOf<LocalDate?>(null) }
+    var startTime by remember { mutableStateOf<LocalTime?>(null) }
+    var durationHours by remember { mutableIntStateOf(1) }
+    var durationMinutes by remember { mutableIntStateOf(0) }
+    var selectedCategory by remember { mutableStateOf<Int?>(null) }
+    var selectedEvent by remember { mutableStateOf<Int?>(null) }
+    var selectedDeadline by remember { mutableStateOf<Int?>(null) }
+
+    Column {
+        // Title field (required)
+        title = textInputField(
+            label = "Title",
+            initialValue = title
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Notes field (optional)
+        notes = notesInputField(
+            label = "Notes",
+            initialValue = notes
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Priority selector (required, default 3)
         priority = priorityPickerField(
             label = "Priority",
             initialPriority = priority
         )
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Duration picker
+        // Duration picker (required - predictedDuration)
         val (hours, minutes) = durationPickerField(
             initialHours = durationHours,
             initialMinutes = durationMinutes
@@ -124,49 +317,96 @@ fun Creation() {
         durationMinutes = minutes
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Breakable checkbox
+        // Breakable checkbox (optional, default false)
         isBreakable = checkboxField(
             label = "Breakable",
             initialChecked = isBreakable
         )
         Spacer(modifier = Modifier.height(12.dp))
 
-        // All day checkbox
-        isAllDay = checkboxField(
-            label = "All Day",
-            initialChecked = isAllDay
+        // Schedule picker (Auto Schedule with expandable manual fields)
+        val (autoSchedule, date, time) = schedulePickerField(
+            initialAutoSchedule = isAutoSchedule,
+            initialDate = startDate,
+            initialTime = startTime
         )
+        isAutoSchedule = autoSchedule
+        startDate = date
+        startTime = time
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Category dropdown
+        // Category dropdown (optional)
         selectedCategory = dropdownField(
             label = "Category",
-            items = listOf("Work", "Personal", "Study", "Fitness"),
+            items = listOf("Work", "Personal", "Study", "Fitness"), // TODO: Load from DB
             initialSelection = selectedCategory
         )
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Color picker
-        selectedColor = colorPickerField(
-            label = "Color",
-            initialColor = selectedColor
-        )
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // Event dropdown
+        // Event dropdown (optional)
         selectedEvent = dropdownField(
             label = "Event",
-            items = listOf("Meeting", "Conference", "Workshop", "Deadline Review"),
+            items = listOf("Meeting", "Conference", "Workshop"), // TODO: Load from DB
             initialSelection = selectedEvent
         )
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Deadline dropdown
+        // Deadline dropdown (optional)
         selectedDeadline = dropdownField(
             label = "Deadline",
-            items = listOf("Project Due", "Assignment", "Report Submission"),
+            items = listOf("Project Due", "Assignment", "Report Submission"), // TODO: Load from DB
             initialSelection = selectedDeadline
         )
+    }
+}
+
+/* REMINDER FORM */
+@RequiresApi(Build.VERSION_CODES.O)
+@Composable
+fun ReminderForm() {
+    var title by remember { mutableStateOf("") }
+    var notes by remember { mutableStateOf("") }
+    var color by remember { mutableStateOf(Preset1) }
+    var date by remember { mutableStateOf(LocalDate.now()) }
+    var isAllDay by remember { mutableStateOf(true) }
+    var time by remember { mutableStateOf(LocalTime.now()) }
+
+    Column {
+        // Title field (required)
+        title = textInputField(
+            label = "Title",
+            initialValue = title
+        )
         Spacer(modifier = Modifier.height(12.dp))
+
+        // Notes field (optional)
+        notes = notesInputField(
+            label = "Notes",
+            initialValue = notes
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Date picker (required)
+        date = datePickerField(
+            label = "Date",
+            initialDate = date,
+            isOptional = false
+        )!!
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // All day checkbox with expandable time picker
+        val (allDay, selectedTime) = allDayPickerField(
+            initialAllDay = isAllDay,
+            initialTime = time
+        )
+        isAllDay = allDay
+        time = selectedTime
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Color picker (required)
+        color = colorPickerField(
+            label = "Color",
+            initialColor = color
+        )
     }
 }

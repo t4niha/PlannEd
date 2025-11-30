@@ -190,7 +190,7 @@ data class MasterTask(
     val noIntervals: Int,                   // back-end only, how many intervals, 1 if not breakable
 
     val startDate: LocalDate? = null,       // null = auto, otherwise manual
-    val startTime: LocalTime? = null,       // available only if startDate not null
+    val startTime: LocalTime? = null,       // null = auto, otherwise manual
 
     val predictedDuration: Int,
     val actualDuration: Int? = null,        // back-end access to this only, total final duration

@@ -326,10 +326,10 @@ fun NavigationDrawer(
                     currentScreen = "Deadlines"
                     onDrawerToggle()
                 }
-                CheckableDrawerRow("Task Buckets", showTaskBuckets, {
-                    showTaskBuckets = !showTaskBuckets
+                CheckableDrawerRow("Reminders", showReminders, {
+                    showReminders = !showReminders
                 }) {
-                    currentScreen = "TaskBuckets"
+                    currentScreen = "Reminders"
                     onDrawerToggle()
                 }
                 CheckableDrawerRow("Tasks", showTasks, {
@@ -338,10 +338,10 @@ fun NavigationDrawer(
                     currentScreen = "Tasks"
                     onDrawerToggle()
                 }
-                CheckableDrawerRow("Reminders", showReminders, {
-                    showReminders = !showReminders
+                CheckableDrawerRow("Task Buckets", showTaskBuckets, {
+                    showTaskBuckets = !showTaskBuckets
                 }) {
-                    currentScreen = "Reminders"
+                    currentScreen = "TaskBuckets"
                     onDrawerToggle()
                 }
                 DrawerRow("Settings", { GearIcon() }) {
