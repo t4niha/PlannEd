@@ -51,7 +51,6 @@ fun Creation() {
     ) {
         // Type field
         selectedType = typePickerField(
-            label = "Type",
             initialType = selectedType
         )
         Spacer(modifier = Modifier.height(12.dp))

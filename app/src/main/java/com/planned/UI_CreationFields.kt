@@ -31,7 +31,6 @@ import java.time.format.DateTimeFormatter
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun typePickerField(
-    label: String,
     initialType: String = "Category"
 ): String {
     var selectedType by remember { mutableStateOf(initialType) }
@@ -42,23 +41,20 @@ fun typePickerField(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color(CardColor), RoundedCornerShape(12.dp))
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null
             ) { showTypePicker = !showTypePicker }
-            .padding(16.dp)
+            .padding(horizontal = 16.dp)
+            .padding(vertical = 8.dp)
     ) {
         Column {
-            Text(label, fontSize = 16.sp, fontWeight = FontWeight.Medium)
-            Spacer(modifier = Modifier.height(8.dp))
-
             // Display selected type
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(Color.White, RoundedCornerShape(8.dp))
-                    .border(1.dp, Color.Black, RoundedCornerShape(8.dp))
+                    .border(3.dp, PrimaryColor, RoundedCornerShape(8.dp))
                     .padding(12.dp)
             ) {
                 Text(selectedType)
@@ -280,41 +276,44 @@ fun datePickerField(
             .background(Color(CardColor), RoundedCornerShape(12.dp))
             .padding(16.dp)
     ) {
-        Column {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth()
+        ) {
             Text(label, fontSize = 16.sp, fontWeight = FontWeight.Medium)
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.width(16.dp))
             Button(
                 onClick = { showDatePicker = true },
                 colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
             ) {
                 Text(displayDate)
             }
+        }
 
-            // Date picker dialog
-            if (showDatePicker) {
-                val datePickerState = rememberDatePickerState(
-                    initialSelectedDateMillis = selectedDate.toEpochDay() * 86400000L
-                )
-                DatePickerDialog(
-                    onDismissRequest = { showDatePicker = false },
-                    confirmButton = {
-                        TextButton(onClick = {
-                            datePickerState.selectedDateMillis?.let {
-                                selectedDate = LocalDate.ofEpochDay(it / 86400000L)
-                            }
-                            showDatePicker = false
-                        }) {
-                            Text("OK")
+        // Date picker dialog
+        if (showDatePicker) {
+            val datePickerState = rememberDatePickerState(
+                initialSelectedDateMillis = selectedDate.toEpochDay() * 86400000L
+            )
+            DatePickerDialog(
+                onDismissRequest = { showDatePicker = false },
+                confirmButton = {
+                    TextButton(onClick = {
+                        datePickerState.selectedDateMillis?.let {
+                            selectedDate = LocalDate.ofEpochDay(it / 86400000L)
                         }
-                    },
-                    dismissButton = {
-                        TextButton(onClick = { showDatePicker = false }) {
-                            Text("Cancel")
-                        }
+                        showDatePicker = false
+                    }) {
+                        Text("OK")
                     }
-                ) {
-                    DatePicker(state = datePickerState)
+                },
+                dismissButton = {
+                    TextButton(onClick = { showDatePicker = false }) {
+                        Text("Cancel")
+                    }
                 }
+            ) {
+                DatePicker(state = datePickerState)
             }
         }
     }
@@ -343,43 +342,46 @@ fun timePickerField(
             .background(Color(CardColor), RoundedCornerShape(12.dp))
             .padding(16.dp)
     ) {
-        Column {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth()
+        ) {
             Text(label, fontSize = 16.sp, fontWeight = FontWeight.Medium)
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.width(16.dp))
             Button(
                 onClick = { showTimePicker = true },
                 colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
             ) {
                 Text(displayTime)
             }
+        }
 
-            // Time picker dialog
-            if (showTimePicker) {
-                val timePickerState = rememberTimePickerState(
-                    initialHour = selectedTime.hour,
-                    initialMinute = selectedTime.minute,
-                    is24Hour = false
-                )
-                AlertDialog(
-                    onDismissRequest = { showTimePicker = false },
-                    confirmButton = {
-                        TextButton(onClick = {
-                            selectedTime = LocalTime.of(timePickerState.hour, timePickerState.minute)
-                            showTimePicker = false
-                        }) {
-                            Text("OK")
-                        }
-                    },
-                    dismissButton = {
-                        TextButton(onClick = { showTimePicker = false }) {
-                            Text("Cancel")
-                        }
-                    },
-                    text = {
-                        TimePicker(state = timePickerState)
+        // Time picker dialog
+        if (showTimePicker) {
+            val timePickerState = rememberTimePickerState(
+                initialHour = selectedTime.hour,
+                initialMinute = selectedTime.minute,
+                is24Hour = false
+            )
+            AlertDialog(
+                onDismissRequest = { showTimePicker = false },
+                confirmButton = {
+                    TextButton(onClick = {
+                        selectedTime = LocalTime.of(timePickerState.hour, timePickerState.minute)
+                        showTimePicker = false
+                    }) {
+                        Text("OK")
                     }
-                )
-            }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showTimePicker = false }) {
+                        Text("Cancel")
+                    }
+                },
+                text = {
+                    TimePicker(state = timePickerState)
+                }
+            )
         }
     }
 
@@ -473,9 +475,7 @@ fun recurrencePickerField(
 
             // Weekly recurrence rule - days of week selector
             if (recurrenceFreq == RecurrenceFrequency.WEEKLY) {
-                Spacer(modifier = Modifier.height(12.dp))
-                Text("Days of Week", fontSize = 14.sp, fontWeight = FontWeight.Medium)
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -523,9 +523,7 @@ fun recurrencePickerField(
 
             // Monthly recurrence rule - days of month selector
             if (recurrenceFreq == RecurrenceFrequency.MONTHLY) {
-                Spacer(modifier = Modifier.height(12.dp))
-                Text("Days of Month", fontSize = 14.sp, fontWeight = FontWeight.Medium)
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(7),
@@ -654,117 +652,120 @@ fun durationPickerField(
             .background(Color(CardColor), RoundedCornerShape(12.dp))
             .padding(16.dp)
     ) {
-        Column {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth()
+        ) {
             Text("Duration", fontSize = 16.sp, fontWeight = FontWeight.Medium)
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.width(16.dp))
             Button(
                 onClick = { showDurationPicker = true },
                 colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
             ) {
                 Text("${durationHours}h ${durationMinutes}m")
             }
+        }
 
-            // Duration picker dialog
-            if (showDurationPicker) {
-                AlertDialog(
-                    onDismissRequest = { showDurationPicker = false },
-                    confirmButton = {
-                        TextButton(onClick = {
-                            showDurationPicker = false
-                        }) {
-                            Text("OK")
-                        }
-                    },
-                    dismissButton = {
-                        TextButton(onClick = { showDurationPicker = false }) {
-                            Text("Cancel")
-                        }
-                    },
-                    text = {
-                        Row(
-                            horizontalArrangement = Arrangement.Center,
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            // Hours picker
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text("Hours", fontSize = 12.sp)
-                                Spacer(modifier = Modifier.height(8.dp))
+        // Duration picker dialog
+        if (showDurationPicker) {
+            AlertDialog(
+                onDismissRequest = { showDurationPicker = false },
+                confirmButton = {
+                    TextButton(onClick = {
+                        showDurationPicker = false
+                    }) {
+                        Text("OK")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showDurationPicker = false }) {
+                        Text("Cancel")
+                    }
+                },
+                text = {
+                    Row(
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        // Hours picker
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text("Hours", fontSize = 12.sp)
+                            Spacer(modifier = Modifier.height(8.dp))
 
-                                // Increment button
-                                Button(
-                                    onClick = { durationHours++ },
-                                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
-                                ) {
-                                    Text("▲")
-                                }
-
-                                Text(
-                                    durationHours.toString(),
-                                    fontSize = 24.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.padding(vertical = 8.dp)
-                                )
-
-                                // Decrement button
-                                Button(
-                                    onClick = {
-                                        if (durationHours > 0) {
-                                            durationHours--
-                                            // Prevent 0h 0m
-                                            if (durationHours == 0 && durationMinutes == 0) {
-                                                durationMinutes = 5
-                                            }
-                                        }
-                                    },
-                                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
-                                ) {
-                                    Text("▼")
-                                }
+                            // Increment button
+                            Button(
+                                onClick = { durationHours++ },
+                                colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
+                            ) {
+                                Text("▲")
                             }
 
-                            Spacer(modifier = Modifier.width(32.dp))
+                            Text(
+                                durationHours.toString(),
+                                fontSize = 24.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(vertical = 8.dp)
+                            )
 
-                            // Minutes picker (increments of 5)
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text("Minutes", fontSize = 12.sp)
-                                Spacer(modifier = Modifier.height(8.dp))
-
-                                // Increment button
-                                Button(
-                                    onClick = {
-                                        durationMinutes = (durationMinutes + 5) % 60
-                                    },
-                                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
-                                ) {
-                                    Text("▲")
-                                }
-
-                                Text(
-                                    durationMinutes.toString(),
-                                    fontSize = 24.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.padding(vertical = 8.dp)
-                                )
-
-                                // Decrement button
-                                Button(
-                                    onClick = {
-                                        durationMinutes = if (durationMinutes - 5 < 0) 55 else durationMinutes - 5
+                            // Decrement button
+                            Button(
+                                onClick = {
+                                    if (durationHours > 0) {
+                                        durationHours--
                                         // Prevent 0h 0m
                                         if (durationHours == 0 && durationMinutes == 0) {
                                             durationMinutes = 5
                                         }
-                                    },
-                                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
-                                ) {
-                                    Text("▼")
-                                }
+                                    }
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
+                            ) {
+                                Text("▼")
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.width(32.dp))
+
+                        // Minutes picker (increments of 5)
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text("Minutes", fontSize = 12.sp)
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            // Increment button
+                            Button(
+                                onClick = {
+                                    durationMinutes = (durationMinutes + 5) % 60
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
+                            ) {
+                                Text("▲")
+                            }
+
+                            Text(
+                                durationMinutes.toString(),
+                                fontSize = 24.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(vertical = 8.dp)
+                            )
+
+                            // Decrement button
+                            Button(
+                                onClick = {
+                                    durationMinutes = if (durationMinutes - 5 < 0) 55 else durationMinutes - 5
+                                    // Prevent 0h 0m
+                                    if (durationHours == 0 && durationMinutes == 0) {
+                                        durationMinutes = 5
+                                    }
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
+                            ) {
+                                Text("▼")
                             }
                         }
                     }
-                )
-            }
+                }
+            )
         }
     }
 
