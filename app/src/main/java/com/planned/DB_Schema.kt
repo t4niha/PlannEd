@@ -379,7 +379,6 @@ data class MasterTaskWithBucket(
 //</editor-fold>
 
 /* DAOs */
-//<editor-fold desc="DAOs">
 
 // Category
 @Dao
@@ -409,7 +408,7 @@ interface CategoryDao {
 @Dao
 interface EventDao {
     // Insert new master event
-    @Insert suspend fun insert(event: MasterEvent)
+    @Insert suspend fun insert(event: MasterEvent): Long
 
     // Insert new event occurrence
     @Insert suspend fun insertOccurrence(occurrence: EventOccurrence)
@@ -468,7 +467,7 @@ interface DeadlineDao {
 @Dao
 interface TaskBucketDao {
     // Insert new master task bucket
-    @Insert suspend fun insert(masterBucket: MasterTaskBucket)
+    @Insert suspend fun insert(masterBucket: MasterTaskBucket): Long
 
     // Insert new task bucket occurrence
     @Insert suspend fun insertOccurrence(bucketOccurrence: TaskBucketOccurrence)
@@ -499,6 +498,14 @@ interface TaskBucketDao {
     // Delete master bucket
     @Query("DELETE FROM MasterTaskBucket WHERE id = :masterId")
     suspend fun deleteMasterBucket(masterId: Int)
+
+    // Fetch all occurrences for a specific date
+    @Query("SELECT * FROM TaskBucketOccurrence WHERE occurDate = :date")
+    suspend fun getOccurrencesByDate(date: LocalDate): List<TaskBucketOccurrence>
+
+    // Update bucket occurrence
+    @Update
+    suspend fun updateBucketOccurrence(occurrence: TaskBucketOccurrence)
 }
 
 // Task
@@ -584,7 +591,6 @@ interface SettingsDao {
     @Query("DELETE FROM AppSetting")
     suspend fun deleteAll()
 }
-//</editor-fold>
 
 /* DATABASE */
 //<editor-fold desc="Database">
@@ -600,7 +606,7 @@ interface SettingsDao {
         AppSetting::class,
         EventATI::class, UserATI::class
     ],
-    version = 3
+    version = 4
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {

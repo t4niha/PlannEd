@@ -35,10 +35,6 @@ fun runSample(db: AppDatabase) = runBlocking {
     db.eventDao().insert(mathEvent)
     val mathEventId = db.eventDao().getAllMasterEvents().last().id
 
-    // Generate event occurrences
-    val mathOccurrences = generateEventOccurrences(mathEvent).map { it.copy(masterEventId = mathEventId) }
-    mathOccurrences.forEach { db.eventDao().insertOccurrence(it) }
-
     // Create deadline
     val assignmentDeadline = Deadline(
         title = "Math HW #4",
@@ -62,10 +58,6 @@ fun runSample(db: AppDatabase) = runBlocking {
     )
     db.taskBucketDao().insert(studyBucket)
     val bucketId = db.taskBucketDao().getAllMasterBuckets().last().id
-
-    // Generate task bucket occurrences
-    val studyBucketOccurrences = generateTaskBucketOccurrences(studyBucket).map { it.copy(masterBucketId = bucketId) }
-    studyBucketOccurrences.forEach { db.taskBucketDao().insertOccurrence(it) }
 
     // Create master task
     val readChapterTask = MasterTask(

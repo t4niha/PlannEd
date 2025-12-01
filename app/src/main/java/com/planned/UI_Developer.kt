@@ -33,7 +33,7 @@ private val buttonShape = RoundedCornerShape(10.dp)
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun Developer() {
+fun Developer(db: AppDatabase) {
     val scrollStateVertical = rememberScrollState()
     val scrollStateHorizontal = rememberScrollState()
 

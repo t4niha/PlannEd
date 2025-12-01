@@ -13,7 +13,7 @@ import androidx.compose.ui.Modifier
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
-fun Tasks() {
+fun Tasks(db: AppDatabase) {
     Box(
         modifier = Modifier
             .fillMaxSize()

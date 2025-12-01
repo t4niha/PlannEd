@@ -68,15 +68,15 @@ fun AppNavigation(db: AppDatabase) {
             content = { padding ->
                 Box(modifier = Modifier.fillMaxSize().padding(padding)) {
                     when (currentScreen) {
-                        "Calendars" -> Calendars()
-                        "Categories" -> Categories()
-                        "Events" -> Events()
-                        "Deadlines" -> Deadlines()
-                        "TaskBuckets" -> TaskBuckets()
-                        "Tasks" -> Tasks()
-                        "Reminders" -> Reminders()
-                        "Settings" -> Settings()
-                        "Developer" -> Developer()
+                        "Calendars" -> Calendars(db)
+                        "Categories" -> Categories(db)
+                        "Events" -> Events(db)
+                        "Deadlines" -> Deadlines(db)
+                        "TaskBuckets" -> TaskBuckets(db)
+                        "Tasks" -> Tasks(db)
+                        "Reminders" -> Reminders(db)
+                        "Settings" -> Settings(db)
+                        "Developer" -> Developer(db)
                         "Creation" -> Creation(db)
                     }
                 }

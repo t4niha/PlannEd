@@ -41,7 +41,7 @@ val colorPresets = listOf(
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
-fun Settings() {
+fun Settings(db: AppDatabase) {
     val context = LocalContext.current
     val db = remember { AppDatabaseProvider.getDatabase(context) }
     val scope = rememberCoroutineScope()

@@ -127,12 +127,14 @@ fun generateEventOccurrences(master: MasterEvent): List<EventOccurrence> {
     return occurrences
 }
 
-// TODO: Merge overlapping TaskBuckets
-/* Generate TaskBucketOccurrences from MasterTaskBucket, merge overlapping TaskBuckets */
+/* Generate TaskBucketOccurrences from MasterTaskBucket, merging overlapping TaskBuckets */
 @RequiresApi(Build.VERSION_CODES.O)
-fun generateTaskBucketOccurrences(master: MasterTaskBucket): List<TaskBucketOccurrence> {
+suspend fun generateTaskBucketOccurrences(
+    master: MasterTaskBucket,
+    db: AppDatabase
+): List<TaskBucketOccurrence> {
     val today = LocalDate.now()
-    val occurrences = mutableListOf<TaskBucketOccurrence>()
+    val newOccurrences = mutableListOf<TaskBucketOccurrence>()
 
     val endLimit = master.endDate?.let {
         if (it.isBefore(today.plusMonths(OCCURRENCE_GENERATION_MONTHS.toLong()))) it
@@ -152,18 +154,68 @@ fun generateTaskBucketOccurrences(master: MasterTaskBucket): List<TaskBucketOccu
         }
 
         if (matchesRule) {
-            occurrences.add(
-                TaskBucketOccurrence(
-                    masterBucketId = master.id,
-                    occurDate = current,
-                    startTime = master.startTime,
-                    endTime = master.endTime
-                )
+            // Create new occurrence
+            val newOccurrence = TaskBucketOccurrence(
+                masterBucketId = master.id,
+                occurDate = current,
+                startTime = master.startTime,
+                endTime = master.endTime
             )
+
+            // Get all existing occurrences on this date, excluding this master's occurrences
+            val existingOccurrencesOnDate = db.taskBucketDao()
+                .getOccurrencesByDate(current)
+                .filter { it.masterBucketId != master.id }
+                .toMutableList()
+
+            // Find all overlapping occurrences and merge them together
+            val overlappingOccurrences = mutableListOf<TaskBucketOccurrence>()
+
+            for (existing in existingOccurrencesOnDate) {
+                if (doTimeRangesOverlapOrTouch(
+                        newOccurrence.startTime, newOccurrence.endTime,
+                        existing.startTime, existing.endTime
+                    )) {
+                    overlappingOccurrences.add(existing)
+                }
+            }
+
+            if (overlappingOccurrences.isNotEmpty()) {
+                // Merge all overlapping occurrences into one
+                var mergedStartTime = newOccurrence.startTime
+                var mergedEndTime = newOccurrence.endTime
+
+                for (existing in overlappingOccurrences) {
+                    if (existing.startTime.isBefore(mergedStartTime)) {
+                        mergedStartTime = existing.startTime
+                    }
+                    if (existing.endTime.isAfter(mergedEndTime)) {
+                        mergedEndTime = existing.endTime
+                    }
+                }
+
+                // Keep the first overlapping occurrence, update it with merged times
+                val keepOccurrence = overlappingOccurrences.first()
+                db.taskBucketDao().updateBucketOccurrence(
+                    keepOccurrence.copy(
+                        startTime = mergedStartTime,
+                        endTime = mergedEndTime,
+                        isException = true
+                    )
+                )
+
+                // Delete all other overlapping occurrences, merge into one
+                for (i in 1 until overlappingOccurrences.size) {
+                    db.taskBucketDao().deleteOccurrence(overlappingOccurrences[i].id)
+                }
+
+            } else {
+                // No overlaps found, add as new occurrence
+                newOccurrences.add(newOccurrence)
+            }
         }
 
         // Increment current date based on frequency
-        // FIXED: Always increment by 1 day for WEEKLY and MONTHLY to catch all selected days
         current = when (master.recurFreq) {
             RecurrenceFrequency.NONE,
             RecurrenceFrequency.DAILY,
@@ -173,8 +225,15 @@ fun generateTaskBucketOccurrences(master: MasterTaskBucket): List<TaskBucketOccu
         }
     }
 
-    return occurrences
+    return newOccurrences
 }
+
+/* Check if bucket time ranges overlap or touch */
+@RequiresApi(Build.VERSION_CODES.O)
+private fun doTimeRangesOverlapOrTouch(
+    start1: LocalTime, end1: LocalTime,
+    start2: LocalTime, end2: LocalTime
+): Boolean {return !start1.isAfter(end2) && !end1.isBefore(start2)}
 
 // TODO: Set up after heuristic algorithm
 /* Generate TaskIntervals from MasterTask */

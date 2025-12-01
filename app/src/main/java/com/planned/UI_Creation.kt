@@ -20,7 +20,7 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalTime
 
-// TODO: Use generators
+// TODO: Category color inheritance
 
 /* CREATION DETAILS */
 @RequiresApi(Build.VERSION_CODES.O)

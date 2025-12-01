@@ -1,5 +1,7 @@
 package com.planned
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -71,6 +73,7 @@ object CategoryManager {
 /* EVENT MANAGER */
 object EventManager {
     // Insert new master event
+    @RequiresApi(Build.VERSION_CODES.O)
     suspend fun insert(
         db: AppDatabase,
         title: String,
@@ -96,9 +99,20 @@ object EventManager {
             recurRule = recurRule,
             categoryId = categoryId
         )
-        db.eventDao().insert(event)
 
-        // TODO: Generate occurrences using DB_Generator
+        // Insert master event and get ID
+        val insertedId = db.eventDao().insert(event).toInt()
+
+        // Create a copy with ID
+        val insertedEvent = event.copy(id = insertedId)
+
+        // Generate occurrences automatically
+        val occurrences = generateEventOccurrences(insertedEvent)
+
+        // Insert all generated occurrences
+        occurrences.forEach { occurrence ->
+            db.eventDao().insertOccurrence(occurrence)
+        }
     }
 
     // Get all master events
@@ -139,6 +153,7 @@ object DeadlineManager {
 /* TASK BUCKET MANAGER */
 object TaskBucketManager {
     // Insert new master task bucket
+    @RequiresApi(Build.VERSION_CODES.O)
     suspend fun insert(
         db: AppDatabase,
         startDate: LocalDate,
@@ -156,9 +171,20 @@ object TaskBucketManager {
             recurFreq = recurFreq,
             recurRule = recurRule
         )
-        db.taskBucketDao().insert(bucket)
 
-        // TODO: Generate occurrences using DB_Generator
+        // Insert master bucket and get ID
+        val insertedId = db.taskBucketDao().insert(bucket).toInt()
+
+        // Create a copy with ID
+        val insertedBucket = bucket.copy(id = insertedId)
+
+        // Generate occurrences with merging logic automatically
+        val occurrences = generateTaskBucketOccurrences(insertedBucket, db)
+
+        // Insert all generated occurrences
+        occurrences.forEach { occurrence ->
+            db.taskBucketDao().insertOccurrence(occurrence)
+        }
     }
 
     // Get all master buckets
@@ -198,7 +224,7 @@ object TaskManager {
         )
         db.taskDao().insert(task)
 
-        // TODO: Generate intervals using DB_Generator
+        // TODO: Generate intervals using DB_Generator (after heuristic algorithm)
     }
 
     // Get all master tasks

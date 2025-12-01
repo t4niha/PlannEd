@@ -49,7 +49,7 @@ fun getLastDayOfWeek(): DayOfWeek {
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
-fun Calendars() {
+fun Calendars(db: AppDatabase) {
     // Global states
     val currentView = currentCalendarView
     val today = LocalDate.now()
