@@ -478,14 +478,6 @@ fun TaskForm(
         onDurationChange(hours, minutes)
         Spacer(modifier = Modifier.height(12.dp))
 
-        val breakableValue = checkboxField(
-            label = "Breakable",
-            initialChecked = isBreakable,
-            key = resetTrigger
-        )
-        onBreakableChange(breakableValue)
-        Spacer(modifier = Modifier.height(12.dp))
-
         val (autoSchedule, date, time) = schedulePickerField(
             initialAutoSchedule = isAutoSchedule,
             initialDate = startDate,
@@ -493,6 +485,14 @@ fun TaskForm(
             key = resetTrigger
         )
         onScheduleChange(autoSchedule, date, time)
+        Spacer(modifier = Modifier.height(12.dp))
+
+        val breakableValue = checkboxField(
+            label = "Breakable",
+            initialChecked = isBreakable,
+            key = resetTrigger
+        )
+        onBreakableChange(breakableValue)
         Spacer(modifier = Modifier.height(12.dp))
 
         val deadlineValue = dropdownField(
