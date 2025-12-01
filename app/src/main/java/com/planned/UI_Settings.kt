@@ -60,7 +60,7 @@ fun Settings(db: AppDatabase) {
         modifier = Modifier
             .fillMaxSize()
             .background(BackgroundColor)
-            .padding(16.dp)
+            .padding(12.dp)
     ) {
         // Week start switch
         Box(

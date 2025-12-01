@@ -235,29 +235,51 @@ object TaskManager {
 
 /* REMINDER MANAGER */
 object ReminderManager {
-    // Insert new reminder
+    // Insert new master reminder
+    @RequiresApi(Build.VERSION_CODES.O)
     suspend fun insert(
         db: AppDatabase,
         title: String,
         notes: String?,
         color: Color,
-        date: LocalDate,
+        startDate: LocalDate,
+        endDate: LocalDate?,
         time: LocalTime?,
-        allDay: Boolean
+        allDay: Boolean,
+        recurFreq: RecurrenceFrequency,
+        recurRule: RecurrenceRule,
+        categoryId: Int?
     ) {
-        val reminder = Reminder(
+        val reminder = MasterReminder(
             title = title,
             notes = notes,
             color = Converters.fromColor(color),
-            date = date,
+            startDate = startDate,
+            endDate = endDate,
             time = time,
-            allDay = allDay
+            allDay = allDay,
+            recurFreq = recurFreq,
+            recurRule = recurRule,
+            categoryId = categoryId
         )
-        db.reminderDao().insert(reminder)
+
+        // Insert master reminder and get ID
+        val insertedId = db.reminderDao().insert(reminder).toInt()
+
+        // Create a copy with ID
+        val insertedReminder = reminder.copy(id = insertedId)
+
+        // Generate occurrences automatically
+        val occurrences = generateReminderOccurrences(insertedReminder)
+
+        // Insert all generated occurrences
+        occurrences.forEach { occurrence ->
+            db.reminderDao().insertOccurrence(occurrence)
+        }
     }
 
-    // Get all reminders
-    suspend fun getAll(db: AppDatabase): List<Reminder> {
-        return db.reminderDao().getAll()
+    // Get all master reminders
+    suspend fun getAll(db: AppDatabase): List<MasterReminder> {
+        return db.reminderDao().getAllMasterReminders()
     }
 }

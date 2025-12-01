@@ -3,6 +3,7 @@ package com.planned
 import android.os.Build
 import androidx.annotation.RequiresApi
 import kotlinx.coroutines.runBlocking
+import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalTime
 
@@ -10,94 +11,143 @@ import java.time.LocalTime
 @RequiresApi(Build.VERSION_CODES.O)
 fun runSample(db: AppDatabase) = runBlocking {
 
-    // Create category
-    val catSchool = Category(
+    // Category: School
+    CategoryManager.insert(
+        db = db,
         title = "School",
         notes = "All academic related items",
-        color = "Preset1"
+        color = Preset1
     )
-    db.categoryDao().insert(catSchool)
-    val catId = db.categoryDao().getAll().last().id
+    val schoolCatId = db.categoryDao().getAll().last().id
 
-    // Create master event
-    val mathEvent = MasterEvent(
+    // Category: Soccer
+    CategoryManager.insert(
+        db = db,
+        title = "Soccer",
+        notes = "Soccer team activities",
+        color = Preset5
+    )
+    val soccerCatId = db.categoryDao().getAll().last().id
+
+    // Category: Tutoring
+    CategoryManager.insert(
+        db = db,
+        title = "Tutoring",
+        notes = "Tutoring sessions",
+        color = Preset9
+    )
+    val tutoringCatId = db.categoryDao().getAll().last().id
+
+    // Event: Math
+    EventManager.insert(
+        db = db,
         title = "Math Lecture",
-        notes = "Unit 3: Integrals",
-        color = "Preset4",
+        notes = "Calculus and linear algebra",
+        color = Preset2,
         startDate = LocalDate.now(),
         endDate = null,
-        startTime = LocalTime.of(10, 0),
-        endTime = LocalTime.of(11, 15),
-        recurFreq = RecurrenceFrequency.NONE,
-        recurRule = RecurrenceRule(),
-        categoryId = catId
+        startTime = LocalTime.of(9, 0),
+        endTime = LocalTime.of(10, 30),
+        recurFreq = RecurrenceFrequency.WEEKLY,
+        recurRule = RecurrenceRule(daysOfWeek = listOf(DayOfWeek.MONDAY.value)),
+        categoryId = schoolCatId
     )
-    db.eventDao().insert(mathEvent)
     val mathEventId = db.eventDao().getAllMasterEvents().last().id
 
-    // Create deadline
-    val assignmentDeadline = Deadline(
-        title = "Math HW #4",
-        notes = "Submit via Canvas",
-        date = LocalDate.now().plusDays(2),
-        time = LocalTime.of(23, 59),
-        categoryId = catId,
-        eventId = mathEventId
-    )
-    db.deadlineDao().insert(assignmentDeadline)
-    val deadlineId = db.deadlineDao().getAll().last().id
-
-    // Create master task bucket
-    val studyBucket = MasterTaskBucket(
+    // Event: Chemistry
+    EventManager.insert(
+        db = db,
+        title = "Chemistry Lab",
+        notes = "Organic chemistry experiments",
+        color = Preset3,
         startDate = LocalDate.now(),
         endDate = null,
-        startTime = LocalTime.of(14, 0),
-        endTime = LocalTime.of(16, 0),
-        recurFreq = RecurrenceFrequency.NONE,
-        recurRule = RecurrenceRule()
+        startTime = LocalTime.of(10, 30),
+        endTime = LocalTime.of(12, 0),
+        recurFreq = RecurrenceFrequency.WEEKLY,
+        recurRule = RecurrenceRule(daysOfWeek = listOf(DayOfWeek.WEDNESDAY.value)),
+        categoryId = schoolCatId
     )
-    db.taskBucketDao().insert(studyBucket)
-    val bucketId = db.taskBucketDao().getAllMasterBuckets().last().id
 
-    // Create master task
-    val readChapterTask = MasterTask(
-        title = "Read Chapter 5",
-        notes = "Pages 120–145",
-        priority = 3,
-        breakable = false,
-        noIntervals = 1,
+    // Event: Physics
+    EventManager.insert(
+        db = db,
+        title = "Physics Lecture",
+        notes = "Mechanics and thermodynamics",
+        color = Preset4,
         startDate = LocalDate.now(),
-        startTime = LocalTime.of(17, 0),
-        predictedDuration = 60,
-        status = 1,
-        bucketId = bucketId,
-        eventId = null,
-        deadlineId = deadlineId,
-        categoryId = catId
+        endDate = null,
+        startTime = LocalTime.of(9, 0),
+        endTime = LocalTime.of(10, 30),
+        recurFreq = RecurrenceFrequency.WEEKLY,
+        recurRule = RecurrenceRule(daysOfWeek = listOf(DayOfWeek.FRIDAY.value)),
+        categoryId = schoolCatId
     )
-    db.taskDao().insert(readChapterTask)
-    val taskId = db.taskDao().getAllMasterTasks().last().id
 
-    // Create task interval
-    val readChapterInterval = TaskInterval(
-        masterTaskId = taskId,
-        intervalNo = 1,
-        notes = "Focus on solving examples",
-        occurDate = LocalDate.now(),
-        startTime = LocalTime.of(17, 0),
-        endTime = LocalTime.of(18, 0),
-        status = 1
+    // Math Quiz Deadline
+    val nextMonday = LocalDate.now().with(DayOfWeek.MONDAY).let {
+        if (it.isBefore(LocalDate.now()) || it.isEqual(LocalDate.now()))
+            it.plusWeeks(1)
+        else
+            it
+    }
+    DeadlineManager.insert(
+        db = db,
+        title = "Math Quiz 3",
+        notes = "Covers chapters 5-7",
+        date = nextMonday,
+        time = LocalTime.of(8, 45),
+        categoryId = schoolCatId,
+        eventId = mathEventId
     )
-    db.taskDao().insertInterval(readChapterInterval)
 
-    // Create reminder
-    val reminder = Reminder(
-        title = "Buy graph paper",
-        notes = "Needed for tomorrow's lab",
-        color = "Preset3",
-        date = LocalDate.now().plusDays(1),
-        time = LocalTime.of(9, 0),
-        allDay = false
+    // Task Bucket: Study Time
+    TaskBucketManager.insert(
+        db = db,
+        startDate = LocalDate.now(),
+        endDate = null,
+        startTime = LocalTime.of(18, 0),
+        endTime = LocalTime.of(20, 0),
+        recurFreq = RecurrenceFrequency.WEEKLY,
+        recurRule = RecurrenceRule(daysOfWeek = listOf(DayOfWeek.MONDAY.value))
     )
-    db.reminderDao().insert(reminder)
+    TaskBucketManager.insert(
+        db = db,
+        startDate = LocalDate.now(),
+        endDate = null,
+        startTime = LocalTime.of(18, 0),
+        endTime = LocalTime.of(20, 0),
+        recurFreq = RecurrenceFrequency.WEEKLY,
+        recurRule = RecurrenceRule(daysOfWeek = listOf(DayOfWeek.WEDNESDAY.value))
+    )
+
+    // Event: Soccer Practice
+    EventManager.insert(
+        db = db,
+        title = "Soccer Practice",
+        notes = "Team practice and drills",
+        color = Preset6,
+        startDate = LocalDate.now(),
+        endDate = null,
+        startTime = LocalTime.of(15, 0),
+        endTime = LocalTime.of(17, 0),
+        recurFreq = RecurrenceFrequency.WEEKLY,
+        recurRule = RecurrenceRule(daysOfWeek = listOf(DayOfWeek.SATURDAY.value)),
+        categoryId = soccerCatId
+    )
+
+    // Reminder: Warm up
+    ReminderManager.insert(
+        db = db,
+        title = "Warm up for soccer",
+        notes = "Do stretches before practice",
+        color = Preset7,
+        startDate = LocalDate.now(),
+        endDate = null,
+        time = LocalTime.of(14, 30),
+        allDay = false,
+        recurFreq = RecurrenceFrequency.WEEKLY,
+        recurRule = RecurrenceRule(daysOfWeek = listOf(DayOfWeek.SATURDAY.value)),
+        categoryId = soccerCatId
+    )
 }

@@ -85,9 +85,9 @@ fun generateEventOccurrences(master: MasterEvent): List<EventOccurrence> {
     val occurrences = mutableListOf<EventOccurrence>()
 
     val endLimit = master.endDate?.let {
-        if (it.isBefore(today.plusMonths(OCCURRENCE_GENERATION_MONTHS.toLong()))) it
-        else today.plusMonths(OCCURRENCE_GENERATION_MONTHS.toLong())
-    } ?: today.plusMonths(OCCURRENCE_GENERATION_MONTHS.toLong())
+        if (it.isBefore(today.plusMonths(generationMonths.toLong()))) it
+        else today.plusMonths(generationMonths.toLong())
+    } ?: today.plusMonths(generationMonths.toLong())
 
     var current = if (master.startDate.isBefore(today)) today else master.startDate
 
@@ -137,9 +137,9 @@ suspend fun generateTaskBucketOccurrences(
     val newOccurrences = mutableListOf<TaskBucketOccurrence>()
 
     val endLimit = master.endDate?.let {
-        if (it.isBefore(today.plusMonths(OCCURRENCE_GENERATION_MONTHS.toLong()))) it
-        else today.plusMonths(OCCURRENCE_GENERATION_MONTHS.toLong())
-    } ?: today.plusMonths(OCCURRENCE_GENERATION_MONTHS.toLong())
+        if (it.isBefore(today.plusMonths(generationMonths.toLong()))) it
+        else today.plusMonths(generationMonths.toLong())
+    } ?: today.plusMonths(generationMonths.toLong())
 
     var current = if (master.startDate.isBefore(today)) today else master.startDate
 
@@ -234,6 +234,54 @@ private fun doTimeRangesOverlapOrTouch(
     start1: LocalTime, end1: LocalTime,
     start2: LocalTime, end2: LocalTime
 ): Boolean {return !start1.isAfter(end2) && !end1.isBefore(start2)}
+
+/* Generate ReminderOccurrences from MasterReminder */
+@RequiresApi(Build.VERSION_CODES.O)
+fun generateReminderOccurrences(master: MasterReminder): List<ReminderOccurrence> {
+    val today = LocalDate.now()
+    val occurrences = mutableListOf<ReminderOccurrence>()
+
+    val endLimit = master.endDate?.let {
+        if (it.isBefore(today.plusMonths(generationMonths.toLong()))) it
+        else today.plusMonths(generationMonths.toLong())
+    } ?: today.plusMonths(generationMonths.toLong())
+
+    var current = if (master.startDate.isBefore(today)) today else master.startDate
+
+    while (!current.isAfter(endLimit)) {
+        // Determine if this date matches the recurrence rule
+        val matchesRule = when (master.recurFreq) {
+            RecurrenceFrequency.NONE -> current == master.startDate
+            RecurrenceFrequency.DAILY -> true
+            RecurrenceFrequency.WEEKLY -> master.recurRule.daysOfWeek?.contains(current.dayOfWeek.value) ?: true
+            RecurrenceFrequency.MONTHLY -> master.recurRule.daysOfMonth?.contains(current.dayOfMonth) ?: true
+            RecurrenceFrequency.YEARLY -> master.recurRule.monthAndDay?.let { it.first == current.dayOfMonth && it.second == current.monthValue } ?: true
+        }
+
+        if (matchesRule) {
+            occurrences.add(
+                ReminderOccurrence(
+                    masterReminderId = master.id,
+                    notes = master.notes,
+                    occurDate = current,
+                    time = master.time,
+                    allDay = master.allDay
+                )
+            )
+        }
+
+        // Increment current date based on frequency
+        current = when (master.recurFreq) {
+            RecurrenceFrequency.NONE,
+            RecurrenceFrequency.DAILY,
+            RecurrenceFrequency.WEEKLY,
+            RecurrenceFrequency.MONTHLY -> current.plusDays(1)
+            RecurrenceFrequency.YEARLY -> current.plusYears(1)
+        }
+    }
+
+    return occurrences
+}
 
 // TODO: Set up after heuristic algorithm
 /* Generate TaskIntervals from MasterTask */

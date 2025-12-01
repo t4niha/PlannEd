@@ -187,7 +187,7 @@ fun NavigationDrawer(
             modifier = Modifier
                 .offset(x = offsetX)
                 .fillMaxHeight()
-                .padding(top = 128.dp)
+                .padding(top = 126.dp)
                 .width(DrawerWidth)
                 .background(BackgroundColor)
                 .border(

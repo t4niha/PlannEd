@@ -235,19 +235,60 @@ data class TaskInterval(
 //</editor-fold>
 
 // Reminder
-//<editor-fold desc="Category">
+//<editor-fold desc="Reminder">
 
-@Entity
-data class Reminder(
+// Reminder - MASTER
+@Entity(
+    foreignKeys = [
+        ForeignKey(
+            entity = Category::class,
+            parentColumns = ["id"],
+            childColumns = ["categoryId"],
+            onDelete = ForeignKey.SET_NULL
+        )
+    ]
+)
+data class MasterReminder(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
 
     val title: String,
     val notes: String? = null,
     val color: String,
 
-    val date: LocalDate,
-    val time: LocalTime?,               // available if all day false
-    val allDay: Boolean = true          // can be checked true
+    val startDate: LocalDate,                // date when reminder occurs
+    val endDate: LocalDate? = null,          // for recurring reminders only, date when occurrences stop
+
+    val time: LocalTime?,                    // null if all day
+    val allDay: Boolean = true,
+
+    val recurFreq: RecurrenceFrequency,      // only once / daily / weekly / monthly / yearly
+    val recurRule: RecurrenceRule,           // none / days of week 1-7 / date 1-31 / date DD-MM
+
+    val categoryId: Int? = null,
+)
+
+@Entity(
+    foreignKeys = [
+        ForeignKey(
+            entity = MasterReminder::class,
+            parentColumns = ["id"],
+            childColumns = ["masterReminderId"],
+            onDelete = ForeignKey.CASCADE
+        )
+    ]
+)
+data class ReminderOccurrence(
+    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+
+    val masterReminderId: Int,
+
+    val notes: String? = null,
+
+    val occurDate: LocalDate,
+    val time: LocalTime?,                    // null if all day
+    val allDay: Boolean = true,
+
+    val isException: Boolean = false         // back-end access only, if individually changed
 )
 //</editor-fold>
 
@@ -375,6 +416,19 @@ data class MasterTaskWithBucket(
     @Embedded val masterTask: MasterTask,
     @Relation(parentColumn = "bucketId", entityColumn = "id")
     val bucket: MasterTaskBucket?
+)
+
+// MasterReminder
+data class MasterReminderWithOccurrences(
+    @Embedded val masterReminder: MasterReminder,
+    @Relation(parentColumn = "id", entityColumn = "masterReminderId")
+    val occurrences: List<ReminderOccurrence>
+)
+
+data class CategoryWithMasterReminders(
+    @Embedded val category: Category,
+    @Relation(parentColumn = "id", entityColumn = "categoryId")
+    val masterReminders: List<MasterReminder>
 )
 //</editor-fold>
 
@@ -547,25 +601,38 @@ interface TaskDao {
 // Reminder
 @Dao
 interface ReminderDao {
-    // Insert new reminder
-    @Insert
-    suspend fun insert(reminder: Reminder)
+    // Insert new master reminder
+    @Insert suspend fun insert(reminder: MasterReminder): Long
 
-    // Fetch all reminders
-    @Query("SELECT * FROM Reminder ORDER BY date, time")
-    suspend fun getAll(): List<Reminder>
+    // Insert new reminder occurrence
+    @Insert suspend fun insertOccurrence(occurrence: ReminderOccurrence)
 
-    // Fetch reminder by ID
-    @Query("SELECT * FROM Reminder WHERE id = :reminderId")
-    suspend fun getById(reminderId: Int): Reminder?
+    // Fetch all master reminders ordered by date and time
+    @Query("SELECT * FROM MasterReminder ORDER BY startDate, time")
+    suspend fun getAllMasterReminders(): List<MasterReminder>
 
-    // Update reminder
-    @Update
-    suspend fun update(reminder: Reminder)
+    // Fetch all reminder occurrences ordered by date and time
+    @Query("SELECT * FROM ReminderOccurrence ORDER BY occurDate, time")
+    suspend fun getAllOccurrences(): List<ReminderOccurrence>
 
-    // Delete reminder
-    @Query("DELETE FROM Reminder WHERE id = :reminderId")
-    suspend fun deleteById(reminderId: Int)
+    // Fetch master reminders along with their occurrences
+    @Transaction
+    @Query("SELECT * FROM MasterReminder")
+    suspend fun getAllRemindersWithOccurrences(): List<MasterReminderWithOccurrences>
+
+    // Update master reminder
+    @Update suspend fun update(reminder: MasterReminder)
+
+    // Update reminder occurrence
+    @Update suspend fun updateOccurrence(occurrence: ReminderOccurrence)
+
+    // Delete reminder occurrence
+    @Query("DELETE FROM ReminderOccurrence WHERE id = :occurrenceId")
+    suspend fun deleteOccurrence(occurrenceId: Int)
+
+    // Delete master reminder
+    @Query("DELETE FROM MasterReminder WHERE id = :masterId")
+    suspend fun deleteMasterReminder(masterId: Int)
 }
 
 // AppSetting
@@ -602,11 +669,11 @@ interface SettingsDao {
         Deadline::class,
         MasterTaskBucket::class, TaskBucketOccurrence::class,
         MasterTask::class, TaskInterval::class,
-        Reminder::class,
+        MasterReminder::class, ReminderOccurrence::class,
         AppSetting::class,
         EventATI::class, UserATI::class
     ],
-    version = 4
+    version = 5
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {

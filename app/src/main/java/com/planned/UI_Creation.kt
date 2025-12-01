@@ -31,14 +31,14 @@ fun Creation(db: AppDatabase) {
     var selectedType by remember { mutableStateOf("Task") }
     val scope = rememberCoroutineScope()
 
-    // State for validation notification (replaces dialog)
+    // State for validation notification
     var showValidationNotification by remember { mutableStateOf(false) }
     var validationMessage by remember { mutableStateOf("") }
 
     // State for success notification
     var showSuccessNotification by remember { mutableStateOf(false) }
 
-    // Reset trigger - increment this to force all fields to reset
+    // Reset trigger
     var resetTrigger by remember { mutableIntStateOf(0) }
 
     /* State variables for all forms */
@@ -55,11 +55,9 @@ fun Creation(db: AppDatabase) {
     var eventStartDate by remember { mutableStateOf(LocalDate.now()) }
     var eventEndDate by remember { mutableStateOf<LocalDate?>(null) }
     var eventStartTime by remember { mutableStateOf(LocalTime.now().withSecond(0).withNano(0)) }
-    // FIX: Ensure end time is always after start time on same day
     var eventEndTime by remember {
         val now = LocalTime.now().withSecond(0).withNano(0)
         val oneHourLater = now.plusHours(1)
-        // If adding 1 hour goes past midnight, set to 23:59
         mutableStateOf(if (oneHourLater.isBefore(now)) LocalTime.of(23, 59, 0) else oneHourLater)
     }
     var eventRecurrenceFreq by remember { mutableStateOf(RecurrenceFrequency.NONE) }
@@ -79,12 +77,10 @@ fun Creation(db: AppDatabase) {
     var bucketStartDate by remember { mutableStateOf(LocalDate.now()) }
     var bucketEndDate by remember { mutableStateOf<LocalDate?>(null) }
     var bucketStartTime by remember { mutableStateOf(LocalTime.now().withSecond(0).withNano(0)) }
-    // FIX: Ensure end time is always after start time on same day
     var bucketEndTime by remember {
         val now = LocalTime.now().withSecond(0).withNano(0)
-        val eightHoursLater = now.plusHours(8)
-        // If adding 8 hours goes past midnight, set to 23:59
-        mutableStateOf(if (eightHoursLater.isBefore(now)) LocalTime.of(23, 59, 0) else eightHoursLater)
+        val twoHoursLater = now.plusHours(2)
+        mutableStateOf(if (twoHoursLater.isBefore(now)) LocalTime.of(23, 59, 0) else twoHoursLater)
     }
     var bucketRecurrenceFreq by remember { mutableStateOf(RecurrenceFrequency.NONE) }
     var bucketSelectedDaysOfWeek by remember { mutableStateOf(setOf(7)) }
@@ -108,11 +104,16 @@ fun Creation(db: AppDatabase) {
     var reminderTitle by remember { mutableStateOf("") }
     var reminderNotes by remember { mutableStateOf("") }
     var reminderColor by remember { mutableStateOf(Preset1) }
-    var reminderDate by remember { mutableStateOf(LocalDate.now()) }
+    var reminderStartDate by remember { mutableStateOf(LocalDate.now()) }
+    var reminderEndDate by remember { mutableStateOf<LocalDate?>(null) }
     var reminderIsAllDay by remember { mutableStateOf(true) }
     var reminderTime by remember { mutableStateOf(LocalTime.now().withSecond(0).withNano(0)) }
+    var reminderRecurrenceFreq by remember { mutableStateOf(RecurrenceFrequency.NONE) }
+    var reminderSelectedDaysOfWeek by remember { mutableStateOf(setOf(7)) }
+    var reminderSelectedDaysOfMonth by remember { mutableStateOf(setOf(1)) }
+    var reminderSelectedCategory by remember { mutableStateOf<Int?>(null) }
 
-    // Function to clear all forms
+    // Clear all forms
     fun clearAllForms() {
         // Category
         categoryTitle = ""
@@ -147,8 +148,8 @@ fun Creation(db: AppDatabase) {
         bucketEndDate = null
         val now2 = LocalTime.now().withSecond(0).withNano(0)
         bucketStartTime = now2
-        val eightHoursLater = now2.plusHours(8)
-        bucketEndTime = if (eightHoursLater.isBefore(now2)) LocalTime.of(23, 59, 0) else eightHoursLater
+        val twoHoursLater = now2.plusHours(2)
+        bucketEndTime = if (twoHoursLater.isBefore(now2)) LocalTime.of(23, 59, 0) else twoHoursLater
         bucketRecurrenceFreq = RecurrenceFrequency.NONE
         bucketSelectedDaysOfWeek = setOf(7)
         bucketSelectedDaysOfMonth = setOf(1)
@@ -171,9 +172,14 @@ fun Creation(db: AppDatabase) {
         reminderTitle = ""
         reminderNotes = ""
         reminderColor = Preset1
-        reminderDate = LocalDate.now()
+        reminderStartDate = LocalDate.now()
+        reminderEndDate = null
         reminderIsAllDay = true
         reminderTime = LocalTime.now().withSecond(0).withNano(0)
+        reminderRecurrenceFreq = RecurrenceFrequency.NONE
+        reminderSelectedDaysOfWeek = setOf(7)
+        reminderSelectedDaysOfMonth = setOf(1)
+        reminderSelectedCategory = null
 
         // Increment reset trigger to force fields to reset
         resetTrigger++
@@ -194,7 +200,7 @@ fun Creation(db: AppDatabase) {
             modifier = Modifier
                 .fillMaxSize()
                 .background(BackgroundColor)
-                .padding(16.dp)
+                .padding(12.dp)
                 .verticalScroll(scrollState)
         ) {
             // Type field
@@ -204,7 +210,7 @@ fun Creation(db: AppDatabase) {
             )
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Display appropriate form based on selected type
+            // Display form based on selected type
             when (selectedType) {
                 "Task" -> {
                     TaskForm(
@@ -249,14 +255,26 @@ fun Creation(db: AppDatabase) {
                         onNotesChange = { reminderNotes = it },
                         color = reminderColor,
                         onColorChange = { reminderColor = it },
-                        date = reminderDate,
-                        onDateChange = { reminderDate = it },
+                        startDate = reminderStartDate,
+                        onStartDateChange = { reminderStartDate = it },
+                        endDate = reminderEndDate,
                         isAllDay = reminderIsAllDay,
                         time = reminderTime,
                         onAllDayTimeChange = { allDay, time ->
                             reminderIsAllDay = allDay
                             reminderTime = time
                         },
+                        recurrenceFreq = reminderRecurrenceFreq,
+                        selectedDaysOfWeek = reminderSelectedDaysOfWeek,
+                        selectedDaysOfMonth = reminderSelectedDaysOfMonth,
+                        onRecurrenceChange = { freq, daysWeek, daysMonth, endDateVal ->
+                            reminderRecurrenceFreq = freq
+                            reminderSelectedDaysOfWeek = daysWeek
+                            reminderSelectedDaysOfMonth = daysMonth
+                            reminderEndDate = endDateVal
+                        },
+                        selectedCategory = reminderSelectedCategory,
+                        onCategoryChange = { reminderSelectedCategory = it },
                         resetTrigger = resetTrigger
                     )
                 }
@@ -345,7 +363,7 @@ fun Creation(db: AppDatabase) {
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Clear and Save buttons (for all forms)
+            // Clear and Save buttons
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
@@ -413,14 +431,28 @@ fun Creation(db: AppDatabase) {
                                     return@Button
                                 }
                                 scope.launch {
+                                    val categories = CategoryManager.getAll(db)
+
+                                    val recurRule = when (reminderRecurrenceFreq) {
+                                        RecurrenceFrequency.NONE -> RecurrenceRule()
+                                        RecurrenceFrequency.DAILY -> RecurrenceRule()
+                                        RecurrenceFrequency.WEEKLY -> RecurrenceRule(daysOfWeek = reminderSelectedDaysOfWeek.toList())
+                                        RecurrenceFrequency.MONTHLY -> RecurrenceRule(daysOfMonth = reminderSelectedDaysOfMonth.toList())
+                                        RecurrenceFrequency.YEARLY -> RecurrenceRule(monthAndDay = Pair(reminderStartDate.dayOfMonth, reminderStartDate.monthValue))
+                                    }
+
                                     ReminderManager.insert(
                                         db = db,
                                         title = reminderTitle,
                                         notes = reminderNotes.ifBlank { null },
                                         color = reminderColor,
-                                        date = reminderDate,
+                                        startDate = reminderStartDate,
+                                        endDate = reminderEndDate,
                                         time = if (reminderIsAllDay) null else reminderTime,
-                                        allDay = reminderIsAllDay
+                                        allDay = reminderIsAllDay,
+                                        recurFreq = reminderRecurrenceFreq,
+                                        recurRule = recurRule,
+                                        categoryId = reminderSelectedCategory?.let { categories.getOrNull(it)?.id }
                                     )
                                     clearAllForms()
                                     showSuccessNotification = true
@@ -559,7 +591,7 @@ fun Creation(db: AppDatabase) {
             }
         }
 
-        // Validation notification dropdown (same style as success)
+        // Validation notification dropdown
         AnimatedVisibility(
             visible = showValidationNotification,
             enter = slideInVertically(initialOffsetY = { -it }) + fadeIn(),
@@ -1022,13 +1054,25 @@ fun ReminderForm(
     onNotesChange: (String) -> Unit,
     color: Color,
     onColorChange: (Color) -> Unit,
-    date: LocalDate,
-    onDateChange: (LocalDate) -> Unit,
+    startDate: LocalDate,
+    onStartDateChange: (LocalDate) -> Unit,
+    endDate: LocalDate?,
     isAllDay: Boolean,
     time: LocalTime,
     onAllDayTimeChange: (Boolean, LocalTime) -> Unit,
+    recurrenceFreq: RecurrenceFrequency,
+    selectedDaysOfWeek: Set<Int>,
+    selectedDaysOfMonth: Set<Int>,
+    onRecurrenceChange: (RecurrenceFrequency, Set<Int>, Set<Int>, LocalDate?) -> Unit,
+    selectedCategory: Int?,
+    onCategoryChange: (Int?) -> Unit,
     resetTrigger: Int
 ) {
+    var categories by remember { mutableStateOf<List<Category>>(emptyList()) }
+    LaunchedEffect(Unit) {
+        categories = CategoryManager.getAll(db)
+    }
+
     Column {
         val titleValue = textInputField(
             label = "Title",
@@ -1046,13 +1090,24 @@ fun ReminderForm(
         onNotesChange(notesValue)
         Spacer(modifier = Modifier.height(12.dp))
 
-        val dateValue = datePickerField(
-            label = "Date",
-            initialDate = date,
+        val startDateValue = datePickerField(
+            label = "Start Date",
+            initialDate = startDate,
             isOptional = false,
             key = resetTrigger
         )!!
-        onDateChange(dateValue)
+        onStartDateChange(startDateValue)
+        Spacer(modifier = Modifier.height(12.dp))
+
+        val (recurrence, recurrenceEndDate) = recurrencePickerField(
+            initialFrequency = recurrenceFreq,
+            initialDaysOfWeek = selectedDaysOfWeek,
+            initialDaysOfMonth = selectedDaysOfMonth,
+            initialEndDate = endDate,
+            startDate = startDate,
+            key = resetTrigger
+        )
+        onRecurrenceChange(recurrence.first, recurrence.second, recurrence.third, recurrenceEndDate)
         Spacer(modifier = Modifier.height(12.dp))
 
         val (allDay, selectedTime) = allDayPickerField(
@@ -1061,6 +1116,15 @@ fun ReminderForm(
             key = resetTrigger
         )
         onAllDayTimeChange(allDay, selectedTime)
+        Spacer(modifier = Modifier.height(12.dp))
+
+        val categoryValue = dropdownField(
+            label = "Category",
+            items = categories.map { it.title },
+            initialSelection = selectedCategory,
+            key = resetTrigger
+        )
+        onCategoryChange(categoryValue)
         Spacer(modifier = Modifier.height(12.dp))
 
         val colorValue = colorPickerField(
