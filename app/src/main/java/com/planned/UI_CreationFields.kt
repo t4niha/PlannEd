@@ -1392,7 +1392,7 @@ fun dropdownField(
                     Column(
                         modifier = Modifier
                             .padding(top = 8.dp)
-                            .height(180.dp)
+                            .heightIn(max = 180.dp)
                             .verticalScroll(rememberScrollState())
                     ) {
                         // "None" option
