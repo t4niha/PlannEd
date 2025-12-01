@@ -504,7 +504,6 @@ fun Creation(db: AppDatabase) {
                                     return@Button
                                 }
 
-                                // Check for overlap with Task Buckets
                                 scope.launch {
                                     val recurRule = when (eventRecurrenceFreq) {
                                         RecurrenceFrequency.NONE -> RecurrenceRule()
@@ -514,7 +513,8 @@ fun Creation(db: AppDatabase) {
                                         RecurrenceFrequency.YEARLY -> RecurrenceRule(monthAndDay = Pair(eventStartDate.dayOfMonth, eventStartDate.monthValue))
                                     }
 
-                                    val overlapInfo = checkEventOverlapWithBuckets(
+                                    // Check for overlap with other Events
+                                    val eventOverlapInfo = checkEventOverlapWithEvents(
                                         db = db,
                                         startDate = eventStartDate,
                                         endDate = eventEndDate,
@@ -524,8 +524,28 @@ fun Creation(db: AppDatabase) {
                                         recurRule = recurRule
                                     )
 
-                                    if (overlapInfo.hasOverlap) {
-                                        overlapMessage = formatOverlapMessage(overlapInfo)
+                                    if (eventOverlapInfo.hasOverlap) {
+                                        overlapMessage = formatOverlapMessage(eventOverlapInfo)
+                                        showOverlapNotification = true
+                                        scrollState.animateScrollTo(0)
+                                        delay(2000)
+                                        showOverlapNotification = false
+                                        return@launch
+                                    }
+
+                                    // Check for overlap with Task Buckets
+                                    val bucketOverlapInfo = checkEventOverlapWithBuckets(
+                                        db = db,
+                                        startDate = eventStartDate,
+                                        endDate = eventEndDate,
+                                        startTime = eventStartTime,
+                                        endTime = eventEndTime,
+                                        recurFreq = eventRecurrenceFreq,
+                                        recurRule = recurRule
+                                    )
+
+                                    if (bucketOverlapInfo.hasOverlap) {
+                                        overlapMessage = formatOverlapMessage(bucketOverlapInfo)
                                         showOverlapNotification = true
                                         scrollState.animateScrollTo(0)
                                         delay(2000)
@@ -556,7 +576,6 @@ fun Creation(db: AppDatabase) {
                                 }
                             }
                             "Task Bucket" -> {
-                                // Check for overlap with Events
                                 scope.launch {
                                     val recurRule = when (bucketRecurrenceFreq) {
                                         RecurrenceFrequency.NONE -> RecurrenceRule()
@@ -566,7 +585,8 @@ fun Creation(db: AppDatabase) {
                                         RecurrenceFrequency.YEARLY -> RecurrenceRule(monthAndDay = Pair(bucketStartDate.dayOfMonth, bucketStartDate.monthValue))
                                     }
 
-                                    val overlapInfo = checkBucketOverlapWithEvents(
+                                    // Check for overlap with other Task Buckets
+                                    val bucketOverlapInfo = checkBucketOverlapWithBuckets(
                                         db = db,
                                         startDate = bucketStartDate,
                                         endDate = bucketEndDate,
@@ -576,8 +596,28 @@ fun Creation(db: AppDatabase) {
                                         recurRule = recurRule
                                     )
 
-                                    if (overlapInfo.hasOverlap) {
-                                        overlapMessage = formatOverlapMessage(overlapInfo)
+                                    if (bucketOverlapInfo.hasOverlap) {
+                                        overlapMessage = formatOverlapMessage(bucketOverlapInfo)
+                                        showOverlapNotification = true
+                                        scrollState.animateScrollTo(0)
+                                        delay(2000)
+                                        showOverlapNotification = false
+                                        return@launch
+                                    }
+
+                                    // Check for overlap with Events
+                                    val eventOverlapInfo = checkBucketOverlapWithEvents(
+                                        db = db,
+                                        startDate = bucketStartDate,
+                                        endDate = bucketEndDate,
+                                        startTime = bucketStartTime,
+                                        endTime = bucketEndTime,
+                                        recurFreq = bucketRecurrenceFreq,
+                                        recurRule = recurRule
+                                    )
+
+                                    if (eventOverlapInfo.hasOverlap) {
+                                        overlapMessage = formatOverlapMessage(eventOverlapInfo)
                                         showOverlapNotification = true
                                         scrollState.animateScrollTo(0)
                                         delay(2000)
