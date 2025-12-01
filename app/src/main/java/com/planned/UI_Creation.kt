@@ -610,7 +610,7 @@ fun Creation(db: AppDatabase) {
                 ) {
                     Text(
                         validationMessage,
-                        color = Color.White,
+                        color = BackgroundColor,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -639,7 +639,7 @@ fun Creation(db: AppDatabase) {
                 ) {
                     Text(
                         "Saved",
-                        color = Color.White,
+                        color = BackgroundColor,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold
                     )

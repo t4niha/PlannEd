@@ -333,12 +333,12 @@ fun datePickerField(
                             showDatePicker = false
                         }
                     ) {
-                        Text("OK", color = Color.Black)
+                        Text("OK", color = Color.Black, fontSize = 16.sp)
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = { showDatePicker = false }) {
-                        Text("Cancel", color = Color.Black)
+                        Text("Cancel", color = Color.Black, fontSize = 16.sp)
                     }
                 },
                 colors = DatePickerDefaults.colors(
@@ -347,11 +347,15 @@ fun datePickerField(
             ) {
                 DatePicker(
                     state = datePickerState,
+                    showModeToggle = false,
+                    title = null,
+                    headline = null,
                     colors = DatePickerDefaults.colors(
                         containerColor = BackgroundColor,
                         selectedDayContainerColor = PrimaryColor,
                         todayDateBorderColor = PrimaryColor,
-                        todayContentColor = PrimaryColor
+                        todayContentColor = PrimaryColor,
+                        selectedYearContainerColor = PrimaryColor
                     )
                 )
             }
@@ -378,14 +382,14 @@ fun timePickerField(
         selectedTime = initialTime
     }
 
-    // Enforce minimum time
+    // Enforce minimum time if provided
     LaunchedEffect(minTime) {
         if (minTime != null && selectedTime.isBefore(minTime)) {
             selectedTime = minTime.plusMinutes(5).withSecond(0).withNano(0)
         }
     }
 
-    // Format time
+    // Format time as "10:00 AM"
     val timeFormatter = DateTimeFormatter.ofPattern("h:mm a")
     val displayTime = selectedTime.format(timeFormatter)
 
@@ -432,12 +436,12 @@ fun timePickerField(
                             showTimePicker = false
                         }
                     ) {
-                        Text("OK", color = Color.Black)
+                        Text("OK", color = Color.Black, fontSize = 16.sp)
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = { showTimePicker = false }) {
-                        Text("Cancel", color = Color.Black)
+                        Text("Cancel", color = Color.Black, fontSize = 16.sp)
                     }
                 },
                 containerColor = BackgroundColor,
@@ -571,7 +575,7 @@ fun recurrencePickerField(
                 }
             }
 
-            // Weekly recurrence rule - days of week selector
+            // Weekly recurrence rule
             if (recurrenceFreq == RecurrenceFrequency.WEEKLY) {
                 Spacer(modifier = Modifier.height(16.dp))
 
@@ -615,7 +619,7 @@ fun recurrencePickerField(
                 }
             }
 
-            // Monthly recurrence rule - days of month selector
+            // Monthly recurrence rule
             if (recurrenceFreq == RecurrenceFrequency.MONTHLY) {
                 Spacer(modifier = Modifier.height(16.dp))
 
@@ -659,11 +663,11 @@ fun recurrencePickerField(
                 }
             }
 
-            // End date options (only if recurrence is NOT "Don't Repeat")
+            // End date options
             if (recurrenceFreq != RecurrenceFrequency.NONE) {
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // "Repeat Forever" checkbox
+                // Repeat Forever checkbox
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth()
@@ -682,7 +686,7 @@ fun recurrencePickerField(
                     Text("Repeat Forever", fontSize = 16.sp, fontWeight = FontWeight.Medium)
                 }
 
-                // End date picker (only visible when "Repeat Forever" is unchecked)
+                // End date picker
                 AnimatedVisibility(
                     visible = !repeatForever,
                     enter = fadeIn() + expandVertically(),
@@ -866,12 +870,12 @@ fun durationPickerField(
                             showDurationPicker = false
                         }
                     ) {
-                        Text("OK", color = Color.Black)
+                        Text("OK", color = Color.Black, fontSize = 16.sp)
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = { showDurationPicker = false }) {
-                        Text("Cancel", color = Color.Black)
+                        Text("Cancel", color = Color.Black, fontSize = 16.sp)
                     }
                 },
                 containerColor = BackgroundColor,
@@ -1014,7 +1018,7 @@ fun schedulePickerField(
                 Text("Auto Schedule", fontSize = 16.sp, fontWeight = FontWeight.Medium)
             }
 
-            // Manual schedule fields (only visible when checkbox is unchecked)
+            // Manual schedule fields
             AnimatedVisibility(
                 visible = !isAutoSchedule,
                 enter = fadeIn() + expandVertically(),

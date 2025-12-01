@@ -211,10 +211,10 @@ fun Settings(db: AppDatabase) {
                         }
                     },
                     colors = SwitchDefaults.colors(
-                        checkedThumbColor = Color.White,
+                        checkedThumbColor = BackgroundColor,
                         checkedTrackColor = localPrimary,
                         uncheckedTrackColor = Color.LightGray,
-                        uncheckedThumbColor = Color.White
+                        uncheckedThumbColor = BackgroundColor
                     )
                 )
             }
@@ -233,7 +233,7 @@ fun WeekButton(label: String, selected: Boolean, color: Color, onClick: () -> Un
     ) {
         Text(
             text = label,
-            color = if (selected) Color.White else Color.Black,
+            color = if (selected) BackgroundColor else Color.Black,
             fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
         )
     }

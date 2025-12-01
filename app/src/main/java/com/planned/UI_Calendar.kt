@@ -117,12 +117,12 @@ fun Calendars(db: AppDatabase) {
             IconButton(
                 onClick = { coroutineScope.launch { pagerState.animateScrollToPage(pagerState.currentPage - 1) } },
                 modifier = Modifier.size(40.dp).background(PrimaryColor, shape = CircleShapePrimary)
-            ) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Previous ${currentView.lowercase()}", tint = Color.White) }
+            ) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Previous ${currentView.lowercase()}", tint = BackgroundColor) }
 
             IconButton(
                 onClick = { coroutineScope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) } },
                 modifier = Modifier.size(40.dp).background(PrimaryColor, shape = CircleShapePrimary)
-            ) { Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Next ${currentView.lowercase()}", tint = Color.White) }
+            ) { Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Next ${currentView.lowercase()}", tint = BackgroundColor) }
         }
     }
 }

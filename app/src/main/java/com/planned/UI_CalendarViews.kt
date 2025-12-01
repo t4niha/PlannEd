@@ -195,7 +195,7 @@ fun WeekView(
                                 day.dayOfMonth.toString(),
                                 fontSize = 14.sp,
                                 fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
-                                color = if (isToday) Color.White else Color.Black
+                                color = if (isToday) BackgroundColor else Color.Black
                             )
                         }
                     }
@@ -318,7 +318,7 @@ fun MonthView(
                                 val isToday = date == today
                                 val backgroundColor = if (isSelected) PrimaryColor else Color.Transparent
                                 val textColor = when {
-                                    isSelected -> Color.White
+                                    isSelected -> BackgroundColor
                                     isToday && !isSelected -> PrimaryColor
                                     !isCurrentMonth -> Color.Gray
                                     else -> Color.Black
