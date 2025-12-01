@@ -33,6 +33,10 @@ fun Creation(db: AppDatabase) {
     var showValidationNotification by remember { mutableStateOf(false) }
     var validationMessage by remember { mutableStateOf("") }
 
+    // State for overlap notification
+    var showOverlapNotification by remember { mutableStateOf(false) }
+    var overlapMessage by remember { mutableStateOf("") }
+
     // State for success notification
     var showSuccessNotification by remember { mutableStateOf(false) }
 
@@ -499,9 +503,9 @@ fun Creation(db: AppDatabase) {
                                     }
                                     return@Button
                                 }
-                                scope.launch {
-                                    val categories = CategoryManager.getAll(db)
 
+                                // Check for overlap with Task Buckets
+                                scope.launch {
                                     val recurRule = when (eventRecurrenceFreq) {
                                         RecurrenceFrequency.NONE -> RecurrenceRule()
                                         RecurrenceFrequency.DAILY -> RecurrenceRule()
@@ -509,6 +513,28 @@ fun Creation(db: AppDatabase) {
                                         RecurrenceFrequency.MONTHLY -> RecurrenceRule(daysOfMonth = eventSelectedDaysOfMonth.toList())
                                         RecurrenceFrequency.YEARLY -> RecurrenceRule(monthAndDay = Pair(eventStartDate.dayOfMonth, eventStartDate.monthValue))
                                     }
+
+                                    val overlapInfo = checkEventOverlapWithBuckets(
+                                        db = db,
+                                        startDate = eventStartDate,
+                                        endDate = eventEndDate,
+                                        startTime = eventStartTime,
+                                        endTime = eventEndTime,
+                                        recurFreq = eventRecurrenceFreq,
+                                        recurRule = recurRule
+                                    )
+
+                                    if (overlapInfo.hasOverlap) {
+                                        overlapMessage = formatOverlapMessage(overlapInfo)
+                                        showOverlapNotification = true
+                                        scrollState.animateScrollTo(0)
+                                        delay(2000)
+                                        showOverlapNotification = false
+                                        return@launch
+                                    }
+
+                                    // No overlap, proceed with save
+                                    val categories = CategoryManager.getAll(db)
 
                                     EventManager.insert(
                                         db = db,
@@ -530,6 +556,7 @@ fun Creation(db: AppDatabase) {
                                 }
                             }
                             "Task Bucket" -> {
+                                // Check for overlap with Events
                                 scope.launch {
                                     val recurRule = when (bucketRecurrenceFreq) {
                                         RecurrenceFrequency.NONE -> RecurrenceRule()
@@ -539,6 +566,26 @@ fun Creation(db: AppDatabase) {
                                         RecurrenceFrequency.YEARLY -> RecurrenceRule(monthAndDay = Pair(bucketStartDate.dayOfMonth, bucketStartDate.monthValue))
                                     }
 
+                                    val overlapInfo = checkBucketOverlapWithEvents(
+                                        db = db,
+                                        startDate = bucketStartDate,
+                                        endDate = bucketEndDate,
+                                        startTime = bucketStartTime,
+                                        endTime = bucketEndTime,
+                                        recurFreq = bucketRecurrenceFreq,
+                                        recurRule = recurRule
+                                    )
+
+                                    if (overlapInfo.hasOverlap) {
+                                        overlapMessage = formatOverlapMessage(overlapInfo)
+                                        showOverlapNotification = true
+                                        scrollState.animateScrollTo(0)
+                                        delay(2000)
+                                        showOverlapNotification = false
+                                        return@launch
+                                    }
+
+                                    // No overlap, proceed with save
                                     TaskBucketManager.insert(
                                         db = db,
                                         startDate = bucketStartDate,
@@ -610,6 +657,35 @@ fun Creation(db: AppDatabase) {
                 ) {
                     Text(
                         validationMessage,
+                        color = BackgroundColor,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
+
+        // Overlap notification dropdown
+        AnimatedVisibility(
+            visible = showOverlapNotification,
+            enter = slideInVertically(initialOffsetY = { -it }) + fadeIn(),
+            exit = slideOutVertically(targetOffsetY = { -it }) + fadeOut(),
+            modifier = Modifier.align(Alignment.TopCenter)
+        ) {
+            Surface(
+                color = PrimaryColor,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                shadowElevation = 8.dp,
+                shape = MaterialTheme.shapes.medium
+            ) {
+                Box(
+                    modifier = Modifier.padding(16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        overlapMessage,
                         color = BackgroundColor,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold
