@@ -1179,13 +1179,16 @@ fun schedulePickerField(
 fun checkboxField(
     label: String,
     initialChecked: Boolean = false,
-    key: Int = 0
+    key: Int = 0,
+    locked: Boolean = false
 ): Boolean {
     var isChecked by remember(key) { mutableStateOf(initialChecked) }
 
-    LaunchedEffect(key, initialChecked) {
+    LaunchedEffect(key) {
         isChecked = initialChecked
     }
+
+    val displayChecked = if (locked) false else isChecked
 
     Box(
         modifier = Modifier
@@ -1198,16 +1201,28 @@ fun checkboxField(
             modifier = Modifier.fillMaxWidth()
         ) {
             Checkbox(
-                checked = isChecked,
-                onCheckedChange = { isChecked = it },
-                colors = CheckboxDefaults.colors(checkedColor = PrimaryColor)
+                checked = displayChecked,
+                onCheckedChange = {
+                    if (!locked) isChecked = it
+                },
+                enabled = !locked,
+                colors = CheckboxDefaults.colors(
+                    checkedColor = PrimaryColor,
+                    disabledCheckedColor = Color.LightGray,
+                    disabledUncheckedColor = Color.LightGray
+                )
             )
             Spacer(modifier = Modifier.width(8.dp))
-            Text(label, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+            Text(
+                label,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Medium,
+                color = Color.Black
+            )
         }
     }
 
-    return isChecked
+    return displayChecked
 }
 
 /* ALL DAY PICKER FIELD */

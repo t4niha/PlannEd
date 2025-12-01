@@ -490,9 +490,16 @@ fun TaskForm(
         val breakableValue = checkboxField(
             label = "Breakable",
             initialChecked = isBreakable,
-            key = resetTrigger
+            key = resetTrigger,
+            locked = !isAutoSchedule
         )
-        onBreakableChange(breakableValue)
+
+        if (isAutoSchedule) {
+            onBreakableChange(breakableValue)
+        } else {
+            onBreakableChange(false)
+        }
+
         Spacer(modifier = Modifier.height(12.dp))
 
         val deadlineValue = dropdownField(
