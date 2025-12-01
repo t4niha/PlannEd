@@ -472,7 +472,8 @@ fun TaskForm(
         val (hours, minutes) = durationPickerField(
             initialHours = durationHours,
             initialMinutes = durationMinutes,
-            key = resetTrigger
+            key = resetTrigger,
+            label = "Duration"
         )
         onDurationChange(hours, minutes)
         Spacer(modifier = Modifier.height(12.dp))

@@ -300,7 +300,9 @@ data class AppSetting(
     @PrimaryKey val id: Int = 0,
     val startWeekOnMonday: Boolean,
     val primaryColor: String,
-    val showDeveloper: Boolean
+    val showDeveloper: Boolean,
+    val breakDuration: Int,
+    val breakEvery: Int
 )
 //</editor-fold>
 
@@ -649,6 +651,10 @@ interface SettingsDao {
     suspend fun updateStartWeekOnMonday(value: Boolean)
     @Query("UPDATE AppSetting SET showDeveloper = :value WHERE id = 0")
     suspend fun updateShowDeveloper(value: Boolean)
+    @Query("UPDATE AppSetting SET breakDuration = :minutes WHERE id = 0")
+    suspend fun updateBreakDuration(minutes: Int)
+    @Query("UPDATE AppSetting SET breakEvery = :minutes WHERE id = 0")
+    suspend fun updateBreakEvery(minutes: Int)
 
     // Fetch all settings
     @Query("SELECT * FROM AppSetting WHERE id = 0")
@@ -673,7 +679,7 @@ interface SettingsDao {
         AppSetting::class,
         EventATI::class, UserATI::class
     ],
-    version = 5
+    version = 6
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {

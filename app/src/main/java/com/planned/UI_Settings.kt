@@ -70,7 +70,7 @@ fun Settings(db: AppDatabase) {
                 .padding(16.dp)
         ) {
             Column {
-                Text("First Day of Week", fontSize = 16.sp)
+                Text("First Day of Week", fontSize = 16.sp, fontWeight = FontWeight.Medium)
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -97,6 +97,41 @@ fun Settings(db: AppDatabase) {
                 }
             }
         }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Break Duration
+        val breakDurationValue = durationPickerField(
+            label = "Break Duration",
+            initialHours = (settings?.breakDuration ?: 5) / 60,
+            initialMinutes = (settings?.breakDuration ?: 5) % 60,
+            key = 0
+        )
+
+        LaunchedEffect(breakDurationValue) {
+            val totalMinutes = (breakDurationValue.first * 60) + breakDurationValue.second
+            if (totalMinutes != settings?.breakDuration) {
+                SettingsManager.setBreakDuration(db, totalMinutes)
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Break Every
+        val breakEveryValue = durationPickerField(
+            label = "Break Every",
+            initialHours = (settings?.breakEvery ?: 25) / 60,
+            initialMinutes = (settings?.breakEvery ?: 25) % 60,
+            key = 1
+        )
+
+        LaunchedEffect(breakEveryValue) {
+            val totalMinutes = (breakEveryValue.first * 60) + breakEveryValue.second
+            if (totalMinutes != settings?.breakEvery) {
+                SettingsManager.setBreakEvery(db, totalMinutes)
+            }
+        }
+
         Spacer(modifier = Modifier.height(12.dp))
 
         // App accent
@@ -112,7 +147,7 @@ fun Settings(db: AppDatabase) {
         ) {
             Column {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("App Accent", fontSize = 16.sp)
+                    Text("App Accent", fontSize = 16.sp, fontWeight = FontWeight.Medium)
                     Spacer(modifier = Modifier.width(16.dp))
                     Box(
                         modifier = Modifier
@@ -154,6 +189,7 @@ fun Settings(db: AppDatabase) {
                 }
             }
         }
+
         Spacer(modifier = Modifier.height(12.dp))
 
         // Developer mode switch
@@ -164,7 +200,7 @@ fun Settings(db: AppDatabase) {
                 .padding(16.dp)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Developer Mode", fontSize = 16.sp)
+                Text("Developer Mode", fontSize = 16.sp, fontWeight = FontWeight.Medium)
                 Spacer(modifier = Modifier.width(16.dp))
 
                 Switch(

@@ -790,6 +790,7 @@ fun priorityPickerField(
 /* DURATION PICKER FIELD */
 @Composable
 fun durationPickerField(
+    label: String = "Duration",
     initialHours: Int = 1,
     initialMinutes: Int = 0,
     key: Int = 0
@@ -813,7 +814,7 @@ fun durationPickerField(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Duration", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+            Text(label, fontSize = 16.sp, fontWeight = FontWeight.Medium)
             Spacer(modifier = Modifier.width(16.dp))
             Button(
                 onClick = { showDurationPicker = true },

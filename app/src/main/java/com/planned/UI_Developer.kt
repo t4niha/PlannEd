@@ -555,13 +555,15 @@ fun Developer(db: AppDatabase) {
             Table(
                 title = "Settings",
                 data = settings,
-                headers = listOf("ID", "Start Week On Monday", "Primary Color", "Show Developer")
+                headers = listOf("ID", "Start Week On Monday", "Primary Color", "Show Developer", "Break Duration", "Break Every")
             ) { s ->
                 listOf(
                     s.id.toString(),
                     s.startWeekOnMonday.toString(),
                     s.primaryColor,
-                    s.showDeveloper.toString()
+                    s.showDeveloper.toString(),
+                    s.breakDuration.toString(),
+                    s.breakEvery.toString()
                 )
             }
         }

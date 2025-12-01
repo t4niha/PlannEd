@@ -24,7 +24,9 @@ object SettingsManager {
                 id = 0,
                 startWeekOnMonday = false,
                 primaryColor = Converters.fromColor(Preset19),
-                showDeveloper = true
+                showDeveloper = true,
+                breakDuration = 5,
+                breakEvery = 30
             )
             db.settingsDao().insert(s)
         }
@@ -44,6 +46,14 @@ object SettingsManager {
     suspend fun setDeveloperMode(db: AppDatabase, enabled: Boolean) {
         db.settingsDao().updateShowDeveloper(enabled)
         settings = settings?.copy(showDeveloper = enabled)
+    }
+    suspend fun setBreakDuration(db: AppDatabase, minutes: Int) {
+        db.settingsDao().updateBreakDuration(minutes)
+        settings = settings?.copy(breakDuration = minutes)
+    }
+    suspend fun setBreakEvery(db: AppDatabase, minutes: Int) {
+        db.settingsDao().updateBreakEvery(minutes)
+        settings = settings?.copy(breakEvery = minutes)
     }
 }
 
