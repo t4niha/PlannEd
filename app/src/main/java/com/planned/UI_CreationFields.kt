@@ -718,31 +718,42 @@ fun recurrencePickerField(
                                 val datePickerState = rememberDatePickerState(
                                     initialSelectedDateMillis = (endDate ?: startDate).toEpochDay() * 86400000L
                                 )
+
                                 DatePickerDialog(
                                     onDismissRequest = { showEndDatePicker = false },
                                     confirmButton = {
-                                        TextButton(onClick = {
-                                            datePickerState.selectedDateMillis?.let {
-                                                val selectedDate = LocalDate.ofEpochDay(it / 86400000L)
-                                                // Ensure end date is not before start date
-                                                endDate = if (selectedDate.isBefore(startDate)) {
-                                                    startDate
-                                                } else {
-                                                    selectedDate
+                                        TextButton(
+                                            onClick = {
+                                                datePickerState.selectedDateMillis?.let {
+                                                    val selectedDate = LocalDate.ofEpochDay(it / 86400000L)
+                                                    endDate = if (selectedDate.isBefore(startDate)) startDate else selectedDate
                                                 }
+                                                showEndDatePicker = false
                                             }
-                                            showEndDatePicker = false
-                                        }) {
-                                            Text("OK")
+                                        ) {
+                                            Text("OK", color = Color.Black, fontSize = 16.sp)
                                         }
                                     },
                                     dismissButton = {
                                         TextButton(onClick = { showEndDatePicker = false }) {
-                                            Text("Cancel")
+                                            Text("Cancel", color = Color.Black, fontSize = 16.sp)
                                         }
-                                    }
+                                    },
+                                    colors = DatePickerDefaults.colors(containerColor = BackgroundColor)
                                 ) {
-                                    DatePicker(state = datePickerState)
+                                    DatePicker(
+                                        state = datePickerState,
+                                        showModeToggle = false,
+                                        title = null,
+                                        headline = null,
+                                        colors = DatePickerDefaults.colors(
+                                            containerColor = BackgroundColor,
+                                            selectedDayContainerColor = PrimaryColor,
+                                            todayDateBorderColor = PrimaryColor,
+                                            todayContentColor = PrimaryColor,
+                                            selectedYearContainerColor = PrimaryColor
+                                        )
+                                    )
                                 }
                             }
                         }
@@ -1048,25 +1059,41 @@ fun schedulePickerField(
                             val datePickerState = rememberDatePickerState(
                                 initialSelectedDateMillis = (startDate ?: LocalDate.now()).toEpochDay() * 86400000L
                             )
+
                             DatePickerDialog(
                                 onDismissRequest = { showDatePicker = false },
                                 confirmButton = {
-                                    TextButton(onClick = {
-                                        datePickerState.selectedDateMillis?.let {
-                                            startDate = LocalDate.ofEpochDay(it / 86400000L)
+                                    TextButton(
+                                        onClick = {
+                                            datePickerState.selectedDateMillis?.let {
+                                                startDate = LocalDate.ofEpochDay(it / 86400000L)
+                                            }
+                                            showDatePicker = false
                                         }
-                                        showDatePicker = false
-                                    }) {
-                                        Text("OK")
+                                    ) {
+                                        Text("OK", color = Color.Black, fontSize = 16.sp)
                                     }
                                 },
                                 dismissButton = {
                                     TextButton(onClick = { showDatePicker = false }) {
-                                        Text("Cancel")
+                                        Text("Cancel", color = Color.Black, fontSize = 16.sp)
                                     }
-                                }
+                                },
+                                colors = DatePickerDefaults.colors(containerColor = BackgroundColor)
                             ) {
-                                DatePicker(state = datePickerState)
+                                DatePicker(
+                                    state = datePickerState,
+                                    showModeToggle = false,
+                                    title = null,
+                                    headline = null,
+                                    colors = DatePickerDefaults.colors(
+                                        containerColor = BackgroundColor,
+                                        selectedDayContainerColor = PrimaryColor,
+                                        todayDateBorderColor = PrimaryColor,
+                                        todayContentColor = PrimaryColor,
+                                        selectedYearContainerColor = PrimaryColor
+                                    )
+                                )
                             }
                         }
                     }
@@ -1098,23 +1125,43 @@ fun schedulePickerField(
                                 initialMinute = startTime?.minute ?: LocalTime.now().minute,
                                 is24Hour = false
                             )
+
                             AlertDialog(
                                 onDismissRequest = { showTimePicker = false },
                                 confirmButton = {
-                                    TextButton(onClick = {
-                                        startTime = LocalTime.of(timePickerState.hour, timePickerState.minute, 0, 0)
-                                        showTimePicker = false
-                                    }) {
-                                        Text("OK")
+                                    TextButton(
+                                        onClick = {
+                                            startTime = LocalTime.of(timePickerState.hour, timePickerState.minute, 0, 0)
+                                            showTimePicker = false
+                                        }
+                                    ) {
+                                        Text("OK", color = Color.Black, fontSize = 16.sp)
                                     }
                                 },
                                 dismissButton = {
                                     TextButton(onClick = { showTimePicker = false }) {
-                                        Text("Cancel")
+                                        Text("Cancel", color = Color.Black, fontSize = 16.sp)
                                     }
                                 },
+                                containerColor = BackgroundColor,
                                 text = {
-                                    TimePicker(state = timePickerState)
+                                    TimePicker(
+                                        state = timePickerState,
+                                        colors = TimePickerDefaults.colors(
+                                            clockDialColor = BackgroundColor,
+                                            selectorColor = PrimaryColor,
+                                            containerColor = BackgroundColor,
+                                            periodSelectorBorderColor = Color.LightGray,
+                                            periodSelectorSelectedContainerColor = PrimaryColor,
+                                            periodSelectorUnselectedContainerColor = BackgroundColor,
+                                            periodSelectorSelectedContentColor = BackgroundColor,
+                                            periodSelectorUnselectedContentColor = Color.Black,
+                                            timeSelectorSelectedContainerColor = PrimaryColor,
+                                            timeSelectorUnselectedContainerColor = BackgroundColor,
+                                            timeSelectorSelectedContentColor = BackgroundColor,
+                                            timeSelectorUnselectedContentColor = Color.Black
+                                        )
+                                    )
                                 }
                             )
                         }
@@ -1236,23 +1283,43 @@ fun allDayPickerField(
                                 initialMinute = time.minute,
                                 is24Hour = false
                             )
+
                             AlertDialog(
                                 onDismissRequest = { showTimePicker = false },
                                 confirmButton = {
-                                    TextButton(onClick = {
-                                        time = LocalTime.of(timePickerState.hour, timePickerState.minute, 0, 0)
-                                        showTimePicker = false
-                                    }) {
-                                        Text("OK")
+                                    TextButton(
+                                        onClick = {
+                                            time = LocalTime.of(timePickerState.hour, timePickerState.minute, 0, 0)
+                                            showTimePicker = false
+                                        }
+                                    ) {
+                                        Text("OK", color = Color.Black, fontSize = 16.sp)
                                     }
                                 },
                                 dismissButton = {
                                     TextButton(onClick = { showTimePicker = false }) {
-                                        Text("Cancel")
+                                        Text("Cancel", color = Color.Black, fontSize = 16.sp)
                                     }
                                 },
+                                containerColor = BackgroundColor,
                                 text = {
-                                    TimePicker(state = timePickerState)
+                                    TimePicker(
+                                        state = timePickerState,
+                                        colors = TimePickerDefaults.colors(
+                                            clockDialColor = BackgroundColor,
+                                            selectorColor = PrimaryColor,
+                                            containerColor = BackgroundColor,
+                                            periodSelectorBorderColor = Color.LightGray,
+                                            periodSelectorSelectedContainerColor = PrimaryColor,
+                                            periodSelectorUnselectedContainerColor = BackgroundColor,
+                                            periodSelectorSelectedContentColor = BackgroundColor,
+                                            periodSelectorUnselectedContentColor = Color.Black,
+                                            timeSelectorSelectedContainerColor = PrimaryColor,
+                                            timeSelectorUnselectedContainerColor = BackgroundColor,
+                                            timeSelectorSelectedContentColor = BackgroundColor,
+                                            timeSelectorUnselectedContentColor = Color.Black
+                                        )
+                                    )
                                 }
                             )
                         }
