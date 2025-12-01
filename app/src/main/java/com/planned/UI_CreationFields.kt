@@ -869,12 +869,8 @@ fun durationPickerField(
                             // Decrement button
                             Button(
                                 onClick = {
-                                    if (durationHours > 0) {
+                                    if (durationHours > 0 && !(durationHours == 1 && durationMinutes == 0)) {
                                         durationHours--
-                                        // Prevent 0h 0m
-                                        if (durationHours == 0 && durationMinutes == 0) {
-                                            durationMinutes = 5
-                                        }
                                     }
                                 },
                                 colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
@@ -885,7 +881,7 @@ fun durationPickerField(
 
                         Spacer(modifier = Modifier.width(32.dp))
 
-                        // Minutes picker (increments of 5)
+                        // Minutes picker
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text("Minutes", fontSize = 12.sp)
                             Spacer(modifier = Modifier.height(8.dp))
@@ -893,7 +889,10 @@ fun durationPickerField(
                             // Increment button
                             Button(
                                 onClick = {
-                                    durationMinutes = (durationMinutes + 5) % 60
+                                    val newMinutes = (durationMinutes + 5) % 60
+                                    if (!(durationHours == 0 && newMinutes == 0)) {
+                                        durationMinutes = newMinutes
+                                    }
                                 },
                                 colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
                             ) {
@@ -910,10 +909,9 @@ fun durationPickerField(
                             // Decrement button
                             Button(
                                 onClick = {
-                                    durationMinutes = if (durationMinutes - 5 < 0) 55 else durationMinutes - 5
-                                    // Prevent 0h 0m
-                                    if (durationHours == 0 && durationMinutes == 0) {
-                                        durationMinutes = 5
+                                    val newMinutes = if (durationMinutes - 5 < 0) 55 else durationMinutes - 5
+                                    if (!(durationHours == 0 && newMinutes == 0)) {
+                                        durationMinutes = newMinutes
                                     }
                                 },
                                 colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
