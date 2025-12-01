@@ -58,7 +58,7 @@ fun typePickerField(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color.White, RoundedCornerShape(8.dp))
+                    .background(BackgroundColor, RoundedCornerShape(8.dp))
                     .border(3.dp, PrimaryColor, RoundedCornerShape(8.dp))
                     .padding(12.dp)
             ) {
@@ -90,7 +90,7 @@ fun typePickerField(
                         ) {
                             Text(
                                 type,
-                                color = if (isSelected) Color.White else Color.Black,
+                                color = if (isSelected) BackgroundColor else Color.Black,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                             )
                         }
@@ -130,11 +130,11 @@ fun textInputField(
                 onValueChange = { textValue = it },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color.White, RoundedCornerShape(8.dp))
+                    .background(BackgroundColor, RoundedCornerShape(8.dp))
                     .border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)),
                 colors = TextFieldDefaults.colors(
-                    focusedContainerColor = Color.White,
-                    unfocusedContainerColor = Color.White,
+                    focusedContainerColor = BackgroundColor,
+                    unfocusedContainerColor = BackgroundColor,
                     focusedIndicatorColor = Color.Transparent,
                     unfocusedIndicatorColor = Color.Transparent
                 )
@@ -173,11 +173,11 @@ fun notesInputField(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(100.dp)
-                    .background(Color.White, RoundedCornerShape(8.dp))
+                    .background(BackgroundColor, RoundedCornerShape(8.dp))
                     .border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)),
                 colors = TextFieldDefaults.colors(
-                    focusedContainerColor = Color.White,
-                    unfocusedContainerColor = Color.White,
+                    focusedContainerColor = BackgroundColor,
+                    unfocusedContainerColor = BackgroundColor,
                     focusedIndicatorColor = Color.Transparent,
                     unfocusedIndicatorColor = Color.Transparent
                 ),
@@ -293,7 +293,7 @@ fun datePickerField(
         selectedDate = initialDate ?: LocalDate.now()
     }
 
-    // Format date as "Nov 19, 2025"
+    // Format date
     val dateFormatter = DateTimeFormatter.ofPattern("MMM d, yyyy")
     val displayDate = if (isOptional && initialDate == null) "None" else selectedDate.format(dateFormatter)
 
@@ -325,22 +325,35 @@ fun datePickerField(
             DatePickerDialog(
                 onDismissRequest = { showDatePicker = false },
                 confirmButton = {
-                    TextButton(onClick = {
-                        datePickerState.selectedDateMillis?.let {
-                            selectedDate = LocalDate.ofEpochDay(it / 86400000L)
+                    TextButton(
+                        onClick = {
+                            datePickerState.selectedDateMillis?.let {
+                                selectedDate = LocalDate.ofEpochDay(it / 86400000L)
+                            }
+                            showDatePicker = false
                         }
-                        showDatePicker = false
-                    }) {
-                        Text("OK")
+                    ) {
+                        Text("OK", color = Color.Black)
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = { showDatePicker = false }) {
-                        Text("Cancel")
+                        Text("Cancel", color = Color.Black)
                     }
-                }
+                },
+                colors = DatePickerDefaults.colors(
+                    containerColor = BackgroundColor
+                )
             ) {
-                DatePicker(state = datePickerState)
+                DatePicker(
+                    state = datePickerState,
+                    colors = DatePickerDefaults.colors(
+                        containerColor = BackgroundColor,
+                        selectedDayContainerColor = PrimaryColor,
+                        todayDateBorderColor = PrimaryColor,
+                        todayContentColor = PrimaryColor
+                    )
+                )
             }
         }
     }
@@ -365,14 +378,14 @@ fun timePickerField(
         selectedTime = initialTime
     }
 
-    // Enforce minimum time if provided
+    // Enforce minimum time
     LaunchedEffect(minTime) {
         if (minTime != null && selectedTime.isBefore(minTime)) {
             selectedTime = minTime.plusMinutes(5).withSecond(0).withNano(0)
         }
     }
 
-    // Format time as "10:00 AM"
+    // Format time
     val timeFormatter = DateTimeFormatter.ofPattern("h:mm a")
     val displayTime = selectedTime.format(timeFormatter)
 
@@ -406,27 +419,46 @@ fun timePickerField(
             AlertDialog(
                 onDismissRequest = { showTimePicker = false },
                 confirmButton = {
-                    TextButton(onClick = {
-                        var newTime = LocalTime.of(timePickerState.hour, timePickerState.minute, 0, 0)
+                    TextButton(
+                        onClick = {
+                            var newTime = LocalTime.of(timePickerState.hour, timePickerState.minute, 0, 0)
 
-                        // Enforce minimum time if provided
-                        if (minTime != null && newTime.isBefore(minTime)) {
-                            newTime = minTime.plusMinutes(5).withSecond(0).withNano(0)
+                            // Enforce minimum time if provided
+                            if (minTime != null && newTime.isBefore(minTime)) {
+                                newTime = minTime.plusMinutes(5).withSecond(0).withNano(0)
+                            }
+
+                            selectedTime = newTime
+                            showTimePicker = false
                         }
-
-                        selectedTime = newTime
-                        showTimePicker = false
-                    }) {
-                        Text("OK")
+                    ) {
+                        Text("OK", color = Color.Black)
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = { showTimePicker = false }) {
-                        Text("Cancel")
+                        Text("Cancel", color = Color.Black)
                     }
                 },
+                containerColor = BackgroundColor,
                 text = {
-                    TimePicker(state = timePickerState)
+                    TimePicker(
+                        state = timePickerState,
+                        colors = TimePickerDefaults.colors(
+                            clockDialColor = BackgroundColor,
+                            selectorColor = PrimaryColor,
+                            containerColor = BackgroundColor,
+                            periodSelectorBorderColor = Color.LightGray,
+                            periodSelectorSelectedContainerColor = PrimaryColor,
+                            periodSelectorUnselectedContainerColor = BackgroundColor,
+                            periodSelectorSelectedContentColor = BackgroundColor,
+                            periodSelectorUnselectedContentColor = Color.Black,
+                            timeSelectorSelectedContainerColor = PrimaryColor,
+                            timeSelectorUnselectedContainerColor = BackgroundColor,
+                            timeSelectorSelectedContentColor = BackgroundColor,
+                            timeSelectorUnselectedContentColor = Color.Black
+                        )
+                    )
                 }
             )
         }
@@ -488,7 +520,7 @@ fun recurrencePickerField(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color.White, RoundedCornerShape(8.dp))
+                    .background(BackgroundColor, RoundedCornerShape(8.dp))
                     .border(1.dp, Color.LightGray, RoundedCornerShape(8.dp))
                     .padding(12.dp)
             ) {
@@ -531,7 +563,7 @@ fun recurrencePickerField(
                         ) {
                             Text(
                                 label,
-                                color = if (isSelected) Color.White else Color.Black,
+                                color = if (isSelected) BackgroundColor else Color.Black,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                             )
                         }
@@ -574,7 +606,7 @@ fun recurrencePickerField(
                         ) {
                             Text(
                                 day,
-                                color = if (isSelected) Color.White else Color.Black,
+                                color = if (isSelected) BackgroundColor else Color.Black,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                                 fontSize = 12.sp
                             )
@@ -618,7 +650,7 @@ fun recurrencePickerField(
                         ) {
                             Text(
                                 dayNum.toString(),
-                                color = if (isSelected) Color.White else Color.Black,
+                                color = if (isSelected) BackgroundColor else Color.Black,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                                 fontSize = 12.sp
                             )
@@ -774,7 +806,7 @@ fun priorityPickerField(
                     ) {
                         Text(
                             p.toString(),
-                            color = Color.White,
+                            color = BackgroundColor,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                             fontSize = 18.sp
                         )
@@ -829,17 +861,20 @@ fun durationPickerField(
             AlertDialog(
                 onDismissRequest = { showDurationPicker = false },
                 confirmButton = {
-                    TextButton(onClick = {
-                        showDurationPicker = false
-                    }) {
-                        Text("OK")
+                    TextButton(
+                        onClick = {
+                            showDurationPicker = false
+                        }
+                    ) {
+                        Text("OK", color = Color.Black)
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = { showDurationPicker = false }) {
-                        Text("Cancel")
+                        Text("Cancel", color = Color.Black)
                     }
                 },
+                containerColor = BackgroundColor,
                 text = {
                     Row(
                         horizontalArrangement = Arrangement.Center,
@@ -1265,7 +1300,7 @@ fun dropdownField(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(if (locked) Color.LightGray else Color.White, RoundedCornerShape(8.dp))  // LightGray when locked
+                    .background(if (locked) Color.LightGray else BackgroundColor, RoundedCornerShape(8.dp))  // LightGray when locked
                     .border(1.dp, Color.LightGray, RoundedCornerShape(8.dp))
                     .padding(12.dp)
             ) {
@@ -1307,7 +1342,7 @@ fun dropdownField(
                         ) {
                             Text(
                                 "None",
-                                color = if (isNoneSelected) Color.White else Color.Black,
+                                color = if (isNoneSelected) BackgroundColor else Color.Black,
                                 fontWeight = if (isNoneSelected) FontWeight.Bold else FontWeight.Normal
                             )
                         }
@@ -1331,7 +1366,7 @@ fun dropdownField(
                             ) {
                                 Text(
                                     item,
-                                    color = if (isSelected) Color.White else Color.Black,
+                                    color = if (isSelected) BackgroundColor else Color.Black,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                                 )
                             }
