@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -363,6 +364,8 @@ fun TaskForm(
     onEventChange: (Int?) -> Unit,
     selectedDeadline: Int?,
     onDeadlineChange: (Int?) -> Unit,
+    breakableLockedByDuration: Boolean,
+    onBreakableLockedByDurationChange: (Boolean) -> Unit,
     resetTrigger: Int
 ) {
     var categories by remember { mutableStateOf<List<Category>>(emptyList()) }
@@ -370,11 +373,31 @@ fun TaskForm(
     var deadlines by remember { mutableStateOf<List<Deadline>>(emptyList()) }
     var previousDeadline by remember { mutableStateOf<Int?>(null) }
     var previousEvent by remember { mutableStateOf<Int?>(null) }
+    var maxBucketDuration by remember { mutableIntStateOf(Int.MAX_VALUE) }
 
     LaunchedEffect(Unit) {
         categories = CategoryManager.getAll(db)
         events = EventManager.getAll(db)
         deadlines = DeadlineManager.getAll(db)
+
+        // Get max bucket duration
+        maxBucketDuration = getMaxBucketDurationMinutes(db) ?: Int.MAX_VALUE
+    }
+
+    // Check if task duration exceeds max bucket duration
+    LaunchedEffect(durationHours, durationMinutes, maxBucketDuration, isAutoSchedule) {
+        if (isAutoSchedule) {
+            val taskDurationMinutes = (durationHours * 60) + durationMinutes
+            val needsToBeBreakable = taskDurationMinutes > maxBucketDuration
+
+            onBreakableLockedByDurationChange(needsToBeBreakable)
+
+            if (needsToBeBreakable) {
+                onBreakableChange(true)
+            }
+        } else {
+            onBreakableLockedByDurationChange(false)
+        }
     }
 
     LaunchedEffect(selectedDeadline, deadlines.size, events.size) {
@@ -487,16 +510,18 @@ fun TaskForm(
         onScheduleChange(autoSchedule, date, time)
         Spacer(modifier = Modifier.height(12.dp))
 
+        // Breakable field with duration-based locking
         val breakableValue = checkboxField(
             label = "Breakable",
             initialChecked = isBreakable,
             key = resetTrigger,
-            locked = !isAutoSchedule
+            locked = !isAutoSchedule || breakableLockedByDuration,
+            forceChecked = breakableLockedByDuration
         )
 
-        if (isAutoSchedule) {
+        if (isAutoSchedule && !breakableLockedByDuration) {
             onBreakableChange(breakableValue)
-        } else {
+        } else if (!isAutoSchedule) {
             onBreakableChange(false)
         }
 

@@ -838,8 +838,8 @@ fun priorityPickerField(
 @Composable
 fun durationPickerField(
     label: String = "Duration",
-    initialHours: Int = 1,
-    initialMinutes: Int = 0,
+    initialHours: Int = 0,
+    initialMinutes: Int = 30,
     key: Int = 0
 ): Pair<Int, Int> {
     var durationHours by remember(key) { mutableIntStateOf(initialHours) }
@@ -1180,15 +1180,17 @@ fun checkboxField(
     label: String,
     initialChecked: Boolean = false,
     key: Int = 0,
-    locked: Boolean = false
+    locked: Boolean = false,
+    forceChecked: Boolean = false
 ): Boolean {
     var isChecked by remember(key) { mutableStateOf(initialChecked) }
 
-    LaunchedEffect(key) {
+    LaunchedEffect(key, initialChecked) {
         isChecked = initialChecked
     }
 
-    val displayChecked = if (locked) false else isChecked
+    // If force checked, always show as checked
+    val displayChecked = if (forceChecked) true else if (locked) false else isChecked
 
     Box(
         modifier = Modifier
@@ -1203,9 +1205,9 @@ fun checkboxField(
             Checkbox(
                 checked = displayChecked,
                 onCheckedChange = {
-                    if (!locked) isChecked = it
+                    if (!locked && !forceChecked) isChecked = it
                 },
-                enabled = !locked,
+                enabled = !locked && !forceChecked,
                 colors = CheckboxDefaults.colors(
                     checkedColor = PrimaryColor,
                     disabledCheckedColor = Color.LightGray,

@@ -295,7 +295,7 @@ object ReminderManager {
     }
 }
 
-/* OVERLAP DETECTION */
+/* UTILITY FUNCTIONS */
 //<editor-fold desc="Overlap">
 
 data class OverlapInfo(
@@ -589,5 +589,20 @@ fun formatOverlapMessage(overlapInfo: OverlapInfo): String {
     val timeStr = overlapInfo.conflictStartTime?.format(timeFormatter) ?: ""
 
     return "Timing clashes with ${overlapInfo.conflictType} \non $dateStr at $timeStr"
+}
+/* Get maximum bucket duration from database */
+@RequiresApi(Build.VERSION_CODES.O)
+suspend fun getMaxBucketDurationMinutes(db: AppDatabase): Int? {
+    val allBucketOccurrences = db.taskBucketDao().getAllBucketOccurrences()
+
+    if (allBucketOccurrences.isEmpty()) {
+        return null
+    }
+
+    return allBucketOccurrences.maxOfOrNull { occurrence ->
+        val startMinutes = occurrence.startTime.hour * 60 + occurrence.startTime.minute
+        val endMinutes = occurrence.endTime.hour * 60 + occurrence.endTime.minute
+        endMinutes - startMinutes
+    }
 }
 //</editor-fold>
