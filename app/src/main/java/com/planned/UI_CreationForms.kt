@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import java.time.LocalDate
 import java.time.LocalTime
+import androidx.core.graphics.toColorInt
 
 /* CATEGORY FORM */
 @RequiresApi(Build.VERSION_CODES.O)
@@ -82,8 +83,21 @@ fun EventForm(
     resetTrigger: Int
 ) {
     var categories by remember { mutableStateOf<List<Category>>(emptyList()) }
+    var previousCategory by remember { mutableStateOf<Int?>(null) }
+
     LaunchedEffect(Unit) {
         categories = CategoryManager.getAll(db)
+    }
+
+    // Auto-update color when category changes
+    LaunchedEffect(selectedCategory) {
+        if (selectedCategory != previousCategory && selectedCategory != null && categories.isNotEmpty()) {
+            val categoryColor = categories.getOrNull(selectedCategory)?.color
+            if (categoryColor != null) {
+                onColorChange(Color(categoryColor.toColorInt()))
+            }
+        }
+        previousCategory = selectedCategory
     }
 
     Column {
@@ -149,14 +163,15 @@ fun EventForm(
         onCategoryChange(categoryValue)
         Spacer(modifier = Modifier.height(12.dp))
 
-        val colorValue = colorPickerField(
+        colorPickerField(
             label = "Color",
             initialColor = color,
-            key = resetTrigger
+            key = resetTrigger,
+            onColorChange = onColorChange
         )
-        onColorChange(colorValue)
     }
 }
+
 
 /* DEADLINE FORM */
 @RequiresApi(Build.VERSION_CODES.O)
@@ -435,8 +450,21 @@ fun ReminderForm(
     resetTrigger: Int
 ) {
     var categories by remember { mutableStateOf<List<Category>>(emptyList()) }
+    var previousCategory by remember { mutableStateOf<Int?>(null) }
+
     LaunchedEffect(Unit) {
         categories = CategoryManager.getAll(db)
+    }
+
+    // Auto-update color when category changes
+    LaunchedEffect(selectedCategory) {
+        if (selectedCategory != previousCategory && selectedCategory != null && categories.isNotEmpty()) {
+            val categoryColor = categories.getOrNull(selectedCategory)?.color
+            if (categoryColor != null) {
+                onColorChange(Color(categoryColor.toColorInt()))
+            }
+        }
+        previousCategory = selectedCategory
     }
 
     Column {
@@ -493,11 +521,11 @@ fun ReminderForm(
         onCategoryChange(categoryValue)
         Spacer(modifier = Modifier.height(12.dp))
 
-        val colorValue = colorPickerField(
+        colorPickerField(
             label = "Color",
             initialColor = color,
-            key = resetTrigger
+            key = resetTrigger,
+            onColorChange = onColorChange
         )
-        onColorChange(colorValue)
     }
 }

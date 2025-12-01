@@ -195,7 +195,8 @@ fun notesInputField(
 fun colorPickerField(
     label: String,
     initialColor: Color = Preset1,
-    key: Int = 0
+    key: Int = 0,
+    onColorChange: ((Color) -> Unit)? = null
 ): Color {
     var selectedColor by remember(key) { mutableStateOf(initialColor) }
     var showColorPicker by remember(key) { mutableStateOf(false) }
@@ -263,6 +264,7 @@ fun colorPickerField(
                                 .clickable {
                                     selectedColor = c
                                     showColorPicker = false
+                                    onColorChange?.invoke(c)
                                 }
                         )
                     }
