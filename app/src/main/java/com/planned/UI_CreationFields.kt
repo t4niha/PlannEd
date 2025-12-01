@@ -1234,7 +1234,8 @@ fun dropdownField(
     label: String,
     items: List<String>,
     initialSelection: Int? = null,
-    key: Int = 0
+    key: Int = 0,
+    locked: Boolean = false
 ): Int? {
     var selectedIndex by remember(key) { mutableStateOf(initialSelection) }
     var showDropdown by remember(key) { mutableStateOf(false) }
@@ -1246,88 +1247,95 @@ fun dropdownField(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color(CardColor), RoundedCornerShape(12.dp))
+            .background(if (locked) Color(CardColor) else Color(CardColor), RoundedCornerShape(12.dp))  // Use CardColor when locked
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
-                indication = null
-            ) { showDropdown = !showDropdown }
+                indication = null,
+                enabled = !locked
+            ) {
+                if (!locked) showDropdown = !showDropdown
+            }
             .padding(16.dp)
     ) {
         Column {
-            Text(label, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+            Text(label, fontSize = 16.sp, fontWeight = FontWeight.Medium,
+                color = Color.Black)
             Spacer(modifier = Modifier.height(8.dp))
 
             // Display selected item or "None"
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color.White, RoundedCornerShape(8.dp))
+                    .background(if (locked) Color.LightGray else Color.White, RoundedCornerShape(8.dp))  // LightGray when locked
                     .border(1.dp, Color.LightGray, RoundedCornerShape(8.dp))
                     .padding(12.dp)
             ) {
                 Text(
                     if (selectedIndex != null) items.getOrNull(selectedIndex!!) ?: "None"
-                    else "None"
+                    else "None",
+                    color = Color.Black
                 )
             }
 
-            // Dropdown list with fixed height and scrolling
-            AnimatedVisibility(
-                visible = showDropdown,
-                enter = fadeIn() + expandVertically(),
-                exit = fadeOut() + shrinkVertically()
-            ) {
-                Column(
-                    modifier = Modifier
-                        .padding(top = 8.dp)
-                        .height(180.dp)
-                        .verticalScroll(rememberScrollState())
+            // Dropdown list
+            if (!locked) {
+                AnimatedVisibility(
+                    visible = showDropdown,
+                    enter = fadeIn() + expandVertically(),
+                    exit = fadeOut() + shrinkVertically()
                 ) {
-                    // "None" option
-                    val isNoneSelected = selectedIndex == null
-                    Box(
+                    Column(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp)
-                            .background(
-                                if (isNoneSelected) PrimaryColor else Color.LightGray,
-                                RoundedCornerShape(8.dp)
-                            )
-                            .clickable {
-                                selectedIndex = null
-                                showDropdown = false
-                            }
-                            .padding(12.dp)
+                            .padding(top = 8.dp)
+                            .height(180.dp)
+                            .verticalScroll(rememberScrollState())
                     ) {
-                        Text(
-                            "None",
-                            color = if (isNoneSelected) Color.White else Color.Black,
-                            fontWeight = if (isNoneSelected) FontWeight.Bold else FontWeight.Normal
-                        )
-                    }
-
-                    // Regular items
-                    items.forEachIndexed { index, item ->
-                        val isSelected = selectedIndex == index
+                        // "None" option
+                        val isNoneSelected = selectedIndex == null
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(vertical = 4.dp)
                                 .background(
-                                    if (isSelected) PrimaryColor else Color.LightGray,
+                                    if (isNoneSelected) PrimaryColor else Color.LightGray,
                                     RoundedCornerShape(8.dp)
                                 )
                                 .clickable {
-                                    selectedIndex = index
+                                    selectedIndex = null
                                     showDropdown = false
                                 }
                                 .padding(12.dp)
                         ) {
                             Text(
-                                item,
-                                color = if (isSelected) Color.White else Color.Black,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                "None",
+                                color = if (isNoneSelected) Color.White else Color.Black,
+                                fontWeight = if (isNoneSelected) FontWeight.Bold else FontWeight.Normal
                             )
+                        }
+
+                        // Regular items
+                        items.forEachIndexed { index, item ->
+                            val isSelected = selectedIndex == index
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp)
+                                    .background(
+                                        if (isSelected) PrimaryColor else Color.LightGray,
+                                        RoundedCornerShape(8.dp)
+                                    )
+                                    .clickable {
+                                        selectedIndex = index
+                                        showDropdown = false
+                                    }
+                                    .padding(12.dp)
+                            ) {
+                                Text(
+                                    item,
+                                    color = if (isSelected) Color.White else Color.Black,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                )
+                            }
                         }
                     }
                 }

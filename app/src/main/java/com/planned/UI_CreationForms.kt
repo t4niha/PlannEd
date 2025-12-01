@@ -194,9 +194,32 @@ fun DeadlineForm(
 ) {
     var categories by remember { mutableStateOf<List<Category>>(emptyList()) }
     var events by remember { mutableStateOf<List<MasterEvent>>(emptyList()) }
+    var previousEvent by remember { mutableStateOf<Int?>(null) }
+
     LaunchedEffect(Unit) {
         categories = CategoryManager.getAll(db)
         events = EventManager.getAll(db)
+    }
+
+    // Lock category when event is selected, update when event changes
+    LaunchedEffect(selectedEvent, events.size) {
+        if (selectedEvent != previousEvent) {
+            if (selectedEvent != null && events.isNotEmpty()) {
+                val event = events.getOrNull(selectedEvent)
+                if (event != null) {
+                    val eventCategoryId = event.categoryId
+                    val categoryIndex = if (eventCategoryId != null) {
+                        categories.indexOfFirst { it.id == eventCategoryId }
+                    } else {
+                        null
+                    }
+                    if (categoryIndex != null) {
+                        onCategoryChange(if (categoryIndex >= 0) categoryIndex else null)
+                    }
+                }
+            }
+            previousEvent = selectedEvent
+        }
     }
 
     Column {
@@ -233,15 +256,6 @@ fun DeadlineForm(
         onTimeChange(timeValue)
         Spacer(modifier = Modifier.height(12.dp))
 
-        val categoryValue = dropdownField(
-            label = "Category",
-            items = categories.map { it.title },
-            initialSelection = selectedCategory,
-            key = resetTrigger
-        )
-        onCategoryChange(categoryValue)
-        Spacer(modifier = Modifier.height(12.dp))
-
         val eventValue = dropdownField(
             label = "Event",
             items = events.map { it.title },
@@ -249,6 +263,20 @@ fun DeadlineForm(
             key = resetTrigger
         )
         onEventChange(eventValue)
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Category locked when Event is selected
+        val categoryValue = dropdownField(
+            label = "Category",
+            items = categories.map { it.title },
+            initialSelection = selectedCategory,
+            key = resetTrigger,
+            locked = selectedEvent != null
+        )
+        // Only allow manual changes when not locked
+        if (selectedEvent == null) {
+            onCategoryChange(categoryValue)
+        }
     }
 }
 
@@ -340,10 +368,80 @@ fun TaskForm(
     var categories by remember { mutableStateOf<List<Category>>(emptyList()) }
     var events by remember { mutableStateOf<List<MasterEvent>>(emptyList()) }
     var deadlines by remember { mutableStateOf<List<Deadline>>(emptyList()) }
+    var previousDeadline by remember { mutableStateOf<Int?>(null) }
+    var previousEvent by remember { mutableStateOf<Int?>(null) }
+
     LaunchedEffect(Unit) {
         categories = CategoryManager.getAll(db)
         events = EventManager.getAll(db)
         deadlines = DeadlineManager.getAll(db)
+    }
+
+    LaunchedEffect(selectedDeadline, deadlines.size, events.size) {
+        if (selectedDeadline != previousDeadline) {
+            if (selectedDeadline != null && deadlines.isNotEmpty()) {
+                val deadline = deadlines.getOrNull(selectedDeadline)
+                if (deadline != null) {
+                    // Lock event to deadline's event
+                    val deadlineEventId = deadline.eventId
+                    val eventIndex = if (deadlineEventId != null) {
+                        events.indexOfFirst { it.id == deadlineEventId }
+                    } else {
+                        null
+                    }
+                    if (eventIndex != null) {
+                        onEventChange(if (eventIndex >= 0) eventIndex else null)
+                    }
+
+                    // Lock category to that event's category
+                    if (eventIndex != null && eventIndex >= 0) {
+                        val event = events[eventIndex]
+                        val eventCategoryId = event.categoryId
+                        val categoryIndex = if (eventCategoryId != null) {
+                            categories.indexOfFirst { it.id == eventCategoryId }
+                        } else {
+                            null
+                        }
+                        if (categoryIndex != null) {
+                            onCategoryChange(if (categoryIndex >= 0) categoryIndex else null)
+                        }
+                    } else {
+                        // Lock category to deadline's category
+                        val deadlineCategoryId = deadline.categoryId
+                        val categoryIndex = if (deadlineCategoryId != null) {
+                            categories.indexOfFirst { it.id == deadlineCategoryId }
+                        } else {
+                            null
+                        }
+                        if (categoryIndex != null) {
+                            onCategoryChange(if (categoryIndex >= 0) categoryIndex else null)
+                        }
+                    }
+                }
+            }
+            previousDeadline = selectedDeadline
+        }
+    }
+
+    // Lock category when event is selected (deadline not selected)
+    LaunchedEffect(selectedEvent, events.size) {
+        if (selectedDeadline == null && selectedEvent != previousEvent) {
+            if (selectedEvent != null && events.isNotEmpty()) {
+                val event = events.getOrNull(selectedEvent)
+                if (event != null) {
+                    val eventCategoryId = event.categoryId
+                    val categoryIndex = if (eventCategoryId != null) {
+                        categories.indexOfFirst { it.id == eventCategoryId }
+                    } else {
+                        null
+                    }
+                    if (categoryIndex != null) {
+                        onCategoryChange(if (categoryIndex >= 0) categoryIndex else null)
+                    }
+                }
+            }
+            previousEvent = selectedEvent
+        }
     }
 
     Column {
@@ -396,24 +494,6 @@ fun TaskForm(
         onScheduleChange(autoSchedule, date, time)
         Spacer(modifier = Modifier.height(12.dp))
 
-        val categoryValue = dropdownField(
-            label = "Category",
-            items = categories.map { it.title },
-            initialSelection = selectedCategory,
-            key = resetTrigger
-        )
-        onCategoryChange(categoryValue)
-        Spacer(modifier = Modifier.height(12.dp))
-
-        val eventValue = dropdownField(
-            label = "Event",
-            items = events.map { it.title },
-            initialSelection = selectedEvent,
-            key = resetTrigger
-        )
-        onEventChange(eventValue)
-        Spacer(modifier = Modifier.height(12.dp))
-
         val deadlineValue = dropdownField(
             label = "Deadline",
             items = deadlines.map { it.title },
@@ -421,6 +501,34 @@ fun TaskForm(
             key = resetTrigger
         )
         onDeadlineChange(deadlineValue)
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Event locked when Deadline is selected
+        val eventValue = dropdownField(
+            label = "Event",
+            items = events.map { it.title },
+            initialSelection = selectedEvent,
+            key = resetTrigger,
+            locked = selectedDeadline != null
+        )
+        // Only allow manual changes when not locked
+        if (selectedDeadline == null) {
+            onEventChange(eventValue)
+        }
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Category locked when Event/Deadline is selected
+        val categoryValue = dropdownField(
+            label = "Category",
+            items = categories.map { it.title },
+            initialSelection = selectedCategory,
+            key = resetTrigger,
+            locked = selectedEvent != null || selectedDeadline != null
+        )
+        // Only allow manual changes when not locked
+        if (selectedEvent == null && selectedDeadline == null) {
+            onCategoryChange(categoryValue)
+        }
     }
 }
 
