@@ -482,12 +482,39 @@ fun TaskForm(
     LaunchedEffect(durationHours, durationMinutes, startTime, startDate, isAutoSchedule) {
         if (!isAutoSchedule && startTime != null && startDate != null) {
             val totalDurationMinutes = (durationHours * 60) + durationMinutes
+            val today = LocalDate.now()
+            val now = LocalTime.now()
 
-            // First validate against past time if date is today
-            var validated = validateTimeNotPast(startTime, startDate)
+            var validated = startTime
 
-            // Then validate against duration rollover (OVERRIDES past time check)
-            validated = validateStartTimeForTask(validated, totalDurationMinutes)
+            // Calculate the maximum start time based on duration
+            var maxAllowedStartTime: LocalTime? = null
+            if (totalDurationMinutes <= 1439) {
+                val maxEndMinutes = 23 * 60 + 59  // 23:59
+                val maxStartMinutes = maxEndMinutes - totalDurationMinutes
+                if (maxStartMinutes >= 0) {
+                    val maxStartHours = maxStartMinutes / 60
+                    val maxStartMins = maxStartMinutes % 60
+                    maxAllowedStartTime = LocalTime.of(maxStartHours, maxStartMins)
+                }
+            }
+
+            // Apply duration constraint first
+            if (maxAllowedStartTime != null && validated.isAfter(maxAllowedStartTime)) {
+                validated = maxAllowedStartTime
+            }
+
+            // Apply past time constraint if result doesn't exceed max allowed
+            if (startDate == today) {
+                if (validated.isBefore(now) || validated == now) {
+                    val candidateTime = now.plusMinutes(1)
+
+                    // Only use candidate if it respects the absolute duration limit
+                    if (maxAllowedStartTime == null || !candidateTime.isAfter(maxAllowedStartTime)) {
+                        validated = candidateTime
+                    }
+                }
+            }
 
             // Only update if validation changed the time
             if (validated != startTime) {
@@ -660,7 +687,7 @@ fun TaskForm(
         }
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Category locked when Event/Deadline selected
+        // Category locked when Event/Deadline is selected
         val categoryValue = dropdownField(
             label = "Category",
             items = categories.map { it.title },

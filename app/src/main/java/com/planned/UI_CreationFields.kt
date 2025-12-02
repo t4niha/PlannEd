@@ -27,7 +27,9 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
-/* TIME VALIDATION */
+/* UTILITY FUNCTIONS */
+//<editor-fold desc="Date & Time">
+
 @RequiresApi(Build.VERSION_CODES.O)
 fun validateStartTime(time: LocalTime): LocalTime {
     return when {
@@ -36,7 +38,6 @@ fun validateStartTime(time: LocalTime): LocalTime {
         else -> time
     }
 }
-
 @RequiresApi(Build.VERSION_CODES.O)
 fun validateEndTime(time: LocalTime, startTime: LocalTime): LocalTime {
     var validatedTime = when {
@@ -54,7 +55,6 @@ fun validateEndTime(time: LocalTime, startTime: LocalTime): LocalTime {
 
     return validatedTime
 }
-
 @RequiresApi(Build.VERSION_CODES.O)
 fun validateStartTimeWithEnd(time: LocalTime, endTime: LocalTime): LocalTime {
     // Start time must be before end time and within bounds
@@ -72,7 +72,6 @@ fun validateStartTimeWithEnd(time: LocalTime, endTime: LocalTime): LocalTime {
 
     return validatedTime
 }
-
 @RequiresApi(Build.VERSION_CODES.O)
 fun validateStartTimeForTask(time: LocalTime, durationMinutes: Int): LocalTime {
     var validatedTime = validateStartTime(time)
@@ -84,7 +83,7 @@ fun validateStartTimeForTask(time: LocalTime, durationMinutes: Int): LocalTime {
     // Calculate end time in total minutes
     val startMinutes = validatedTime.hour * 60 + validatedTime.minute
     val endMinutes = startMinutes + durationMinutes
-    val maxEndMinutes = 23 * 60 + 59  // 23:59 in minutes
+    val maxEndMinutes = 23 * 60 + 59
 
     // If end time exceeds 23:59, calculate the maximum valid start time
     if (endMinutes > maxEndMinutes) {
@@ -107,7 +106,7 @@ fun validateStartTimeForTask(time: LocalTime, durationMinutes: Int): LocalTime {
     return validatedTime
 }
 
-/* DATE VALIDATION */
+// Date validation
 @RequiresApi(Build.VERSION_CODES.O)
 fun validateStartDate(startDate: LocalDate, endDate: LocalDate?): LocalDate {
     if (endDate == null) return startDate
@@ -119,7 +118,6 @@ fun validateStartDate(startDate: LocalDate, endDate: LocalDate?): LocalDate {
         startDate
     }
 }
-
 @RequiresApi(Build.VERSION_CODES.O)
 fun validateEndDate(endDate: LocalDate, startDate: LocalDate): LocalDate {
     // End date must be at least 1 day after start date
@@ -130,13 +128,12 @@ fun validateEndDate(endDate: LocalDate, startDate: LocalDate): LocalDate {
     }
 }
 
-/* PREVENTING PAST DATES/TIMES */
+// Prevent past date/time
 @RequiresApi(Build.VERSION_CODES.O)
 fun validateDateNotPast(date: LocalDate): LocalDate {
     val today = LocalDate.now()
     return if (date.isBefore(today)) today else date
 }
-
 @RequiresApi(Build.VERSION_CODES.O)
 fun validateTimeNotPast(time: LocalTime, date: LocalDate): LocalTime {
     val today = LocalDate.now()
@@ -153,6 +150,7 @@ fun validateTimeNotPast(time: LocalTime, date: LocalDate): LocalTime {
         time
     }
 }
+//</editor-fold>
 
 /* TYPE PICKER FIELD */
 @OptIn(ExperimentalAnimationApi::class)
@@ -552,6 +550,16 @@ fun timePickerField(
     LaunchedEffect(minTime) {
         if (minTime != null) {
             selectedTime = validateEndTime(selectedTime, minTime)
+        }
+    }
+
+    // Validate against past time when contextDate changes (for Deadline form)
+    LaunchedEffect(contextDate) {
+        if (!allowPastTimes && contextDate != null && minTime == null) {
+            val validated = validateTimeNotPast(selectedTime, contextDate)
+            if (validated != selectedTime) {
+                selectedTime = validated
+            }
         }
     }
 
@@ -1206,8 +1214,9 @@ fun schedulePickerField(
     // Validate start time when switching to manual schedule
     LaunchedEffect(effectiveAutoSchedule) {
         if (!effectiveAutoSchedule && startTime != null && startDate != null) {
-            var validated = validateStartTimeForTask(startTime!!, totalDurationMinutes)
-            validated = validateTimeNotPast(validated, startDate!!)
+            // CRITICAL: Past time FIRST, then duration LAST (duration overrides)
+            var validated = validateTimeNotPast(startTime!!, startDate!!)
+            validated = validateStartTimeForTask(validated, totalDurationMinutes)
             if (validated != startTime) {
                 startTime = validated
                 onTimeValidated?.invoke(validated)
@@ -1218,8 +1227,9 @@ fun schedulePickerField(
     // Validate start time when date changes (for manual schedule)
     LaunchedEffect(startDate) {
         if (!effectiveAutoSchedule && startTime != null && startDate != null) {
-            var validated = validateStartTimeForTask(startTime!!, totalDurationMinutes)
-            validated = validateTimeNotPast(validated, startDate!!)
+            // CRITICAL: Past time FIRST, then duration LAST (duration overrides)
+            var validated = validateTimeNotPast(startTime!!, startDate!!)
+            validated = validateStartTimeForTask(validated, totalDurationMinutes)
             if (validated != startTime) {
                 startTime = validated
                 onTimeValidated?.invoke(validated)
@@ -1229,11 +1239,10 @@ fun schedulePickerField(
 
     // Validate start time when duration changes (for manual schedule)
     LaunchedEffect(durationHours, durationMinutes) {
-        if (!effectiveAutoSchedule && startTime != null) {
-            var validated = validateStartTimeForTask(startTime!!, totalDurationMinutes)
-            if (startDate != null) {
-                validated = validateTimeNotPast(validated, startDate!!)
-            }
+        if (!effectiveAutoSchedule && startTime != null && startDate != null) {
+            // CRITICAL: Past time FIRST, then duration LAST (duration overrides)
+            var validated = validateTimeNotPast(startTime!!, startDate!!)
+            validated = validateStartTimeForTask(validated, totalDurationMinutes)
             if (validated != startTime) {
                 startTime = validated
                 onTimeValidated?.invoke(validated)
