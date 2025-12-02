@@ -660,7 +660,7 @@ fun TaskForm(
         }
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Category locked when Event/Deadline is selected
+        // Category locked when Event/Deadline selected
         val categoryValue = dropdownField(
             label = "Category",
             items = categories.map { it.title },
