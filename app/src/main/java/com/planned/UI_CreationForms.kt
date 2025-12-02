@@ -275,7 +275,8 @@ fun DeadlineForm(
             label = "Date",
             initialDate = date,
             isOptional = false,
-            key = resetTrigger
+            key = resetTrigger,
+            allowPastDates = false
         )!!
         onDateChange(dateValue)
         Spacer(modifier = Modifier.height(12.dp))
@@ -283,7 +284,9 @@ fun DeadlineForm(
         val timeValue = timePickerField(
             label = "Time",
             initialTime = time,
-            key = resetTrigger
+            key = resetTrigger,
+            contextDate = date,
+            allowPastTimes = false
         )
         onTimeChange(timeValue)
         Spacer(modifier = Modifier.height(12.dp))
@@ -452,7 +455,7 @@ fun TaskForm(
         }
     }
 
-    // CRITICAL: Validate start time when duration changes (for manual scheduling)
+    // Validate start time when duration changes
     LaunchedEffect(durationHours, durationMinutes, isAutoSchedule, startTime) {
         if (!isAutoSchedule && startTime != null) {
             val totalDurationMinutes = (durationHours * 60) + durationMinutes
@@ -509,7 +512,7 @@ fun TaskForm(
         }
     }
 
-    // Lock category when event is selected (deadline not selected)
+    // Lock category when event is selected
     LaunchedEffect(selectedEvent, events.size) {
         if (selectedDeadline == null && selectedEvent != previousEvent) {
             if (selectedEvent != null && events.isNotEmpty()) {
@@ -555,7 +558,7 @@ fun TaskForm(
         onPriorityChange(priorityValue)
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Duration picker (get values but don't display yet)
+        // Duration picker
         val (hours, minutes) = durationPickerField(
             initialHours = durationHours,
             initialMinutes = durationMinutes,
@@ -565,13 +568,13 @@ fun TaskForm(
         onDurationChange(hours, minutes)
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Schedule picker (uses the UPDATED duration values)
+        // Schedule picker
         val (autoSchedule, date, time) = schedulePickerField(
             initialAutoSchedule = isAutoSchedule,
             initialDate = startDate,
             initialTime = startTime,
-            durationHours = hours,  // Use fresh values from duration picker
-            durationMinutes = minutes,  // Use fresh values from duration picker
+            durationHours = hours,
+            durationMinutes = minutes,
             key = resetTrigger
         )
         onScheduleChange(autoSchedule, date, time)

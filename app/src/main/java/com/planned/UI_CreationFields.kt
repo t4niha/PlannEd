@@ -30,7 +30,6 @@ import java.time.format.DateTimeFormatter
 /* TIME VALIDATION */
 @RequiresApi(Build.VERSION_CODES.O)
 fun validateStartTime(time: LocalTime): LocalTime {
-    // Start time: min 12:00 AM (00:00), max 11:58 PM (23:58)
     return when {
         time.isBefore(LocalTime.of(0, 0)) -> LocalTime.of(0, 0)
         time.isAfter(LocalTime.of(23, 58)) -> LocalTime.of(23, 58)
@@ -40,17 +39,14 @@ fun validateStartTime(time: LocalTime): LocalTime {
 
 @RequiresApi(Build.VERSION_CODES.O)
 fun validateEndTime(time: LocalTime, startTime: LocalTime): LocalTime {
-    // End time: min 12:01 AM (00:01), max 11:59 PM (23:59), must be after start time
     var validatedTime = when {
         time.isBefore(LocalTime.of(0, 1)) -> LocalTime.of(0, 1)
         time.isAfter(LocalTime.of(23, 59)) -> LocalTime.of(23, 59)
         else -> time
     }
 
-    // Ensure end time is after start time
     if (!validatedTime.isAfter(startTime)) {
         validatedTime = startTime.plusMinutes(1)
-        // If incrementing puts us over max, we have an impossible situation
         if (validatedTime.isAfter(LocalTime.of(23, 59))) {
             validatedTime = LocalTime.of(23, 59)
         }
@@ -64,10 +60,8 @@ fun validateStartTimeWithEnd(time: LocalTime, endTime: LocalTime): LocalTime {
     // Start time must be before end time and within bounds
     var validatedTime = validateStartTime(time)
 
-    // If start time would be after or equal to end time, decrement until valid
     if (!validatedTime.isBefore(endTime)) {
         validatedTime = endTime.minusMinutes(1)
-        // Ensure we're still within start time bounds
         if (validatedTime.isBefore(LocalTime.of(0, 0))) {
             validatedTime = LocalTime.of(0, 0)
         }
@@ -83,12 +77,11 @@ fun validateStartTimeWithEnd(time: LocalTime, endTime: LocalTime): LocalTime {
 fun validateStartTimeForTask(time: LocalTime, durationMinutes: Int): LocalTime {
     var validatedTime = validateStartTime(time)
 
-    // If duration is > 23h 59m (1439 minutes), can't fit in a day - return validated time as is
     if (durationMinutes > 1439) {
         return validatedTime
     }
 
-    // Calculate end time in total minutes (to detect wrap-around past midnight)
+    // Calculate end time in total minutes
     val startMinutes = validatedTime.hour * 60 + validatedTime.minute
     val endMinutes = startMinutes + durationMinutes
     val maxEndMinutes = 23 * 60 + 59  // 23:59 in minutes
@@ -112,6 +105,30 @@ fun validateStartTimeForTask(time: LocalTime, durationMinutes: Int): LocalTime {
     }
 
     return validatedTime
+}
+
+/* PREVENTING PAST DATES/TIMES */
+@RequiresApi(Build.VERSION_CODES.O)
+fun validateDateNotPast(date: LocalDate): LocalDate {
+    val today = LocalDate.now()
+    return if (date.isBefore(today)) today else date
+}
+
+@RequiresApi(Build.VERSION_CODES.O)
+fun validateTimeNotPast(time: LocalTime, date: LocalDate): LocalTime {
+    val today = LocalDate.now()
+    val now = LocalTime.now()
+
+    return if (date == today) {
+        if (time.isBefore(now) || time == now) {
+            // Round up to next minute
+            now.plusMinutes(1)
+        } else {
+            time
+        }
+    } else {
+        time
+    }
 }
 
 /* TYPE PICKER FIELD */
@@ -152,7 +169,7 @@ fun typePickerField(
                 Text(selectedType)
             }
 
-            // Type options (all visible when expanded)
+            // Type options
             AnimatedVisibility(
                 visible = showTypePicker,
                 enter = fadeIn() + expandVertically(),
@@ -371,7 +388,8 @@ fun datePickerField(
     label: String,
     initialDate: LocalDate? = LocalDate.now().plusDays(1),
     isOptional: Boolean = false,
-    key: Int = 0
+    key: Int = 0,
+    allowPastDates: Boolean = true
 ): LocalDate? {
     var selectedDate by remember(key) { mutableStateOf(initialDate ?: LocalDate.now().plusDays(1)) }
     var showDatePicker by remember(key) { mutableStateOf(false) }
@@ -415,7 +433,8 @@ fun datePickerField(
                     TextButton(
                         onClick = {
                             datePickerState.selectedDateMillis?.let {
-                                selectedDate = LocalDate.ofEpochDay(it / 86400000L)
+                                val picked = LocalDate.ofEpochDay(it / 86400000L)
+                                selectedDate = if (!allowPastDates) validateDateNotPast(picked) else picked
                             }
                             showDatePicker = false
                         }
@@ -460,7 +479,9 @@ fun timePickerField(
     label: String,
     initialTime: LocalTime = LocalTime.of(10, 0),
     minTime: LocalTime? = null,
-    key: Int = 0
+    key: Int = 0,
+    contextDate: LocalDate? = null,
+    allowPastTimes: Boolean = true
 ): LocalTime {
     var selectedTime by remember(key) { mutableStateOf(initialTime) }
     var showTimePicker by remember(key) { mutableStateOf(false) }
@@ -469,14 +490,14 @@ fun timePickerField(
         selectedTime = initialTime
     }
 
-    // Enforce minimum time if provided (for end time after start time)
+    // Enforce minimum time if provided
     LaunchedEffect(minTime) {
         if (minTime != null) {
             selectedTime = validateEndTime(selectedTime, minTime)
         }
     }
 
-    // Format time as "10:00 AM"
+    // Format time
     val timeFormatter = DateTimeFormatter.ofPattern("h:mm a")
     val displayTime = selectedTime.format(timeFormatter)
 
@@ -514,13 +535,15 @@ fun timePickerField(
                         onClick = {
                             val newTime = LocalTime.of(timePickerState.hour, timePickerState.minute, 0, 0)
 
-                            // Validate based on whether this is start or end time
-                            val validatedTime = if (minTime != null) {
-                                // This is an end time (has minTime = startTime)
+                            // Validate based on start or end time
+                            var validatedTime = if (minTime != null) {
                                 validateEndTime(newTime, minTime)
                             } else {
-                                // This is a start time
                                 validateStartTime(newTime)
+                            }
+
+                            if (!allowPastTimes && contextDate != null && minTime == null) {
+                                validatedTime = validateTimeNotPast(validatedTime, contextDate)
                             }
 
                             selectedTime = validatedTime
@@ -883,13 +906,12 @@ fun priorityPickerField(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                // Priority colors: Red (1) -> Orange (2) -> Yellow (3) -> Lime (4) -> Green (5)
                 val priorityColors = listOf(
-                    Preset25, // Red
-                    Preset26, // Orange
-                    Preset27, // Yellow
-                    Preset28, // Lime
-                    Preset29  // Green
+                    Preset25, // 1 - Red
+                    Preset26, // 2 - Orange
+                    Preset27, // 3 - Yellow
+                    Preset28, // 4 - Lime
+                    Preset29  // 5 - Green
                 )
 
                 (1..5).forEach { p ->
@@ -1185,7 +1207,13 @@ fun schedulePickerField(
                                 confirmButton = {
                                     TextButton(onClick = {
                                         datePickerState.selectedDateMillis?.let {
-                                            startDate = LocalDate.ofEpochDay(it / 86400000L)
+                                            val picked = LocalDate.ofEpochDay(it / 86400000L)
+                                            startDate = validateDateNotPast(picked)
+
+                                            // If date changed to today, validate time isn't in the past
+                                            if (startTime != null && startDate != null) {
+                                                startTime = validateTimeNotPast(startTime!!, startDate!!)
+                                            }
                                         }
                                         showDatePicker = false
                                     }) {
@@ -1253,10 +1281,16 @@ fun schedulePickerField(
                                             timePickerState.minute
                                         )
 
-                                        val validated = validateStartTimeForTask(
+                                        // Validate against duration
+                                        var validated = validateStartTimeForTask(
                                             picked,
                                             totalDurationMinutes
                                         )
+
+                                        // Validate against past time if date is today
+                                        if (startDate != null) {
+                                            validated = validateTimeNotPast(validated, startDate!!)
+                                        }
 
                                         startTime = validated
                                         showTimePicker = false

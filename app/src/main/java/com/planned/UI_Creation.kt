@@ -506,9 +506,8 @@ fun Creation(db: AppDatabase) {
                                         eventId = deadlineSelectedEvent?.let { events.getOrNull(it)?.id }
                                     )
 
-                                    // If auto schedule task is enabled, create the task
+                                    // If auto schedule task is enabled, create task
                                     if (deadlineAutoScheduleTask) {
-                                        // Get the deadline we just created by finding it with matching details
                                         val allDeadlines = DeadlineManager.getAll(db)
                                         val createdDeadline = allDeadlines.lastOrNull { deadline ->
                                             deadline.title == deadlineTitle &&
@@ -519,16 +518,16 @@ fun Creation(db: AppDatabase) {
                                         val durationInMinutes = (deadlineTaskDurationHours * 60) + deadlineTaskDurationMinutes
                                         TaskManager.insert(
                                             db = db,
-                                            title = deadlineTitle,  // Same title as deadline
-                                            notes = deadlineNotes.ifBlank { null },  // Same notes as deadline
+                                            title = deadlineTitle,
+                                            notes = deadlineNotes.ifBlank { null },
                                             priority = deadlineTaskPriority,
                                             breakable = deadlineTaskIsBreakable,
-                                            startDate = null,  // Auto-scheduled, so no manual start date
-                                            startTime = null,  // Auto-scheduled, so no manual start time
+                                            startDate = null,
+                                            startTime = null,
                                             predictedDuration = durationInMinutes,
                                             categoryId = deadlineSelectedCategory?.let { categories.getOrNull(it)?.id },
                                             eventId = deadlineSelectedEvent?.let { events.getOrNull(it)?.id },
-                                            deadlineId = createdDeadline?.id  // Link to the deadline we just created
+                                            deadlineId = createdDeadline?.id
                                         )
                                     }
 
