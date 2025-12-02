@@ -107,6 +107,29 @@ fun validateStartTimeForTask(time: LocalTime, durationMinutes: Int): LocalTime {
     return validatedTime
 }
 
+/* DATE VALIDATION */
+@RequiresApi(Build.VERSION_CODES.O)
+fun validateStartDate(startDate: LocalDate, endDate: LocalDate?): LocalDate {
+    if (endDate == null) return startDate
+
+    // Start date must be at least 1 day before end date
+    return if (startDate.isAfter(endDate.minusDays(1))) {
+        endDate.minusDays(1)
+    } else {
+        startDate
+    }
+}
+
+@RequiresApi(Build.VERSION_CODES.O)
+fun validateEndDate(endDate: LocalDate, startDate: LocalDate): LocalDate {
+    // End date must be at least 1 day after start date
+    return if (endDate.isBefore(startDate.plusDays(1))) {
+        startDate.plusDays(1)
+    } else {
+        endDate
+    }
+}
+
 /* PREVENTING PAST DATES/TIMES */
 @RequiresApi(Build.VERSION_CODES.O)
 fun validateDateNotPast(date: LocalDate): LocalDate {
@@ -389,13 +412,32 @@ fun datePickerField(
     initialDate: LocalDate? = LocalDate.now().plusDays(1),
     isOptional: Boolean = false,
     key: Int = 0,
-    allowPastDates: Boolean = true
+    allowPastDates: Boolean = true,
+    otherDate: LocalDate? = null,
+    isStartDate: Boolean = true,
+    onDateValidated: ((LocalDate) -> Unit)? = null
 ): LocalDate? {
     var selectedDate by remember(key) { mutableStateOf(initialDate ?: LocalDate.now().plusDays(1)) }
     var showDatePicker by remember(key) { mutableStateOf(false) }
 
     LaunchedEffect(key, initialDate) {
         selectedDate = initialDate ?: LocalDate.now().plusDays(1)
+    }
+
+    // Validate when otherDate changes
+    LaunchedEffect(otherDate) {
+        if (otherDate != null) {
+            val validated = if (isStartDate) {
+                validateStartDate(selectedDate, otherDate)
+            } else {
+                validateEndDate(selectedDate, otherDate)
+            }
+
+            if (validated != selectedDate) {
+                selectedDate = validated
+                onDateValidated?.invoke(validated)
+            }
+        }
     }
 
     // Format date
@@ -433,8 +475,24 @@ fun datePickerField(
                     TextButton(
                         onClick = {
                             datePickerState.selectedDateMillis?.let {
-                                val picked = LocalDate.ofEpochDay(it / 86400000L)
-                                selectedDate = if (!allowPastDates) validateDateNotPast(picked) else picked
+                                var picked = LocalDate.ofEpochDay(it / 86400000L)
+
+                                // Apply past date validation
+                                if (!allowPastDates) {
+                                    picked = validateDateNotPast(picked)
+                                }
+
+                                // Apply start/end date validation
+                                if (otherDate != null) {
+                                    picked = if (isStartDate) {
+                                        validateStartDate(picked, otherDate)
+                                    } else {
+                                        validateEndDate(picked, otherDate)
+                                    }
+                                }
+
+                                selectedDate = picked
+                                onDateValidated?.invoke(picked)
                             }
                             showDatePicker = false
                         }
@@ -595,7 +653,8 @@ fun recurrencePickerField(
     initialDaysOfMonth: Set<Int> = setOf(1),
     initialEndDate: LocalDate? = null,
     startDate: LocalDate = LocalDate.now().plusDays(1),
-    key: Int = 0
+    key: Int = 0,
+    onEndDateChange: ((LocalDate?) -> Unit)? = null
 ): Pair<Triple<RecurrenceFrequency, Set<Int>, Set<Int>>, LocalDate?> {
     var recurrenceFreq by remember(key) { mutableStateOf(initialFrequency) }
     var showRecurrenceDropdown by remember(key) { mutableStateOf(false) }
@@ -610,6 +669,17 @@ fun recurrencePickerField(
         selectedDaysOfMonth = initialDaysOfMonth
         repeatForever = initialEndDate == null
         endDate = initialEndDate ?: startDate.plusMonths(1)
+    }
+
+    // Validate end date when start date changes
+    LaunchedEffect(startDate) {
+        if (!repeatForever) {
+            val validated = validateEndDate(endDate, startDate)
+            if (validated != endDate) {
+                endDate = validated
+                onEndDateChange?.invoke(validated)
+            }
+        }
     }
 
     Box(
@@ -793,6 +863,7 @@ fun recurrencePickerField(
                             if (!it && endDate == null) {
                                 endDate = startDate.plusMonths(1)
                             }
+                            onEndDateChange?.invoke(if (it) null else endDate)
                         },
                         colors = CheckboxDefaults.colors(checkedColor = PrimaryColor)
                     )
@@ -839,7 +910,9 @@ fun recurrencePickerField(
                                             onClick = {
                                                 datePickerState.selectedDateMillis?.let {
                                                     val selectedDate = LocalDate.ofEpochDay(it / 86400000L)
-                                                    endDate = if (selectedDate.isBefore(startDate)) startDate.plusMonths(1) else selectedDate
+                                                    val validated = validateEndDate(selectedDate, startDate)
+                                                    endDate = validated
+                                                    onEndDateChange?.invoke(validated)
                                                 }
                                                 showEndDatePicker = false
                                             }
@@ -952,7 +1025,8 @@ fun durationPickerField(
     label: String = "Duration",
     initialHours: Int = 0,
     initialMinutes: Int = 30,
-    key: Int = 0
+    key: Int = 0,
+    onDurationChange: ((Int, Int) -> Unit)? = null
 ): Pair<Int, Int> {
     var durationHours by remember(key) { mutableIntStateOf(initialHours) }
     var durationMinutes by remember(key) { mutableIntStateOf(initialMinutes) }
@@ -991,13 +1065,16 @@ fun durationPickerField(
                     TextButton(
                         onClick = {
                             showDurationPicker = false
+                            onDurationChange?.invoke(durationHours, durationMinutes)
                         }
                     ) {
                         Text("OK", color = Color.Black, fontSize = 16.sp)
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showDurationPicker = false }) {
+                    TextButton(onClick = {
+                        showDurationPicker = false
+                    }) {
                         Text("Cancel", color = Color.Black, fontSize = 16.sp)
                     }
                 },
@@ -1104,7 +1181,8 @@ fun schedulePickerField(
     initialTime: LocalTime? = null,
     durationHours: Int = 0,
     durationMinutes: Int = 30,
-    key: Int = 0
+    key: Int = 0,
+    onTimeValidated: ((LocalTime) -> Unit)? = null
 ): Triple<Boolean, LocalDate?, LocalTime?> {
 
     var isAutoSchedule by remember(key) { mutableStateOf(initialAutoSchedule) }
@@ -1123,6 +1201,17 @@ fun schedulePickerField(
 
     // Auto-schedule is forced to ON when locked
     val effectiveAutoSchedule = if (autoScheduleLocked) true else isAutoSchedule
+
+    // Validate start time when duration changes (for manual schedule)
+    LaunchedEffect(durationHours, durationMinutes) {
+        if (!effectiveAutoSchedule && startTime != null) {
+            val validated = validateStartTimeForTask(startTime!!, totalDurationMinutes)
+            if (validated != startTime) {
+                startTime = validated
+                onTimeValidated?.invoke(validated)
+            }
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -1293,6 +1382,7 @@ fun schedulePickerField(
                                         }
 
                                         startTime = validated
+                                        onTimeValidated?.invoke(validated)
                                         showTimePicker = false
                                     }) {
                                         Text("OK", color = Color.Black, fontSize = 16.sp)
@@ -1644,7 +1734,8 @@ fun autoScheduleTaskPickerField(
     initialDurationMinutes: Int = 30,
     initialBreakable: Boolean = false,
     breakableLockedByDuration: Boolean = false,
-    key: Int = 0
+    key: Int = 0,
+    onDurationChange: ((Int, Int) -> Unit)? = null
 ): Tuple5<Boolean, Int, Int, Int, Boolean> {
     var autoScheduleTask by remember(key) { mutableStateOf(initialAutoScheduleTask) }
     var priority by remember(key) { mutableIntStateOf(initialPriority) }
@@ -1751,7 +1842,10 @@ fun autoScheduleTaskPickerField(
                             AlertDialog(
                                 onDismissRequest = { showDurationPicker = false },
                                 confirmButton = {
-                                    TextButton(onClick = { showDurationPicker = false }) {
+                                    TextButton(onClick = {
+                                        showDurationPicker = false
+                                        onDurationChange?.invoke(durationHours, durationMinutes)
+                                    }) {
                                         Text("OK", color = Color.Black, fontSize = 16.sp)
                                     }
                                 },

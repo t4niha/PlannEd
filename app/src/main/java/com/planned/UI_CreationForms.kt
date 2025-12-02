@@ -122,9 +122,18 @@ fun EventForm(
             label = "Start Date",
             initialDate = startDate,
             isOptional = false,
-            key = resetTrigger
+            key = resetTrigger,
+            otherDate = endDate,
+            isStartDate = true,
+            onDateValidated = { validated ->
+                if (validated != startDate) {
+                    onStartDateChange(validated)
+                }
+            }
         )!!
-        onStartDateChange(startDateValue)
+        if (startDateValue != startDate) {
+            onStartDateChange(startDateValue)
+        }
         Spacer(modifier = Modifier.height(12.dp))
 
         val (recurrence, recurrenceEndDate) = recurrencePickerField(
@@ -133,7 +142,8 @@ fun EventForm(
             initialDaysOfMonth = selectedDaysOfMonth,
             initialEndDate = endDate,
             startDate = startDate,
-            key = resetTrigger
+            key = resetTrigger,
+            onEndDateChange = null
         )
         onRecurrenceChange(recurrence.first, recurrence.second, recurrence.third, recurrenceEndDate)
         Spacer(modifier = Modifier.height(12.dp))
@@ -299,7 +309,10 @@ fun DeadlineForm(
             initialDurationMinutes = taskDurationMinutes,
             initialBreakable = taskIsBreakable,
             breakableLockedByDuration = taskBreakableLockedByDuration,
-            key = resetTrigger
+            key = resetTrigger,
+            onDurationChange = { hours, mins ->
+                onTaskDurationChange(hours, mins)
+            }
         )
         onAutoScheduleTaskChange(autoSchedule)
         onTaskPriorityChange(priority)
@@ -359,9 +372,18 @@ fun TaskBucketForm(
             label = "Start Date",
             initialDate = startDate,
             isOptional = false,
-            key = resetTrigger
+            key = resetTrigger,
+            otherDate = endDate,
+            isStartDate = true,
+            onDateValidated = { validated ->
+                if (validated != startDate) {
+                    onStartDateChange(validated)
+                }
+            }
         )!!
-        onStartDateChange(startDateValue)
+        if (startDateValue != startDate) {
+            onStartDateChange(startDateValue)
+        }
         Spacer(modifier = Modifier.height(12.dp))
 
         val (recurrence, recurrenceEndDate) = recurrencePickerField(
@@ -370,7 +392,8 @@ fun TaskBucketForm(
             initialDaysOfMonth = selectedDaysOfMonth,
             initialEndDate = endDate,
             startDate = startDate,
-            key = resetTrigger
+            key = resetTrigger,
+            onEndDateChange = null
         )
         onRecurrenceChange(recurrence.first, recurrence.second, recurrence.third, recurrenceEndDate)
         Spacer(modifier = Modifier.height(12.dp))
@@ -452,17 +475,6 @@ fun TaskForm(
             }
         } else {
             onBreakableLockedByDurationChange(false)
-        }
-    }
-
-    // Validate start time when duration changes
-    LaunchedEffect(durationHours, durationMinutes, isAutoSchedule, startTime) {
-        if (!isAutoSchedule && startTime != null) {
-            val totalDurationMinutes = (durationHours * 60) + durationMinutes
-            val validated = validateStartTimeForTask(startTime, totalDurationMinutes)
-            if (validated != startTime) {
-                onScheduleChange(false, startDate, validated)
-            }
         }
     }
 
@@ -558,24 +570,34 @@ fun TaskForm(
         onPriorityChange(priorityValue)
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Duration picker
+        // Duration picker with callback
         val (hours, minutes) = durationPickerField(
             initialHours = durationHours,
             initialMinutes = durationMinutes,
             key = resetTrigger,
-            label = "Duration"
+            label = "Duration",
+            onDurationChange = { newHours, newMinutes ->
+                onDurationChange(newHours, newMinutes)
+            }
         )
-        onDurationChange(hours, minutes)
+        if (hours != durationHours || minutes != durationMinutes) {
+            onDurationChange(hours, minutes)
+        }
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Schedule picker
+        // Schedule picker with time validation callback
         val (autoSchedule, date, time) = schedulePickerField(
             initialAutoSchedule = isAutoSchedule,
             initialDate = startDate,
             initialTime = startTime,
             durationHours = hours,
             durationMinutes = minutes,
-            key = resetTrigger
+            key = resetTrigger,
+            onTimeValidated = { validatedTime ->
+                if (validatedTime != startTime) {
+                    onScheduleChange(false, startDate, validatedTime)
+                }
+            }
         )
         onScheduleChange(autoSchedule, date, time)
         Spacer(modifier = Modifier.height(12.dp))
@@ -699,9 +721,18 @@ fun ReminderForm(
             label = "Start Date",
             initialDate = startDate,
             isOptional = false,
-            key = resetTrigger
+            key = resetTrigger,
+            otherDate = endDate,
+            isStartDate = true,
+            onDateValidated = { validated ->
+                if (validated != startDate) {
+                    onStartDateChange(validated)
+                }
+            }
         )!!
-        onStartDateChange(startDateValue)
+        if (startDateValue != startDate) {
+            onStartDateChange(startDateValue)
+        }
         Spacer(modifier = Modifier.height(12.dp))
 
         val (recurrence, recurrenceEndDate) = recurrencePickerField(
@@ -710,7 +741,8 @@ fun ReminderForm(
             initialDaysOfMonth = selectedDaysOfMonth,
             initialEndDate = endDate,
             startDate = startDate,
-            key = resetTrigger
+            key = resetTrigger,
+            onEndDateChange = null
         )
         onRecurrenceChange(recurrence.first, recurrence.second, recurrence.third, recurrenceEndDate)
         Spacer(modifier = Modifier.height(12.dp))
