@@ -1082,32 +1082,22 @@ fun schedulePickerField(
     durationMinutes: Int = 30,
     key: Int = 0
 ): Triple<Boolean, LocalDate?, LocalTime?> {
+
     var isAutoSchedule by remember(key) { mutableStateOf(initialAutoSchedule) }
     var startDate by remember(key) { mutableStateOf(initialDate) }
     var startTime by remember(key) { mutableStateOf(initialTime) }
 
-    LaunchedEffect(key, initialAutoSchedule, initialDate, initialTime) {
+    // Restore state once when inputs change
+    LaunchedEffect(key) {
         isAutoSchedule = initialAutoSchedule
         startDate = initialDate
         startTime = initialTime
     }
 
-    // Adjust start time when duration changes in manual mode
-    LaunchedEffect(durationHours, durationMinutes, isAutoSchedule) {
-        if (!isAutoSchedule && startTime != null) {
-            val totalMinutes = (durationHours * 60) + durationMinutes
-            val validated = validateStartTimeForTask(startTime!!, totalMinutes)
-            if (validated != startTime) {
-                startTime = validated
-            }
-        }
-    }
-
-    // Lock auto-schedule if duration > 11h 55m
     val totalDurationMinutes = (durationHours * 60) + durationMinutes
-    val autoScheduleLocked = totalDurationMinutes > 719 // 11h 59m = 719 minutes
+    val autoScheduleLocked = totalDurationMinutes > 719
 
-    // When locked, force auto-schedule state
+    // Auto-schedule is forced to ON when locked
     val effectiveAutoSchedule = if (autoScheduleLocked) true else isAutoSchedule
 
     Box(
@@ -1117,6 +1107,8 @@ fun schedulePickerField(
             .padding(16.dp)
     ) {
         Column {
+
+            // Auto schedule checkbox
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
@@ -1126,12 +1118,11 @@ fun schedulePickerField(
                     onCheckedChange = {
                         if (!autoScheduleLocked) {
                             isAutoSchedule = it
+
                             if (it) {
-                                // Reset manual fields when switching to auto
                                 startDate = null
                                 startTime = null
                             } else {
-                                // Set defaults when switching to manual
                                 if (startDate == null) startDate = LocalDate.now().plusDays(1)
                                 if (startTime == null) startTime = LocalTime.of(10, 0)
                             }
@@ -1143,18 +1134,26 @@ fun schedulePickerField(
                         disabledCheckedColor = Color.LightGray
                     )
                 )
+
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Auto Schedule", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+
+                Text(
+                    "Auto Schedule",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium
+                )
             }
 
-            // Manual schedule fields
+            // Manual fields
             AnimatedVisibility(
                 visible = !effectiveAutoSchedule,
                 enter = fadeIn() + expandVertically(),
                 exit = fadeOut() + shrinkVertically()
             ) {
+
                 Column(modifier = Modifier.padding(top = 12.dp)) {
-                    // Start date picker
+
+                    // Date picker
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.fillMaxWidth()
@@ -1175,20 +1174,19 @@ fun schedulePickerField(
 
                         if (showDatePicker) {
                             val datePickerState = rememberDatePickerState(
-                                initialSelectedDateMillis = (startDate ?: LocalDate.now().plusDays(1)).toEpochDay() * 86400000L
+                                initialSelectedDateMillis =
+                                    (startDate ?: LocalDate.now().plusDays(1)).toEpochDay() * 86400000L
                             )
 
                             DatePickerDialog(
                                 onDismissRequest = { showDatePicker = false },
                                 confirmButton = {
-                                    TextButton(
-                                        onClick = {
-                                            datePickerState.selectedDateMillis?.let {
-                                                startDate = LocalDate.ofEpochDay(it / 86400000L)
-                                            }
-                                            showDatePicker = false
+                                    TextButton(onClick = {
+                                        datePickerState.selectedDateMillis?.let {
+                                            startDate = LocalDate.ofEpochDay(it / 86400000L)
                                         }
-                                    ) {
+                                        showDatePicker = false
+                                    }) {
                                         Text("OK", color = Color.Black, fontSize = 16.sp)
                                     }
                                 },
@@ -1218,7 +1216,7 @@ fun schedulePickerField(
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    // Start time picker with validation
+                    // Time picker
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.fillMaxWidth()
@@ -1247,14 +1245,20 @@ fun schedulePickerField(
                             AlertDialog(
                                 onDismissRequest = { showTimePicker = false },
                                 confirmButton = {
-                                    TextButton(
-                                        onClick = {
-                                            val newTime = LocalTime.of(timePickerState.hour, timePickerState.minute, 0, 0)
-                                            val totalMinutes = (durationHours * 60) + durationMinutes
-                                            startTime = validateStartTimeForTask(newTime, totalMinutes)
-                                            showTimePicker = false
-                                        }
-                                    ) {
+                                    TextButton(onClick = {
+                                        val picked = LocalTime.of(
+                                            timePickerState.hour,
+                                            timePickerState.minute
+                                        )
+
+                                        val validated = validateStartTimeForTask(
+                                            picked,
+                                            totalDurationMinutes
+                                        )
+
+                                        startTime = validated
+                                        showTimePicker = false
+                                    }) {
                                         Text("OK", color = Color.Black, fontSize = 16.sp)
                                     }
                                 },
