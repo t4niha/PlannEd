@@ -54,14 +54,10 @@ fun Creation(db: AppDatabase) {
     var eventTitle by remember { mutableStateOf("") }
     var eventNotes by remember { mutableStateOf("") }
     var eventColor by remember { mutableStateOf(Preset1) }
-    var eventStartDate by remember { mutableStateOf(LocalDate.now()) }
-    var eventEndDate by remember { mutableStateOf<LocalDate?>(null) }
-    var eventStartTime by remember { mutableStateOf(LocalTime.now().withSecond(0).withNano(0)) }
-    var eventEndTime by remember {
-        val now = LocalTime.now().withSecond(0).withNano(0)
-        val oneHourLater = now.plusHours(1)
-        mutableStateOf(if (oneHourLater.isBefore(now)) LocalTime.of(23, 59, 0) else oneHourLater)
-    }
+    var eventStartDate by remember { mutableStateOf(LocalDate.now().plusDays(1)) }
+    var eventEndDate by remember { mutableStateOf<LocalDate?>(LocalDate.now().plusDays(1).plusMonths(1)) }
+    var eventStartTime by remember { mutableStateOf(LocalTime.of(10, 0)) }
+    var eventEndTime by remember { mutableStateOf(LocalTime.of(11, 0)) }
     var eventRecurrenceFreq by remember { mutableStateOf(RecurrenceFrequency.NONE) }
     var eventSelectedDaysOfWeek by remember { mutableStateOf(setOf(7)) }
     var eventSelectedDaysOfMonth by remember { mutableStateOf(setOf(1)) }
@@ -70,8 +66,8 @@ fun Creation(db: AppDatabase) {
     // Deadline
     var deadlineTitle by remember { mutableStateOf("") }
     var deadlineNotes by remember { mutableStateOf("") }
-    var deadlineDate by remember { mutableStateOf(LocalDate.now()) }
-    var deadlineTime by remember { mutableStateOf(LocalTime.of(23, 59, 0)) }
+    var deadlineDate by remember { mutableStateOf(LocalDate.now().plusDays(1)) }
+    var deadlineTime by remember { mutableStateOf(LocalTime.of(10, 0)) }
     var deadlineSelectedCategory by remember { mutableStateOf<Int?>(null) }
     var deadlineSelectedEvent by remember { mutableStateOf<Int?>(null) }
     var deadlineAutoScheduleTask by remember { mutableStateOf(false) }
@@ -82,14 +78,10 @@ fun Creation(db: AppDatabase) {
     var deadlineTaskBreakableLockedByDuration by remember { mutableStateOf(false) }
 
     // Task Bucket
-    var bucketStartDate by remember { mutableStateOf(LocalDate.now()) }
-    var bucketEndDate by remember { mutableStateOf<LocalDate?>(null) }
-    var bucketStartTime by remember { mutableStateOf(LocalTime.now().withSecond(0).withNano(0)) }
-    var bucketEndTime by remember {
-        val now = LocalTime.now().withSecond(0).withNano(0)
-        val twoHoursLater = now.plusHours(2)
-        mutableStateOf(if (twoHoursLater.isBefore(now)) LocalTime.of(23, 59, 0) else twoHoursLater)
-    }
+    var bucketStartDate by remember { mutableStateOf(LocalDate.now().plusDays(1)) }
+    var bucketEndDate by remember { mutableStateOf<LocalDate?>(LocalDate.now().plusDays(1).plusMonths(1)) }
+    var bucketStartTime by remember { mutableStateOf(LocalTime.of(10, 0)) }
+    var bucketEndTime by remember { mutableStateOf(LocalTime.of(11, 0)) }
     var bucketRecurrenceFreq by remember { mutableStateOf(RecurrenceFrequency.NONE) }
     var bucketSelectedDaysOfWeek by remember { mutableStateOf(setOf(7)) }
     var bucketSelectedDaysOfMonth by remember { mutableStateOf(setOf(1)) }
@@ -113,10 +105,10 @@ fun Creation(db: AppDatabase) {
     var reminderTitle by remember { mutableStateOf("") }
     var reminderNotes by remember { mutableStateOf("") }
     var reminderColor by remember { mutableStateOf(Preset1) }
-    var reminderStartDate by remember { mutableStateOf(LocalDate.now()) }
-    var reminderEndDate by remember { mutableStateOf<LocalDate?>(null) }
+    var reminderStartDate by remember { mutableStateOf(LocalDate.now().plusDays(1)) }
+    var reminderEndDate by remember { mutableStateOf<LocalDate?>(LocalDate.now().plusDays(1).plusMonths(1)) }
     var reminderIsAllDay by remember { mutableStateOf(true) }
-    var reminderTime by remember { mutableStateOf(LocalTime.now().withSecond(0).withNano(0)) }
+    var reminderTime by remember { mutableStateOf(LocalTime.of(10, 0)) }
     var reminderRecurrenceFreq by remember { mutableStateOf(RecurrenceFrequency.NONE) }
     var reminderSelectedDaysOfWeek by remember { mutableStateOf(setOf(7)) }
     var reminderSelectedDaysOfMonth by remember { mutableStateOf(setOf(1)) }
@@ -133,12 +125,10 @@ fun Creation(db: AppDatabase) {
         eventTitle = ""
         eventNotes = ""
         eventColor = Preset1
-        eventStartDate = LocalDate.now()
-        eventEndDate = null
-        val now = LocalTime.now().withSecond(0).withNano(0)
-        eventStartTime = now
-        val oneHourLater = now.plusHours(1)
-        eventEndTime = if (oneHourLater.isBefore(now)) LocalTime.of(23, 59, 0) else oneHourLater
+        eventStartDate = LocalDate.now().plusDays(1)
+        eventEndDate = LocalDate.now().plusDays(1).plusMonths(1)
+        eventStartTime = LocalTime.of(10, 0)
+        eventEndTime = LocalTime.of(11, 0)
         eventRecurrenceFreq = RecurrenceFrequency.NONE
         eventSelectedDaysOfWeek = setOf(7)
         eventSelectedDaysOfMonth = setOf(1)
@@ -147,8 +137,8 @@ fun Creation(db: AppDatabase) {
         // Deadline
         deadlineTitle = ""
         deadlineNotes = ""
-        deadlineDate = LocalDate.now()
-        deadlineTime = LocalTime.of(23, 59, 0)
+        deadlineDate = LocalDate.now().plusDays(1)
+        deadlineTime = LocalTime.of(10, 0)
         deadlineSelectedCategory = null
         deadlineSelectedEvent = null
         deadlineAutoScheduleTask = false
@@ -159,12 +149,10 @@ fun Creation(db: AppDatabase) {
         deadlineTaskBreakableLockedByDuration = false
 
         // Task Bucket
-        bucketStartDate = LocalDate.now()
-        bucketEndDate = null
-        val now2 = LocalTime.now().withSecond(0).withNano(0)
-        bucketStartTime = now2
-        val twoHoursLater = now2.plusHours(2)
-        bucketEndTime = if (twoHoursLater.isBefore(now2)) LocalTime.of(23, 59, 0) else twoHoursLater
+        bucketStartDate = LocalDate.now().plusDays(1)
+        bucketEndDate = LocalDate.now().plusDays(1).plusMonths(1)
+        bucketStartTime = LocalTime.of(10, 0)
+        bucketEndTime = LocalTime.of(11, 0)
         bucketRecurrenceFreq = RecurrenceFrequency.NONE
         bucketSelectedDaysOfWeek = setOf(7)
         bucketSelectedDaysOfMonth = setOf(1)
@@ -188,10 +176,10 @@ fun Creation(db: AppDatabase) {
         reminderTitle = ""
         reminderNotes = ""
         reminderColor = Preset1
-        reminderStartDate = LocalDate.now()
-        reminderEndDate = null
+        reminderStartDate = LocalDate.now().plusDays(1)
+        reminderEndDate = LocalDate.now().plusDays(1).plusMonths(1)
         reminderIsAllDay = true
-        reminderTime = LocalTime.now().withSecond(0).withNano(0)
+        reminderTime = LocalTime.of(10, 0)
         reminderRecurrenceFreq = RecurrenceFrequency.NONE
         reminderSelectedDaysOfWeek = setOf(7)
         reminderSelectedDaysOfMonth = setOf(1)
@@ -518,8 +506,9 @@ fun Creation(db: AppDatabase) {
                                         eventId = deadlineSelectedEvent?.let { events.getOrNull(it)?.id }
                                     )
 
-                                    // If auto schedule task is enabled, create task
+                                    // If auto schedule task is enabled, create the task
                                     if (deadlineAutoScheduleTask) {
+                                        // Get the deadline we just created by finding it with matching details
                                         val allDeadlines = DeadlineManager.getAll(db)
                                         val createdDeadline = allDeadlines.lastOrNull { deadline ->
                                             deadline.title == deadlineTitle &&
@@ -530,16 +519,16 @@ fun Creation(db: AppDatabase) {
                                         val durationInMinutes = (deadlineTaskDurationHours * 60) + deadlineTaskDurationMinutes
                                         TaskManager.insert(
                                             db = db,
-                                            title = deadlineTitle,
-                                            notes = deadlineNotes.ifBlank { null },
+                                            title = deadlineTitle,  // Same title as deadline
+                                            notes = deadlineNotes.ifBlank { null },  // Same notes as deadline
                                             priority = deadlineTaskPriority,
                                             breakable = deadlineTaskIsBreakable,
-                                            startDate = null,
-                                            startTime = null,
+                                            startDate = null,  // Auto-scheduled, so no manual start date
+                                            startTime = null,  // Auto-scheduled, so no manual start time
                                             predictedDuration = durationInMinutes,
                                             categoryId = deadlineSelectedCategory?.let { categories.getOrNull(it)?.id },
                                             eventId = deadlineSelectedEvent?.let { events.getOrNull(it)?.id },
-                                            deadlineId = createdDeadline?.id
+                                            deadlineId = createdDeadline?.id  // Link to the deadline we just created
                                         )
                                     }
 

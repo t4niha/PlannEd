@@ -452,23 +452,6 @@ fun TaskForm(
         }
     }
 
-    // Limit duration when manually scheduled to prevent rollover
-    LaunchedEffect(durationHours, durationMinutes, startTime, isAutoSchedule) {
-        if (!isAutoSchedule && startTime != null) {
-            val taskDurationMinutes = (durationHours * 60) + durationMinutes
-            val endTime = startTime.plusMinutes(taskDurationMinutes.toLong())
-
-            if (endTime.isBefore(startTime) || endTime == LocalTime.MIDNIGHT) {
-                val minutesUntilMidnight = (23 - startTime.hour) * 60 + (59 - startTime.minute)
-
-                val newHours = minutesUntilMidnight / 60
-                val newMinutes = minutesUntilMidnight % 60
-
-                onDurationChange(newHours, newMinutes)
-            }
-        }
-    }
-
     LaunchedEffect(selectedDeadline, deadlines.size, events.size) {
         if (selectedDeadline != previousDeadline) {
             if (selectedDeadline != null && deadlines.isNotEmpty()) {
@@ -561,15 +544,7 @@ fun TaskForm(
         onPriorityChange(priorityValue)
         Spacer(modifier = Modifier.height(12.dp))
 
-        val (autoSchedule, date, time) = schedulePickerField(
-            initialAutoSchedule = isAutoSchedule,
-            initialDate = startDate,
-            initialTime = startTime,
-            key = resetTrigger
-        )
-        onScheduleChange(autoSchedule, date, time)
-        Spacer(modifier = Modifier.height(12.dp))
-
+        // Duration picker (get values but don't display yet)
         val (hours, minutes) = durationPickerField(
             initialHours = durationHours,
             initialMinutes = durationMinutes,
@@ -579,6 +554,19 @@ fun TaskForm(
         onDurationChange(hours, minutes)
         Spacer(modifier = Modifier.height(12.dp))
 
+        // Schedule picker (uses the UPDATED duration values)
+        val (autoSchedule, date, time) = schedulePickerField(
+            initialAutoSchedule = isAutoSchedule,
+            initialDate = startDate,
+            initialTime = startTime,
+            durationHours = hours,  // Use fresh values from duration picker
+            durationMinutes = minutes,  // Use fresh values from duration picker
+            key = resetTrigger
+        )
+        onScheduleChange(autoSchedule, date, time)
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Breakable field with duration-based locking
         val breakableValue = checkboxField(
             label = "Breakable",
             initialChecked = isBreakable,
@@ -586,12 +574,13 @@ fun TaskForm(
             locked = !isAutoSchedule || breakableLockedByDuration,
             forceChecked = breakableLockedByDuration
         )
-        // Breakable field with duration-based locking
+
         if (isAutoSchedule && !breakableLockedByDuration) {
             onBreakableChange(breakableValue)
         } else if (!isAutoSchedule) {
             onBreakableChange(false)
         }
+
         Spacer(modifier = Modifier.height(12.dp))
 
         val deadlineValue = dropdownField(
@@ -603,6 +592,7 @@ fun TaskForm(
         onDeadlineChange(deadlineValue)
         Spacer(modifier = Modifier.height(12.dp))
 
+        // Event locked when Deadline is selected
         val eventValue = dropdownField(
             label = "Event",
             items = events.map { it.title },
@@ -616,6 +606,7 @@ fun TaskForm(
         }
         Spacer(modifier = Modifier.height(12.dp))
 
+        // Category locked when Event/Deadline is selected
         val categoryValue = dropdownField(
             label = "Category",
             items = categories.map { it.title },
