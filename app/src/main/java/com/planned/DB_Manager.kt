@@ -215,7 +215,7 @@ object TaskManager {
         breakable: Boolean,
         startDate: LocalDate?,
         startTime: LocalTime?,
-        predictedDuration: Int, // in minutes
+        predictedDuration: Int,
         categoryId: Int?,
         eventId: Int?,
         deadlineId: Int?
@@ -225,7 +225,7 @@ object TaskManager {
             notes = notes,
             priority = priority,
             breakable = breakable,
-            noIntervals = if (breakable) 1 else 1, // Default 1, can be updated later
+            noIntervals = 0,
             startDate = startDate,
             startTime = startTime,
             predictedDuration = predictedDuration,
