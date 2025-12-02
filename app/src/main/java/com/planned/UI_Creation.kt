@@ -74,6 +74,12 @@ fun Creation(db: AppDatabase) {
     var deadlineTime by remember { mutableStateOf(LocalTime.of(23, 59, 0)) }
     var deadlineSelectedCategory by remember { mutableStateOf<Int?>(null) }
     var deadlineSelectedEvent by remember { mutableStateOf<Int?>(null) }
+    var deadlineAutoScheduleTask by remember { mutableStateOf(false) }
+    var deadlineTaskPriority by remember { mutableIntStateOf(3) }
+    var deadlineTaskDurationHours by remember { mutableIntStateOf(0) }
+    var deadlineTaskDurationMinutes by remember { mutableIntStateOf(30) }
+    var deadlineTaskIsBreakable by remember { mutableStateOf(false) }
+    var deadlineTaskBreakableLockedByDuration by remember { mutableStateOf(false) }
 
     // Task Bucket
     var bucketStartDate by remember { mutableStateOf(LocalDate.now()) }
@@ -145,6 +151,12 @@ fun Creation(db: AppDatabase) {
         deadlineTime = LocalTime.of(23, 59, 0)
         deadlineSelectedCategory = null
         deadlineSelectedEvent = null
+        deadlineAutoScheduleTask = false
+        deadlineTaskPriority = 3
+        deadlineTaskDurationHours = 0
+        deadlineTaskDurationMinutes = 30
+        deadlineTaskIsBreakable = false
+        deadlineTaskBreakableLockedByDuration = false
 
         // Task Bucket
         bucketStartDate = LocalDate.now()
@@ -299,6 +311,20 @@ fun Creation(db: AppDatabase) {
                         onCategoryChange = { deadlineSelectedCategory = it },
                         selectedEvent = deadlineSelectedEvent,
                         onEventChange = { deadlineSelectedEvent = it },
+                        autoScheduleTask = deadlineAutoScheduleTask,
+                        onAutoScheduleTaskChange = { deadlineAutoScheduleTask = it },
+                        taskPriority = deadlineTaskPriority,
+                        onTaskPriorityChange = { deadlineTaskPriority = it },
+                        taskDurationHours = deadlineTaskDurationHours,
+                        taskDurationMinutes = deadlineTaskDurationMinutes,
+                        onTaskDurationChange = { hours, mins ->
+                            deadlineTaskDurationHours = hours
+                            deadlineTaskDurationMinutes = mins
+                        },
+                        taskIsBreakable = deadlineTaskIsBreakable,
+                        onTaskIsBreakableChange = { deadlineTaskIsBreakable = it },
+                        taskBreakableLockedByDuration = deadlineTaskBreakableLockedByDuration,
+                        onTaskBreakableLockedByDurationChange = { deadlineTaskBreakableLockedByDuration = it },
                         resetTrigger = resetTrigger
                     )
                 }
@@ -481,6 +507,7 @@ fun Creation(db: AppDatabase) {
                                     val categories = CategoryManager.getAll(db)
                                     val events = EventManager.getAll(db)
 
+                                    // Insert the deadline first
                                     DeadlineManager.insert(
                                         db = db,
                                         title = deadlineTitle,
@@ -490,6 +517,32 @@ fun Creation(db: AppDatabase) {
                                         categoryId = deadlineSelectedCategory?.let { categories.getOrNull(it)?.id },
                                         eventId = deadlineSelectedEvent?.let { events.getOrNull(it)?.id }
                                     )
+
+                                    // If auto schedule task is enabled, create task
+                                    if (deadlineAutoScheduleTask) {
+                                        val allDeadlines = DeadlineManager.getAll(db)
+                                        val createdDeadline = allDeadlines.lastOrNull { deadline ->
+                                            deadline.title == deadlineTitle &&
+                                                    deadline.date == deadlineDate &&
+                                                    deadline.time == deadlineTime
+                                        }
+
+                                        val durationInMinutes = (deadlineTaskDurationHours * 60) + deadlineTaskDurationMinutes
+                                        TaskManager.insert(
+                                            db = db,
+                                            title = deadlineTitle,
+                                            notes = deadlineNotes.ifBlank { null },
+                                            priority = deadlineTaskPriority,
+                                            breakable = deadlineTaskIsBreakable,
+                                            startDate = null,
+                                            startTime = null,
+                                            predictedDuration = durationInMinutes,
+                                            categoryId = deadlineSelectedCategory?.let { categories.getOrNull(it)?.id },
+                                            eventId = deadlineSelectedEvent?.let { events.getOrNull(it)?.id },
+                                            deadlineId = createdDeadline?.id
+                                        )
+                                    }
+
                                     clearAllForms()
                                     showSuccessNotification = true
                                     delay(1000)

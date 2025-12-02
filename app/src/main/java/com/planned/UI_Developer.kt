@@ -33,7 +33,7 @@ private val GRID_COLOR = Color.LightGray
 private val buttonShape = RoundedCornerShape(10.dp)
 
 // Occurrence generation months
-var generationMonths by mutableIntStateOf(2)
+var generationMonths by mutableIntStateOf(1)
 
 /* DATABASE PREVIEW */
 @RequiresApi(Build.VERSION_CODES.O)

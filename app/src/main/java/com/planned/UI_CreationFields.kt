@@ -1467,3 +1467,238 @@ fun dropdownField(
 
     return selectedIndex
 }
+
+/* AUTO SCHEDULE TASK PICKER FIELD */
+@RequiresApi(Build.VERSION_CODES.O)
+@OptIn(ExperimentalAnimationApi::class)
+@Composable
+fun autoScheduleTaskPickerField(
+    initialAutoScheduleTask: Boolean = false,
+    initialPriority: Int = 3,
+    initialDurationHours: Int = 0,
+    initialDurationMinutes: Int = 30,
+    initialBreakable: Boolean = false,
+    breakableLockedByDuration: Boolean = false,
+    key: Int = 0
+): Tuple5<Boolean, Int, Int, Int, Boolean> {
+    var autoScheduleTask by remember(key) { mutableStateOf(initialAutoScheduleTask) }
+    var priority by remember(key) { mutableIntStateOf(initialPriority) }
+    var durationHours by remember(key) { mutableIntStateOf(initialDurationHours) }
+    var durationMinutes by remember(key) { mutableIntStateOf(initialDurationMinutes) }
+    var isBreakable by remember(key) { mutableStateOf(initialBreakable) }
+
+    LaunchedEffect(key, initialAutoScheduleTask, initialPriority, initialDurationHours, initialDurationMinutes, initialBreakable) {
+        autoScheduleTask = initialAutoScheduleTask
+        priority = initialPriority
+        durationHours = initialDurationHours
+        durationMinutes = initialDurationMinutes
+        isBreakable = initialBreakable
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(CardColor), RoundedCornerShape(12.dp))
+            .padding(16.dp)
+    ) {
+        Column {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Checkbox(
+                    checked = autoScheduleTask,
+                    onCheckedChange = {
+                        autoScheduleTask = it
+                    },
+                    colors = CheckboxDefaults.colors(checkedColor = PrimaryColor)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Auto Schedule Task", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+            }
+
+            // Expandable task fields
+            AnimatedVisibility(
+                visible = autoScheduleTask,
+                enter = fadeIn() + expandVertically(),
+                exit = fadeOut() + shrinkVertically()
+            ) {
+                Column(modifier = Modifier.padding(top = 12.dp)) {
+                    // Priority picker
+                    Text("Priority", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        val priorityColors = listOf(
+                            Preset25, Preset26, Preset27, Preset28, Preset29
+                        )
+
+                        (1..5).forEach { p ->
+                            val isSelected = priority == p
+                            Box(
+                                modifier = Modifier
+                                    .size(50.dp)
+                                    .then(
+                                        if (isSelected) {
+                                            Modifier.border(3.dp, PrimaryColor, CircleShape)
+                                        } else {
+                                            Modifier
+                                        }
+                                    )
+                                    .clip(CircleShape)
+                                    .background(priorityColors[p - 1])
+                                    .clickable { priority = p },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    p.toString(),
+                                    color = BackgroundColor,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                    fontSize = 18.sp
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    // Duration picker
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Duration", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                        Spacer(modifier = Modifier.width(16.dp))
+
+                        var showDurationPicker by remember { mutableStateOf(false) }
+
+                        Button(
+                            onClick = { showDurationPicker = true },
+                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
+                        ) {
+                            Text("${durationHours}h ${durationMinutes}m")
+                        }
+
+                        if (showDurationPicker) {
+                            AlertDialog(
+                                onDismissRequest = { showDurationPicker = false },
+                                confirmButton = {
+                                    TextButton(onClick = { showDurationPicker = false }) {
+                                        Text("OK", color = Color.Black, fontSize = 16.sp)
+                                    }
+                                },
+                                dismissButton = {
+                                    TextButton(onClick = { showDurationPicker = false }) {
+                                        Text("Cancel", color = Color.Black, fontSize = 16.sp)
+                                    }
+                                },
+                                containerColor = BackgroundColor,
+                                text = {
+                                    Row(
+                                        horizontalArrangement = Arrangement.Center,
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                            Text("Hours", fontSize = 12.sp)
+                                            Spacer(modifier = Modifier.height(8.dp))
+                                            Button(
+                                                onClick = { durationHours++ },
+                                                colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
+                                            ) { Text("▲") }
+                                            Text(
+                                                durationHours.toString(),
+                                                fontSize = 24.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                modifier = Modifier.padding(vertical = 8.dp)
+                                            )
+                                            Button(
+                                                onClick = {
+                                                    if (durationHours > 0 && !(durationHours == 1 && durationMinutes == 0)) {
+                                                        durationHours--
+                                                    }
+                                                },
+                                                colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
+                                            ) { Text("▼") }
+                                        }
+
+                                        Spacer(modifier = Modifier.width(32.dp))
+
+                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                            Text("Minutes", fontSize = 12.sp)
+                                            Spacer(modifier = Modifier.height(8.dp))
+                                            Button(
+                                                onClick = {
+                                                    val newMinutes = (durationMinutes + 5) % 60
+                                                    if (!(durationHours == 0 && newMinutes == 0)) {
+                                                        durationMinutes = newMinutes
+                                                    }
+                                                },
+                                                colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
+                                            ) { Text("▲") }
+                                            Text(
+                                                durationMinutes.toString(),
+                                                fontSize = 24.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                modifier = Modifier.padding(vertical = 8.dp)
+                                            )
+                                            Button(
+                                                onClick = {
+                                                    val newMinutes = if (durationMinutes - 5 < 0) 55 else durationMinutes - 5
+                                                    if (!(durationHours == 0 && newMinutes == 0)) {
+                                                        durationMinutes = newMinutes
+                                                    }
+                                                },
+                                                colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
+                                            ) { Text("▼") }
+                                        }
+                                    }
+                                }
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Breakable checkbox
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        val displayChecked = if (breakableLockedByDuration) true else isBreakable
+
+                        Checkbox(
+                            checked = displayChecked,
+                            onCheckedChange = {
+                                if (!breakableLockedByDuration) isBreakable = it
+                            },
+                            enabled = !breakableLockedByDuration,
+                            colors = CheckboxDefaults.colors(
+                                checkedColor = PrimaryColor,
+                                disabledCheckedColor = Color.LightGray,
+                                disabledUncheckedColor = Color.LightGray
+                            )
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            "Breakable",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = Color.Black
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    return Tuple5(autoScheduleTask, priority, durationHours, durationMinutes, isBreakable)
+}
+data class Tuple5<A, B, C, D, E>(val first: A,
+                                 val second: B,
+                                 val third: C, val
+                                 fourth: D,
+                                 val fifth: E)
