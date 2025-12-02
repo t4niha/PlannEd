@@ -452,6 +452,17 @@ fun TaskForm(
         }
     }
 
+    // CRITICAL: Validate start time when duration changes (for manual scheduling)
+    LaunchedEffect(durationHours, durationMinutes, isAutoSchedule, startTime) {
+        if (!isAutoSchedule && startTime != null) {
+            val totalDurationMinutes = (durationHours * 60) + durationMinutes
+            val validated = validateStartTimeForTask(startTime, totalDurationMinutes)
+            if (validated != startTime) {
+                onScheduleChange(false, startDate, validated)
+            }
+        }
+    }
+
     LaunchedEffect(selectedDeadline, deadlines.size, events.size) {
         if (selectedDeadline != previousDeadline) {
             if (selectedDeadline != null && deadlines.isNotEmpty()) {

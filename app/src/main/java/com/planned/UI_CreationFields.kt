@@ -88,12 +88,14 @@ fun validateStartTimeForTask(time: LocalTime, durationMinutes: Int): LocalTime {
         return validatedTime
     }
 
-    // Calculate end time
-    val endTime = validatedTime.plusMinutes(durationMinutes.toLong())
+    // Calculate end time in total minutes (to detect wrap-around past midnight)
+    val startMinutes = validatedTime.hour * 60 + validatedTime.minute
+    val endMinutes = startMinutes + durationMinutes
+    val maxEndMinutes = 23 * 60 + 59  // 23:59 in minutes
 
-    // If end time exceeds 23:59, decrement start time until valid
-    if (endTime.isAfter(LocalTime.of(23, 59))) {
-        val maxStartMinutes = (23 * 60 + 59) - durationMinutes
+    // If end time exceeds 23:59, calculate the maximum valid start time
+    if (endMinutes > maxEndMinutes) {
+        val maxStartMinutes = maxEndMinutes - durationMinutes
         if (maxStartMinutes >= 0) {
             val maxStartHours = maxStartMinutes / 60
             val maxStartMins = maxStartMinutes % 60
