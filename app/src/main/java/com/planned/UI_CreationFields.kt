@@ -1119,7 +1119,7 @@ fun schedulePickerField(
     }
 
     val totalDurationMinutes = (durationHours * 60) + durationMinutes
-    val autoScheduleLocked = totalDurationMinutes > 719
+    val autoScheduleLocked = totalDurationMinutes > 1439
 
     // Auto-schedule is forced to ON when locked
     val effectiveAutoSchedule = if (autoScheduleLocked) true else isAutoSchedule

@@ -20,10 +20,6 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalTime
 
-// TODO: Recurrence start date can't be earlier than today
-// TODO: If start date set to today, start time can't be earlier than now so auto update if currently set to earlier
-// TODO: Start date can't be set later than end date (vice verse already works but this doesn't)
-
 /* CREATION DETAILS */
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
