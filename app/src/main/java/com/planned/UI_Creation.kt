@@ -55,7 +55,7 @@ fun Creation(db: AppDatabase) {
     var eventNotes by remember { mutableStateOf("") }
     var eventColor by remember { mutableStateOf(Preset1) }
     var eventStartDate by remember { mutableStateOf(LocalDate.now().plusDays(1)) }
-    var eventEndDate by remember { mutableStateOf<LocalDate?>(LocalDate.now().plusDays(1).plusMonths(1)) }
+    var eventEndDate by remember { mutableStateOf<LocalDate?>(null) }
     var eventStartTime by remember { mutableStateOf(LocalTime.of(10, 0)) }
     var eventEndTime by remember { mutableStateOf(LocalTime.of(11, 0)) }
     var eventRecurrenceFreq by remember { mutableStateOf(RecurrenceFrequency.NONE) }
@@ -79,7 +79,7 @@ fun Creation(db: AppDatabase) {
 
     // Task Bucket
     var bucketStartDate by remember { mutableStateOf(LocalDate.now().plusDays(1)) }
-    var bucketEndDate by remember { mutableStateOf<LocalDate?>(LocalDate.now().plusDays(1).plusMonths(1)) }
+    var bucketEndDate by remember { mutableStateOf<LocalDate?>(null) }
     var bucketStartTime by remember { mutableStateOf(LocalTime.of(10, 0)) }
     var bucketEndTime by remember { mutableStateOf(LocalTime.of(11, 0)) }
     var bucketRecurrenceFreq by remember { mutableStateOf(RecurrenceFrequency.NONE) }
@@ -106,7 +106,7 @@ fun Creation(db: AppDatabase) {
     var reminderNotes by remember { mutableStateOf("") }
     var reminderColor by remember { mutableStateOf(Preset1) }
     var reminderStartDate by remember { mutableStateOf(LocalDate.now().plusDays(1)) }
-    var reminderEndDate by remember { mutableStateOf<LocalDate?>(LocalDate.now().plusDays(1).plusMonths(1)) }
+    var reminderEndDate by remember { mutableStateOf<LocalDate?>(null) }
     var reminderIsAllDay by remember { mutableStateOf(true) }
     var reminderTime by remember { mutableStateOf(LocalTime.of(10, 0)) }
     var reminderRecurrenceFreq by remember { mutableStateOf(RecurrenceFrequency.NONE) }
@@ -126,7 +126,7 @@ fun Creation(db: AppDatabase) {
         eventNotes = ""
         eventColor = Preset1
         eventStartDate = LocalDate.now().plusDays(1)
-        eventEndDate = LocalDate.now().plusDays(1).plusMonths(1)
+        eventEndDate = null
         eventStartTime = LocalTime.of(10, 0)
         eventEndTime = LocalTime.of(11, 0)
         eventRecurrenceFreq = RecurrenceFrequency.NONE
@@ -150,7 +150,7 @@ fun Creation(db: AppDatabase) {
 
         // Task Bucket
         bucketStartDate = LocalDate.now().plusDays(1)
-        bucketEndDate = LocalDate.now().plusDays(1).plusMonths(1)
+        bucketEndDate = null
         bucketStartTime = LocalTime.of(10, 0)
         bucketEndTime = LocalTime.of(11, 0)
         bucketRecurrenceFreq = RecurrenceFrequency.NONE
@@ -177,7 +177,7 @@ fun Creation(db: AppDatabase) {
         reminderNotes = ""
         reminderColor = Preset1
         reminderStartDate = LocalDate.now().plusDays(1)
-        reminderEndDate = LocalDate.now().plusDays(1).plusMonths(1)
+        reminderEndDate = null
         reminderIsAllDay = true
         reminderTime = LocalTime.of(10, 0)
         reminderRecurrenceFreq = RecurrenceFrequency.NONE
