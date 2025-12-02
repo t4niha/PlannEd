@@ -78,9 +78,6 @@ object Converters {
     }
 }
 
-// TODO: Set up after heuristic algorithm
-/* Generate TaskIntervals from MasterTask */
-
 /* Generate EventOccurrences from MasterEvent */
 @RequiresApi(Build.VERSION_CODES.O)
 fun generateEventOccurrences(master: MasterEvent): List<EventOccurrence> {
