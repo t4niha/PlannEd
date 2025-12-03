@@ -9,8 +9,8 @@ import java.time.LocalTime
 Ordering Factors:
  1) Priority (1-5)
  2) Urgency (Deadline)
- 3) Event Score (ATI - TODO)
- 4) Category Score (ATI - TODO)
+ 3) Category Score (ATI - TODO)
+ 4) Event Score (ATI - TODO)
  5) Date Created (Task ID)
 **/
 
