@@ -5,6 +5,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
+/* TASK SCHEDULER */
+//<editor-fold desc="Scheduler">
+const val MIN_INTERVAL_SIZE = 10
+//</editor-fold>
+
 /* COLOR PRESETS */
 //<editor-fold desc="Colors">
 val BackgroundColor = Color.White

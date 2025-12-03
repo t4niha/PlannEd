@@ -79,6 +79,18 @@ object CategoryManager {
     suspend fun getAll(db: AppDatabase): List<Category> {
         return db.categoryDao().getAll()
     }
+
+    // Update category
+    suspend fun update(db: AppDatabase, category: Category) {
+        db.categoryDao().update(category)
+    }
+
+    // Delete category and cascade null-setting
+    @RequiresApi(Build.VERSION_CODES.O)
+    suspend fun delete(db: AppDatabase, categoryId: Int) {
+        onCategoryDeleted(db, categoryId)
+        db.categoryDao().deleteById(categoryId)
+    }
 }
 
 /* EVENT MANAGER */
@@ -130,11 +142,36 @@ object EventManager {
     suspend fun getAll(db: AppDatabase): List<MasterEvent> {
         return db.eventDao().getAllMasterEvents()
     }
+
+    // Update master event
+    @RequiresApi(Build.VERSION_CODES.O)
+    suspend fun update(db: AppDatabase, event: MasterEvent) {
+        db.eventDao().update(event)
+
+        // Delete old occurrences
+        val oldOccurrences = db.eventDao().getAllOccurrences()
+            .filter { it.masterEventId == event.id }
+        oldOccurrences.forEach { db.eventDao().deleteOccurrence(it.id) }
+
+        // Regenerate occurrences
+        val occurrences = generateEventOccurrences(event)
+        occurrences.forEach { occurrence ->
+            db.eventDao().insertOccurrence(occurrence)
+        }
+    }
+
+    // Delete master event and cascade null-setting
+    @RequiresApi(Build.VERSION_CODES.O)
+    suspend fun delete(db: AppDatabase, eventId: Int) {
+        onEventDeleted(db, eventId)
+        db.eventDao().deleteMasterEvent(eventId)
+    }
 }
 
 /* DEADLINE MANAGER */
 object DeadlineManager {
     // Insert new deadline
+    @RequiresApi(Build.VERSION_CODES.O)
     suspend fun insert(
         db: AppDatabase,
         title: String,
@@ -153,11 +190,30 @@ object DeadlineManager {
             eventId = eventId
         )
         db.deadlineDao().insert(deadline)
+
+        // Regenerate task intervals since deadlines affect urgency
+        onTaskChanged(db)
     }
 
     // Get all deadlines
     suspend fun getAll(db: AppDatabase): List<Deadline> {
         return db.deadlineDao().getAll()
+    }
+
+    // Update deadline
+    @RequiresApi(Build.VERSION_CODES.O)
+    suspend fun update(db: AppDatabase, deadline: Deadline) {
+        db.deadlineDao().update(deadline)
+
+        // Regenerate task intervals since deadline date may have changed
+        onTaskChanged(db)
+    }
+
+    // Delete deadline and cascade null-setting
+    @RequiresApi(Build.VERSION_CODES.O)
+    suspend fun delete(db: AppDatabase, deadlineId: Int) {
+        onDeadlineDeleted(db, deadlineId)
+        db.deadlineDao().deleteById(deadlineId)
     }
 }
 
@@ -196,17 +252,50 @@ object TaskBucketManager {
         occurrences.forEach { occurrence ->
             db.taskBucketDao().insertOccurrence(occurrence)
         }
+
+        // Regenerate task intervals with new bucket availability
+        onTaskBucketDeleted(db)
     }
 
     // Get all master buckets
     suspend fun getAll(db: AppDatabase): List<MasterTaskBucket> {
         return db.taskBucketDao().getAllMasterBuckets()
     }
+
+    // Update master bucket
+    @RequiresApi(Build.VERSION_CODES.O)
+    suspend fun update(db: AppDatabase, bucket: MasterTaskBucket) {
+        db.taskBucketDao().update(bucket)
+
+        // Delete old occurrences
+        val oldOccurrences = db.taskBucketDao().getAllBucketOccurrences()
+            .filter { it.masterBucketId == bucket.id }
+        oldOccurrences.forEach { db.taskBucketDao().deleteOccurrence(it.id) }
+
+        // Regenerate occurrences
+        val occurrences = generateTaskBucketOccurrences(bucket, db)
+        occurrences.forEach { occurrence ->
+            db.taskBucketDao().insertOccurrence(occurrence)
+        }
+
+        // Regenerate task intervals with updated bucket times
+        onTaskBucketDeleted(db)
+    }
+
+    // Delete master bucket
+    @RequiresApi(Build.VERSION_CODES.O)
+    suspend fun delete(db: AppDatabase, bucketId: Int) {
+        db.taskBucketDao().deleteMasterBucket(bucketId)
+
+        // Regenerate task intervals since bucket deleted
+        onTaskBucketDeleted(db)
+    }
 }
 
 /* TASK MANAGER */
 object TaskManager {
     // Insert new master task
+    @RequiresApi(Build.VERSION_CODES.O)
     suspend fun insert(
         db: AppDatabase,
         title: String,
@@ -215,7 +304,7 @@ object TaskManager {
         breakable: Boolean,
         startDate: LocalDate?,
         startTime: LocalTime?,
-        predictedDuration: Int,
+        predictedDuration: Int, // in minutes
         categoryId: Int?,
         eventId: Int?,
         deadlineId: Int?
@@ -225,7 +314,7 @@ object TaskManager {
             notes = notes,
             priority = priority,
             breakable = breakable,
-            noIntervals = 0,
+            noIntervals = 0, // Will be set by generator
             startDate = startDate,
             startTime = startTime,
             predictedDuration = predictedDuration,
@@ -235,12 +324,31 @@ object TaskManager {
         )
         db.taskDao().insert(task)
 
-        // TODO: Generate intervals using DB_Generator (after heuristic algorithm)
+        // Regenerate task intervals with new task
+        onTaskChanged(db)
     }
 
     // Get all master tasks
     suspend fun getAll(db: AppDatabase): List<MasterTask> {
         return db.taskDao().getAllMasterTasks()
+    }
+
+    // Update master task
+    @RequiresApi(Build.VERSION_CODES.O)
+    suspend fun update(db: AppDatabase, task: MasterTask) {
+        db.taskDao().update(task)
+
+        // Regenerate task intervals since task changed
+        onTaskChanged(db)
+    }
+
+    // Delete master task
+    @RequiresApi(Build.VERSION_CODES.O)
+    suspend fun delete(db: AppDatabase, taskId: Int) {
+        db.taskDao().deleteMasterTask(taskId)
+
+        // Regenerate task intervals since task deleted
+        onTaskChanged(db)
     }
 }
 
@@ -293,316 +401,26 @@ object ReminderManager {
     suspend fun getAll(db: AppDatabase): List<MasterReminder> {
         return db.reminderDao().getAllMasterReminders()
     }
-}
 
-/* UTILITY FUNCTIONS */
-//<editor-fold desc="Overlap">
+    // Update master reminder
+    @RequiresApi(Build.VERSION_CODES.O)
+    suspend fun update(db: AppDatabase, reminder: MasterReminder) {
+        db.reminderDao().update(reminder)
 
-data class OverlapInfo(
-    val hasOverlap: Boolean,
-    val conflictType: String = "",
-    val conflictDate: LocalDate? = null,
-    val conflictStartTime: LocalTime? = null,
-    val conflictEndTime: LocalTime? = null
-)
+        // Delete old occurrences
+        val oldOccurrences = db.reminderDao().getAllOccurrences()
+            .filter { it.masterReminderId == reminder.id }
+        oldOccurrences.forEach { db.reminderDao().deleteOccurrence(it.id) }
 
-/* Check if two time ranges overlap */
-@RequiresApi(Build.VERSION_CODES.O)
-fun doTimeRangesOverlap(
-    start1: LocalTime, end1: LocalTime,
-    start2: LocalTime, end2: LocalTime
-): Boolean {
-    return start1.isBefore(end2) && end1.isAfter(start2)
-}
-
-/* Check if a new Event would overlap with existing Events */
-@RequiresApi(Build.VERSION_CODES.O)
-suspend fun checkEventOverlapWithEvents(
-    db: AppDatabase,
-    startDate: LocalDate,
-    endDate: LocalDate?,
-    startTime: LocalTime,
-    endTime: LocalTime,
-    recurFreq: RecurrenceFrequency,
-    recurRule: RecurrenceRule
-): OverlapInfo {
-    val today = LocalDate.now()
-
-    // Calculate end limit for checking
-    val endLimit = endDate?.let {
-        if (it.isBefore(today.plusMonths(generationMonths.toLong()))) it
-        else today.plusMonths(generationMonths.toLong())
-    } ?: today.plusMonths(generationMonths.toLong())
-
-    var current = if (startDate.isBefore(today)) today else startDate
-
-    // Get all event occurrences
-    val allEventOccurrences = db.eventDao().getAllOccurrences()
-
-    // Check each date where the event would occur
-    while (!current.isAfter(endLimit)) {
-        val matchesRule = when (recurFreq) {
-            RecurrenceFrequency.NONE -> current == startDate
-            RecurrenceFrequency.DAILY -> true
-            RecurrenceFrequency.WEEKLY -> recurRule.daysOfWeek?.contains(current.dayOfWeek.value) ?: true
-            RecurrenceFrequency.MONTHLY -> recurRule.daysOfMonth?.contains(current.dayOfMonth) ?: true
-            RecurrenceFrequency.YEARLY -> recurRule.monthAndDay?.let {
-                it.first == current.dayOfMonth && it.second == current.monthValue
-            } ?: true
-        }
-
-        if (matchesRule) {
-            // Filter events that occur on this date
-            val eventsOnDate = allEventOccurrences.filter { it.occurDate == current }
-
-            // Check for time overlap with any event
-            for (event in eventsOnDate) {
-                if (doTimeRangesOverlap(startTime, endTime, event.startTime, event.endTime)) {
-                    return OverlapInfo(
-                        hasOverlap = true,
-                        conflictType = "Event",
-                        conflictDate = current,
-                        conflictStartTime = event.startTime,
-                        conflictEndTime = event.endTime
-                    )
-                }
-            }
-        }
-
-        // Increment current date
-        current = when (recurFreq) {
-            RecurrenceFrequency.NONE,
-            RecurrenceFrequency.DAILY,
-            RecurrenceFrequency.WEEKLY,
-            RecurrenceFrequency.MONTHLY -> current.plusDays(1)
-            RecurrenceFrequency.YEARLY -> current.plusYears(1)
+        // Regenerate occurrences
+        val occurrences = generateReminderOccurrences(reminder)
+        occurrences.forEach { occurrence ->
+            db.reminderDao().insertOccurrence(occurrence)
         }
     }
 
-    return OverlapInfo(hasOverlap = false)
-}
-
-/* Check if a new Event would overlap with existing Task Bucket occurrences */
-@RequiresApi(Build.VERSION_CODES.O)
-suspend fun checkEventOverlapWithBuckets(
-    db: AppDatabase,
-    startDate: LocalDate,
-    endDate: LocalDate?,
-    startTime: LocalTime,
-    endTime: LocalTime,
-    recurFreq: RecurrenceFrequency,
-    recurRule: RecurrenceRule
-): OverlapInfo {
-    val today = LocalDate.now()
-
-    // Calculate end limit for checking
-    val endLimit = endDate?.let {
-        if (it.isBefore(today.plusMonths(generationMonths.toLong()))) it
-        else today.plusMonths(generationMonths.toLong())
-    } ?: today.plusMonths(generationMonths.toLong())
-
-    var current = if (startDate.isBefore(today)) today else startDate
-
-    // Check each date where the event would occur
-    while (!current.isAfter(endLimit)) {
-        val matchesRule = when (recurFreq) {
-            RecurrenceFrequency.NONE -> current == startDate
-            RecurrenceFrequency.DAILY -> true
-            RecurrenceFrequency.WEEKLY -> recurRule.daysOfWeek?.contains(current.dayOfWeek.value) ?: true
-            RecurrenceFrequency.MONTHLY -> recurRule.daysOfMonth?.contains(current.dayOfMonth) ?: true
-            RecurrenceFrequency.YEARLY -> recurRule.monthAndDay?.let {
-                it.first == current.dayOfMonth && it.second == current.monthValue
-            } ?: true
-        }
-
-        if (matchesRule) {
-            // Get all task bucket occurrences on this date
-            val bucketsOnDate = db.taskBucketDao().getOccurrencesByDate(current)
-
-            // Check for time overlap with any bucket
-            for (bucket in bucketsOnDate) {
-                if (doTimeRangesOverlap(startTime, endTime, bucket.startTime, bucket.endTime)) {
-                    return OverlapInfo(
-                        hasOverlap = true,
-                        conflictType = "Task Bucket",
-                        conflictDate = current,
-                        conflictStartTime = bucket.startTime,
-                        conflictEndTime = bucket.endTime
-                    )
-                }
-            }
-        }
-
-        // Increment current date
-        current = when (recurFreq) {
-            RecurrenceFrequency.NONE,
-            RecurrenceFrequency.DAILY,
-            RecurrenceFrequency.WEEKLY,
-            RecurrenceFrequency.MONTHLY -> current.plusDays(1)
-            RecurrenceFrequency.YEARLY -> current.plusYears(1)
-        }
-    }
-
-    return OverlapInfo(hasOverlap = false)
-}
-
-/* Check if a new Task Bucket would overlap with existing Task Buckets */
-@RequiresApi(Build.VERSION_CODES.O)
-suspend fun checkBucketOverlapWithBuckets(
-    db: AppDatabase,
-    startDate: LocalDate,
-    endDate: LocalDate?,
-    startTime: LocalTime,
-    endTime: LocalTime,
-    recurFreq: RecurrenceFrequency,
-    recurRule: RecurrenceRule
-): OverlapInfo {
-    val today = LocalDate.now()
-
-    // Calculate end limit for checking
-    val endLimit = endDate?.let {
-        if (it.isBefore(today.plusMonths(generationMonths.toLong()))) it
-        else today.plusMonths(generationMonths.toLong())
-    } ?: today.plusMonths(generationMonths.toLong())
-
-    var current = if (startDate.isBefore(today)) today else startDate
-
-    // Check each date where the bucket would occur
-    while (!current.isAfter(endLimit)) {
-        val matchesRule = when (recurFreq) {
-            RecurrenceFrequency.NONE -> current == startDate
-            RecurrenceFrequency.DAILY -> true
-            RecurrenceFrequency.WEEKLY -> recurRule.daysOfWeek?.contains(current.dayOfWeek.value) ?: true
-            RecurrenceFrequency.MONTHLY -> recurRule.daysOfMonth?.contains(current.dayOfMonth) ?: true
-            RecurrenceFrequency.YEARLY -> recurRule.monthAndDay?.let {
-                it.first == current.dayOfMonth && it.second == current.monthValue
-            } ?: true
-        }
-
-        if (matchesRule) {
-            // Get all task bucket occurrences on this date
-            val bucketsOnDate = db.taskBucketDao().getOccurrencesByDate(current)
-
-            // Check for time overlap with any bucket
-            for (bucket in bucketsOnDate) {
-                if (doTimeRangesOverlap(startTime, endTime, bucket.startTime, bucket.endTime)) {
-                    return OverlapInfo(
-                        hasOverlap = true,
-                        conflictType = "Task Bucket",
-                        conflictDate = current,
-                        conflictStartTime = bucket.startTime,
-                        conflictEndTime = bucket.endTime
-                    )
-                }
-            }
-        }
-
-        // Increment current date
-        current = when (recurFreq) {
-            RecurrenceFrequency.NONE,
-            RecurrenceFrequency.DAILY,
-            RecurrenceFrequency.WEEKLY,
-            RecurrenceFrequency.MONTHLY -> current.plusDays(1)
-            RecurrenceFrequency.YEARLY -> current.plusYears(1)
-        }
-    }
-
-    return OverlapInfo(hasOverlap = false)
-}
-
-/* Check if a new Task Bucket would overlap with existing Event occurrences */
-@RequiresApi(Build.VERSION_CODES.O)
-suspend fun checkBucketOverlapWithEvents(
-    db: AppDatabase,
-    startDate: LocalDate,
-    endDate: LocalDate?,
-    startTime: LocalTime,
-    endTime: LocalTime,
-    recurFreq: RecurrenceFrequency,
-    recurRule: RecurrenceRule
-): OverlapInfo {
-    val today = LocalDate.now()
-
-    // Calculate end limit for checking
-    val endLimit = endDate?.let {
-        if (it.isBefore(today.plusMonths(generationMonths.toLong()))) it
-        else today.plusMonths(generationMonths.toLong())
-    } ?: today.plusMonths(generationMonths.toLong())
-
-    var current = if (startDate.isBefore(today)) today else startDate
-
-    // Get all event occurrences
-    val allEventOccurrences = db.eventDao().getAllOccurrences()
-
-    // Check each date where the bucket would occur
-    while (!current.isAfter(endLimit)) {
-        val matchesRule = when (recurFreq) {
-            RecurrenceFrequency.NONE -> current == startDate
-            RecurrenceFrequency.DAILY -> true
-            RecurrenceFrequency.WEEKLY -> recurRule.daysOfWeek?.contains(current.dayOfWeek.value) ?: true
-            RecurrenceFrequency.MONTHLY -> recurRule.daysOfMonth?.contains(current.dayOfMonth) ?: true
-            RecurrenceFrequency.YEARLY -> recurRule.monthAndDay?.let {
-                it.first == current.dayOfMonth && it.second == current.monthValue
-            } ?: true
-        }
-
-        if (matchesRule) {
-            // Filter events that occur on this date
-            val eventsOnDate = allEventOccurrences.filter { it.occurDate == current }
-
-            // Check for time overlap with any event
-            for (event in eventsOnDate) {
-                if (doTimeRangesOverlap(startTime, endTime, event.startTime, event.endTime)) {
-                    return OverlapInfo(
-                        hasOverlap = true,
-                        conflictType = "Event",
-                        conflictDate = current,
-                        conflictStartTime = event.startTime,
-                        conflictEndTime = event.endTime
-                    )
-                }
-            }
-        }
-
-        // Increment current date
-        current = when (recurFreq) {
-            RecurrenceFrequency.NONE,
-            RecurrenceFrequency.DAILY,
-            RecurrenceFrequency.WEEKLY,
-            RecurrenceFrequency.MONTHLY -> current.plusDays(1)
-            RecurrenceFrequency.YEARLY -> current.plusYears(1)
-        }
-    }
-
-    return OverlapInfo(hasOverlap = false)
-}
-
-/* Format overlap info */
-@RequiresApi(Build.VERSION_CODES.O)
-fun formatOverlapMessage(overlapInfo: OverlapInfo): String {
-    if (!overlapInfo.hasOverlap) return ""
-
-    val dateFormatter = DateTimeFormatter.ofPattern("MMM d, yyyy")
-    val timeFormatter = DateTimeFormatter.ofPattern("h:mm a")
-
-    val dateStr = overlapInfo.conflictDate?.format(dateFormatter) ?: ""
-    val timeStr = overlapInfo.conflictStartTime?.format(timeFormatter) ?: ""
-
-    return "Timing clashes with ${overlapInfo.conflictType} \non $dateStr at $timeStr"
-}
-/* Get maximum bucket duration from database */
-@RequiresApi(Build.VERSION_CODES.O)
-suspend fun getMaxBucketDurationMinutes(db: AppDatabase): Int? {
-    val allBucketOccurrences = db.taskBucketDao().getAllBucketOccurrences()
-
-    if (allBucketOccurrences.isEmpty()) {
-        return null
-    }
-
-    return allBucketOccurrences.maxOfOrNull { occurrence ->
-        val startMinutes = occurrence.startTime.hour * 60 + occurrence.startTime.minute
-        val endMinutes = occurrence.endTime.hour * 60 + occurrence.endTime.minute
-        endMinutes - startMinutes
+    // Delete master reminder
+    suspend fun delete(db: AppDatabase, reminderId: Int) {
+        db.reminderDao().deleteMasterReminder(reminderId)
     }
 }
-//</editor-fold>

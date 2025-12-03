@@ -342,98 +342,6 @@ data class UserATI(
 )
 //</editor-fold>
 
-/* RELATIONS */
-//<editor-fold desc="Relations">
-
-// Category
-data class CategoryWithMasterEvents(
-    @Embedded val category: Category,
-    @Relation(parentColumn = "id", entityColumn = "categoryId")
-    val masterEvents: List<MasterEvent>
-)
-data class CategoryWithDeadlines(
-    @Embedded val category: Category,
-    @Relation(parentColumn = "id", entityColumn = "categoryId")
-    val deadlines: List<Deadline>
-)
-data class CategoryWithMasterTasks(
-    @Embedded val category: Category,
-    @Relation(parentColumn = "id", entityColumn = "categoryId")
-    val masterTasks: List<MasterTask>
-)
-
-// MasterEvent
-data class MasterEventWithOccurrences(
-    @Embedded val masterEvent: MasterEvent,
-    @Relation(parentColumn = "id", entityColumn = "masterEventId")
-    val occurrences: List<EventOccurrence>
-)
-data class MasterEventWithDeadlines(
-    @Embedded val masterEvent: MasterEvent,
-    @Relation(parentColumn = "id", entityColumn = "eventId")
-    val deadlines: List<Deadline>
-)
-data class MasterEventWithTasks(
-    @Embedded val masterEvent: MasterEvent,
-    @Relation(parentColumn = "id", entityColumn = "eventId")
-    val masterTasks: List<MasterTask>
-)
-data class MasterEventWithATI(
-    @Embedded val masterEvent: MasterEvent,
-    @Relation(parentColumn = "id", entityColumn = "eventId")
-    val eventATI: EventATI?
-)
-
-// EventOccurrence
-data class EventOccurrenceWithTasks(
-    @Embedded val occurrence: EventOccurrence,
-    @Relation(parentColumn = "masterEventId", entityColumn = "eventId")
-    val tasks: List<MasterTask>
-)
-
-// MasterTaskBucket
-data class MasterTaskBucketWithOccurrences(
-    @Embedded val masterBucket: MasterTaskBucket,
-    @Relation(parentColumn = "id", entityColumn = "masterBucketId")
-    val occurrences: List<TaskBucketOccurrence>
-)
-
-// MasterTask
-data class MasterTaskWithIntervals(
-    @Embedded val masterTask: MasterTask,
-    @Relation(parentColumn = "id", entityColumn = "masterTaskId")
-    val intervals: List<TaskInterval>
-)
-data class MasterTaskWithEvent(
-    @Embedded val masterTask: MasterTask,
-    @Relation(parentColumn = "eventId", entityColumn = "id")
-    val event: MasterEvent?
-)
-data class MasterTaskWithDeadline(
-    @Embedded val masterTask: MasterTask,
-    @Relation(parentColumn = "deadlineId", entityColumn = "id")
-    val deadline: Deadline?
-)
-data class MasterTaskWithBucket(
-    @Embedded val masterTask: MasterTask,
-    @Relation(parentColumn = "bucketId", entityColumn = "id")
-    val bucket: MasterTaskBucket?
-)
-
-// MasterReminder
-data class MasterReminderWithOccurrences(
-    @Embedded val masterReminder: MasterReminder,
-    @Relation(parentColumn = "id", entityColumn = "masterReminderId")
-    val occurrences: List<ReminderOccurrence>
-)
-
-data class CategoryWithMasterReminders(
-    @Embedded val category: Category,
-    @Relation(parentColumn = "id", entityColumn = "categoryId")
-    val masterReminders: List<MasterReminder>
-)
-//</editor-fold>
-
 /* DAOs */
 
 // Category
@@ -664,6 +572,98 @@ interface SettingsDao {
     @Query("DELETE FROM AppSetting")
     suspend fun deleteAll()
 }
+
+/* RELATIONS */
+//<editor-fold desc="Relations">
+
+// Category
+data class CategoryWithMasterEvents(
+    @Embedded val category: Category,
+    @Relation(parentColumn = "id", entityColumn = "categoryId")
+    val masterEvents: List<MasterEvent>
+)
+data class CategoryWithDeadlines(
+    @Embedded val category: Category,
+    @Relation(parentColumn = "id", entityColumn = "categoryId")
+    val deadlines: List<Deadline>
+)
+data class CategoryWithMasterTasks(
+    @Embedded val category: Category,
+    @Relation(parentColumn = "id", entityColumn = "categoryId")
+    val masterTasks: List<MasterTask>
+)
+
+// MasterEvent
+data class MasterEventWithOccurrences(
+    @Embedded val masterEvent: MasterEvent,
+    @Relation(parentColumn = "id", entityColumn = "masterEventId")
+    val occurrences: List<EventOccurrence>
+)
+data class MasterEventWithDeadlines(
+    @Embedded val masterEvent: MasterEvent,
+    @Relation(parentColumn = "id", entityColumn = "eventId")
+    val deadlines: List<Deadline>
+)
+data class MasterEventWithTasks(
+    @Embedded val masterEvent: MasterEvent,
+    @Relation(parentColumn = "id", entityColumn = "eventId")
+    val masterTasks: List<MasterTask>
+)
+data class MasterEventWithATI(
+    @Embedded val masterEvent: MasterEvent,
+    @Relation(parentColumn = "id", entityColumn = "eventId")
+    val eventATI: EventATI?
+)
+
+// EventOccurrence
+data class EventOccurrenceWithTasks(
+    @Embedded val occurrence: EventOccurrence,
+    @Relation(parentColumn = "masterEventId", entityColumn = "eventId")
+    val tasks: List<MasterTask>
+)
+
+// MasterTaskBucket
+data class MasterTaskBucketWithOccurrences(
+    @Embedded val masterBucket: MasterTaskBucket,
+    @Relation(parentColumn = "id", entityColumn = "masterBucketId")
+    val occurrences: List<TaskBucketOccurrence>
+)
+
+// MasterTask
+data class MasterTaskWithIntervals(
+    @Embedded val masterTask: MasterTask,
+    @Relation(parentColumn = "id", entityColumn = "masterTaskId")
+    val intervals: List<TaskInterval>
+)
+data class MasterTaskWithEvent(
+    @Embedded val masterTask: MasterTask,
+    @Relation(parentColumn = "eventId", entityColumn = "id")
+    val event: MasterEvent?
+)
+data class MasterTaskWithDeadline(
+    @Embedded val masterTask: MasterTask,
+    @Relation(parentColumn = "deadlineId", entityColumn = "id")
+    val deadline: Deadline?
+)
+data class MasterTaskWithBucket(
+    @Embedded val masterTask: MasterTask,
+    @Relation(parentColumn = "bucketId", entityColumn = "id")
+    val bucket: MasterTaskBucket?
+)
+
+// MasterReminder
+data class MasterReminderWithOccurrences(
+    @Embedded val masterReminder: MasterReminder,
+    @Relation(parentColumn = "id", entityColumn = "masterReminderId")
+    val occurrences: List<ReminderOccurrence>
+)
+
+data class CategoryWithMasterReminders(
+    @Embedded val category: Category,
+    @Relation(parentColumn = "id", entityColumn = "categoryId")
+    val masterReminders: List<MasterReminder>
+)
+//</editor-fold>
 
 /* DATABASE */
 //<editor-fold desc="Database">

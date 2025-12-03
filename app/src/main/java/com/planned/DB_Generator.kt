@@ -23,61 +23,6 @@ data class RecurrenceRule(
 )
 //</editor-fold>
 
-/* TYPE CONVERTERS */
-object Converters {
-    @RequiresApi(Build.VERSION_CODES.O)
-    @TypeConverter
-    // LocalDate -> Long
-    fun fromLocalDate(date: LocalDate?): Long? = date?.toEpochDay()
-
-    @RequiresApi(Build.VERSION_CODES.O)
-    @TypeConverter
-    // Long -> LocalDate
-    fun toLocalDate(days: Long?): LocalDate? = days?.let { LocalDate.ofEpochDay(it) }
-
-    @RequiresApi(Build.VERSION_CODES.O)
-    @TypeConverter
-    // LocalTime -> Int
-    fun fromLocalTime(time: LocalTime?): Int? = time?.toSecondOfDay()
-
-    @RequiresApi(Build.VERSION_CODES.O)
-    @TypeConverter
-    // Int -> LocalTime
-    fun toLocalTime(seconds: Int?): LocalTime? = seconds?.let { LocalTime.ofSecondOfDay(it.toLong()) }
-
-    @TypeConverter
-    // RecurrenceFrequency -> String
-    fun fromRecurrenceFrequency(freq: RecurrenceFrequency): String = freq.name
-
-    @TypeConverter
-    // String -> RecurrenceFrequency
-    fun toRecurrenceFrequency(value: String): RecurrenceFrequency = RecurrenceFrequency.valueOf(value)
-
-    @TypeConverter
-    // RecurrenceRule -> JSON String
-    fun fromRecurrenceRule(rule: RecurrenceRule): String = Gson().toJson(rule)
-
-    @TypeConverter
-    // JSON String -> RecurrenceRule
-    fun toRecurrenceRule(value: String): RecurrenceRule = Gson().fromJson(value, RecurrenceRule::class.java)
-
-    @TypeConverter
-    // Color -> String
-    fun fromColor(color: Color): String {
-        return "#${color.toArgb().toUInt().toString(16).padStart(8, '0')}"
-    }
-
-    @TypeConverter
-    // String -> Color
-    fun toColor(value: String): Color {
-        return try {
-            Color(value.toColorInt())
-        } catch (_: Exception) {
-            Color.LightGray
-        }
-    }
-}
-
 /* Generate EventOccurrences from MasterEvent */
 @RequiresApi(Build.VERSION_CODES.O)
 fun generateEventOccurrences(master: MasterEvent): List<EventOccurrence> {
@@ -114,7 +59,6 @@ fun generateEventOccurrences(master: MasterEvent): List<EventOccurrence> {
         }
 
         // Increment current date based on frequency
-        // FIXED: Always increment by 1 day for WEEKLY and MONTHLY to catch all selected days
         current = when (master.recurFreq) {
             RecurrenceFrequency.NONE,
             RecurrenceFrequency.DAILY,
