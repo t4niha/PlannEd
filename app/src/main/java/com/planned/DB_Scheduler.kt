@@ -112,15 +112,15 @@ private suspend fun orderAutoScheduledTasks(db: AppDatabase, autoTasks: List<Mas
         }
 
         // Placeholder scores
-        val eventScore = 0 // TODO: Implement event score calculation
         val categoryScore = 0 // TODO: Implement category score calculation
+        val eventScore = 0 // TODO: Implement event score calculation
 
-        Triple(task, urgency, Triple(eventScore, categoryScore, task.id))
+        Triple(task, urgency, Triple(categoryScore, eventScore, task.id))
     }.sortedWith(compareBy(
         { it.first.priority }, // Priority (1 = highest, 5 = lowest)
         { it.second ?: Int.MAX_VALUE }, // Urgency (fewer days = higher urgency, null = lowest)
-        { it.third.first }, // Event Score placeholder
-        { it.third.second }, // Category Score placeholder
+        { it.third.first }, // Category Score placeholder
+        { it.third.second }, // Event Score placeholder
         { it.third.third } // ID (lower = created first)
     )).map {
         OrderedTask(it.first, it.first.predictedDuration)
