@@ -127,7 +127,7 @@ fun Developer(db: AppDatabase) {
                     Box(
                         modifier = Modifier
                             .width(50.dp)
-                            .background(Color.LightGray, RoundedCornerShape(8.dp))
+                            .background(BackgroundColor, RoundedCornerShape(8.dp))
                             .padding(vertical = 8.dp),
                         contentAlignment = Alignment.Center
                     ) {

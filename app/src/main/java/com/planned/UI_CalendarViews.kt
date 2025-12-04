@@ -9,6 +9,8 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -22,8 +24,6 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -34,8 +34,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -46,7 +46,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.launch
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalTime
@@ -135,7 +134,9 @@ fun WeekView(
     pagerState: androidx.compose.foundation.pager.PagerState,
     initialScrollDone: Boolean,
     onScrollDone: () -> Unit,
-    currentTime: LocalTime
+    currentTime: LocalTime,
+    selectedDate: LocalDate,
+    onDateSelected: (LocalDate) -> Unit
 ) {
     val hours = (0..23).toList()
     val today = LocalDate.now()
@@ -166,7 +167,7 @@ fun WeekView(
         }
 
         Column(modifier = Modifier.fillMaxSize()) {
-            // Weekday headers
+            // Weekday headers with selectable dates
             val startOfWeek = displayedDate.with(TemporalAdjusters.previousOrSame(getFirstDayOfWeek()))
             Row(
                 modifier = Modifier
@@ -178,7 +179,17 @@ fun WeekView(
                 (0..6).forEach { i ->
                     val day = startOfWeek.plusDays(i.toLong())
                     val isToday = day == today
-                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
+                    val isSelected = day == selectedDate
+
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null
+                            ) { onDateSelected(day) }
+                    ) {
                         Text(
                             day.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault()),
                             fontSize = 14.sp,
@@ -187,15 +198,23 @@ fun WeekView(
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Box(
-                            modifier = Modifier.size(40.dp)
-                                .background(if (isToday) PrimaryColor else Color.Transparent, shape = CircleShape),
+                            modifier = Modifier
+                                .size(40.dp)
+                                .background(
+                                    if (isSelected) PrimaryColor else Color.Transparent,
+                                    shape = CircleShape
+                                ),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
                                 day.dayOfMonth.toString(),
                                 fontSize = 14.sp,
-                                fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
-                                color = if (isToday) BackgroundColor else Color.Black
+                                fontWeight = if (isSelected || (isToday)) FontWeight.Bold else FontWeight.Normal,
+                                color = when {
+                                    isSelected -> BackgroundColor
+                                    isToday -> PrimaryColor
+                                    else -> Color.Black
+                                }
                             )
                         }
                     }
@@ -264,7 +283,7 @@ fun WeekView(
     }
 }
 
-/* MONTH VIEW */
+/* MONTH VIEW - SCROLLABLE */
 @RequiresApi(Build.VERSION_CODES.O)
 @SuppressLint("UnusedContentLambdaTargetStateParameter")
 @OptIn(ExperimentalAnimationApi::class, ExperimentalFoundationApi::class)
@@ -272,13 +291,27 @@ fun WeekView(
 fun MonthView(
     selectedDate: LocalDate,
     onDateSelected: (LocalDate) -> Unit,
-    pagerState: androidx.compose.foundation.pager.PagerState
+    pagerState: androidx.compose.foundation.pager.PagerState,
+    db: AppDatabase
 ) {
     val today = LocalDate.now()
-    val listState = rememberLazyListState()
-    val coroutineScope = rememberCoroutineScope()
+    val scrollState = rememberScrollState()
 
-    Column(modifier = Modifier.fillMaxSize().padding(horizontal = 10.dp)) {
+    // Load task intervals for selected date
+    var taskIntervals by remember { mutableStateOf<List<TaskInterval>>(emptyList()) }
+    var masterTasks by remember { mutableStateOf<List<MasterTask>>(emptyList()) }
+
+    LaunchedEffect(selectedDate) {
+        taskIntervals = db.taskDao().getAllIntervals().filter { it.occurDate == selectedDate }
+        masterTasks = db.taskDao().getAllMasterTasks()
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(scrollState)
+            .padding(horizontal = 10.dp)
+    ) {
 
         // Weekday labels
         Row(modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)) {
@@ -293,13 +326,11 @@ fun MonthView(
         }
 
         // Month grid
-        HorizontalPager(
-            state = pagerState,
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
-        ) { page ->
-            Box(modifier = Modifier.fillMaxSize().padding(bottom = 4.dp)) {
+        Box(modifier = Modifier.fillMaxWidth().height(300.dp)) {
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier.fillMaxSize()
+            ) { page ->
                 val pageDate = LocalDate.now().plusMonths((page - INITIAL_PAGE).toLong())
                 val firstDayOfMonth = pageDate.withDayOfMonth(1)
                 val daysToSubtract = (firstDayOfMonth.dayOfWeek.value - getFirstDayOfWeek().value + 7) % 7
@@ -331,10 +362,7 @@ fun MonthView(
                                         .fillMaxHeight()
                                         .border(1.dp, Color.LightGray)
                                         .background(backgroundColor)
-                                        .clickable {
-                                            onDateSelected(date)
-                                            coroutineScope.launch { listState.scrollToItem(0) }
-                                        }
+                                        .clickable { onDateSelected(date) }
                                         .padding(5.dp),
                                     contentAlignment = Alignment.TopCenter
                                 ) {
@@ -355,7 +383,7 @@ fun MonthView(
         // Selected date
         Text(
             text = selectedDate.format(DateTimeFormatter.ofPattern("EEEE, MMM d")),
-            modifier = Modifier.padding(top = 16.dp).align(Alignment.Start),
+            modifier = Modifier.padding(top = 16.dp),
             fontSize = 16.sp,
             fontWeight = FontWeight.Medium,
             color = PrimaryColor
@@ -363,26 +391,69 @@ fun MonthView(
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        // Events
-        LazyColumn(
-            state = listState,
+        // Task Intervals for selected date
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(1f)
                 .padding(bottom = 6.dp)
         ) {
-            items(15) { i ->
+            if (taskIntervals.isEmpty()) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 4.dp)
-                        .border(1.dp, Color.LightGray, RoundedCornerShape(8.dp))
-                        .background(Color.Transparent, RoundedCornerShape(8.dp))
-                        .padding(12.dp)
+                        .padding(vertical = 20.dp),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Text("Event ${i + 1}", fontSize = 14.sp)
+                    Text(
+                        "No tasks scheduled for this day",
+                        fontSize = 14.sp,
+                        color = Color.Gray
+                    )
+                }
+            } else {
+                taskIntervals.forEach { interval ->
+                    val masterTask = masterTasks.find { it.id == interval.masterTaskId }
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp)
+                            .border(1.dp, Color.LightGray, RoundedCornerShape(8.dp))
+                            .background(Color(CardColor), RoundedCornerShape(8.dp))
+                            .clickable {
+                                // TODO: open task details
+                            }
+                            .padding(12.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = masterTask?.title ?: "Task",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                if (interval.intervalNo > 1 || (masterTask?.noIntervals ?: 1) > 1) {
+                                    Text(
+                                        text = "Interval ${interval.intervalNo} of ${masterTask?.noIntervals ?: 1}",
+                                        fontSize = 12.sp,
+                                        color = Color.Gray
+                                    )
+                                }
+                            }
+                            Text(
+                                text = "${interval.startTime.format(DateTimeFormatter.ofPattern("h:mm a"))} - ${interval.endTime.format(DateTimeFormatter.ofPattern("h:mm a"))}",
+                                fontSize = 12.sp,
+                                color = Color.Gray
+                            )
+                        }
+                    }
                 }
             }
         }
+
+        Spacer(modifier = Modifier.height(20.dp))
     }
 }
