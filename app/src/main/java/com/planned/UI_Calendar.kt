@@ -457,7 +457,7 @@ fun ReminderDeadlineIndicators(db: AppDatabase, date: LocalDate) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 8.dp)
+                    .padding(top = if (showReminders && reminders.isNotEmpty()) 0.dp else 8.dp)
             ) {
                 if (deadlines.isEmpty()) {
                     Text(

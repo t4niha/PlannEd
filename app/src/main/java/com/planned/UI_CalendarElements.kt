@@ -473,3 +473,25 @@ fun RenderTaskBlockWeek(
             }
     )
 }
+
+/* MONTH VIEW INDICATORS */
+@RequiresApi(Build.VERSION_CODES.O)
+suspend fun hasRemindersForDate(db: AppDatabase, date: LocalDate): Boolean {
+    if (!showReminders) return false
+    val reminders = db.reminderDao().getAllOccurrences().filter { it.occurDate == date }
+    return reminders.isNotEmpty()
+}
+
+@RequiresApi(Build.VERSION_CODES.O)
+suspend fun hasDeadlinesForDate(db: AppDatabase, date: LocalDate): Boolean {
+    if (!showDeadlines) return false
+    val deadlines = db.deadlineDao().getAll().filter { it.date == date }
+    return deadlines.isNotEmpty()
+}
+
+@RequiresApi(Build.VERSION_CODES.O)
+suspend fun hasTasksForDate(db: AppDatabase, date: LocalDate): Boolean {
+    if (!showTasks) return false
+    val intervals = db.taskDao().getAllIntervals().filter { it.occurDate == date }
+    return intervals.isNotEmpty()
+}

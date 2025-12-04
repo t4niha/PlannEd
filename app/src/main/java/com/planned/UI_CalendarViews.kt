@@ -40,6 +40,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
@@ -88,58 +89,69 @@ fun DayView(
             }
         }
 
-        Row {
-            // Hour labels
-            Column(modifier = Modifier.verticalScroll(scrollState).padding(top = 10.dp)) {
-                hours.forEach { hour ->
-                    val displayHour =
-                        "${if (hour % 12 == 0) 12 else hour % 12} ${if (hour < 12) "AM" else "PM"}"
-                    Box(
-                        modifier = Modifier.width(60.dp).height(HourHeight).padding(start = 8.dp),
-                        contentAlignment = Alignment.TopStart
-                    ) {
-                        Text(
-                            displayHour,
-                            fontSize = 14.sp,
-                            color = Color.Black,
-                            modifier = Modifier.offset(y = (-7).dp)
-                        )
-                    }
-                }
-            }
+        Column {
+            Spacer(modifier = Modifier.height(10.dp))
 
-            // Hour grid
-            HorizontalPager(state = pagerState, modifier = Modifier.fillMaxWidth()) { page ->
-                val pageDate = LocalDate.now().plusDays((page - INITIAL_PAGE).toLong())
-                Box(modifier = Modifier.verticalScroll(scrollState).fillMaxWidth()) {
-                    Column(modifier = Modifier.padding(start = 10.dp, end = 10.dp, top = 10.dp)) {
-                        hours.forEach { _ ->
-                            Box(
-                                modifier = Modifier.height(HourHeight).fillMaxWidth()
-                                    .border(0.5.dp, Color.LightGray)
+            Row {
+                // Hour labels
+                Column(modifier = Modifier.verticalScroll(scrollState).padding(top = 10.dp)) {
+                    hours.forEach { hour ->
+                        val displayHour =
+                            "${if (hour % 12 == 0) 12 else hour % 12} ${if (hour < 12) "AM" else "PM"}"
+                        Box(
+                            modifier = Modifier.width(60.dp).height(HourHeight)
+                                .padding(start = 8.dp),
+                            contentAlignment = Alignment.TopStart
+                        ) {
+                            Text(
+                                displayHour,
+                                fontSize = 14.sp,
+                                color = Color.Black,
+                                modifier = Modifier.offset(y = (-7).dp)
                             )
                         }
                     }
+                }
+
+                // Hour grid
+                HorizontalPager(state = pagerState, modifier = Modifier.fillMaxWidth()) { page ->
+                    val pageDate = LocalDate.now().plusDays((page - INITIAL_PAGE).toLong())
+                    Box(modifier = Modifier.verticalScroll(scrollState).fillMaxWidth()) {
+                        Column(
+                            modifier = Modifier.padding(
+                                start = 10.dp,
+                                end = 10.dp,
+                                top = 10.dp
+                            )
+                        ) {
+                            hours.forEach { _ ->
+                                Box(
+                                    modifier = Modifier.height(HourHeight).fillMaxWidth()
+                                        .border(0.5.dp, Color.LightGray)
+                                )
+                            }
+                        }
 
 
-                    // Render events, task buckets, and tasks
-                    RenderDayViewItems(
-                        db = db,
-                        date = pageDate,
-                        hourHeight = HourHeight,
-                        modifier = Modifier.padding(top = 10.dp)
-                    )
-
-                    // Current time line (on top)
-                    if (pageDate == LocalDate.now()) {
-                        Box(
-                            modifier = Modifier
-                                .offset(y = yOffset.dp + 10.dp)
-                                .fillMaxWidth()
-                                .height(4.dp)
-                                .padding(horizontal = 10.dp)
-                                .background(PrimaryColor)
+                        // Render events, task buckets, and tasks
+                        RenderDayViewItems(
+                            db = db,
+                            date = pageDate,
+                            hourHeight = HourHeight,
+                            modifier = Modifier.padding(top = 10.dp)
                         )
+
+                        // Current time line (on top)
+                        if (pageDate == LocalDate.now()) {
+                            Box(
+                                modifier = Modifier
+                                    .offset(y = yOffset.dp + 10.dp)
+                                    .fillMaxWidth()
+                                    .height(4.dp)
+                                    .padding(horizontal = 10.dp)
+                                    .background(PrimaryColor)
+                            )
+                        }
                     }
                 }
             }
@@ -317,7 +329,7 @@ fun WeekView(
     }
 }
 
-/* MONTH VIEW - SCROLLABLE */
+/* MONTH VIEW */
 @RequiresApi(Build.VERSION_CODES.O)
 @SuppressLint("UnusedContentLambdaTargetStateParameter")
 @OptIn(ExperimentalAnimationApi::class, ExperimentalFoundationApi::class)
@@ -402,12 +414,66 @@ fun MonthView(
                                         .padding(5.dp),
                                     contentAlignment = Alignment.TopCenter
                                 ) {
-                                    Text(
-                                        date.dayOfMonth.toString(),
-                                        fontWeight = textWeight,
-                                        color = textColor,
-                                        fontSize = 14.sp
-                                    )
+                                    // Load indicators for this date
+                                    val hasReminders = remember(date, showReminders) {
+                                        runBlocking { hasRemindersForDate(db, date) }
+                                    }
+                                    val hasDeadlines = remember(date, showDeadlines) {
+                                        runBlocking { hasDeadlinesForDate(db, date) }
+                                    }
+                                    val hasTasks = remember(date, showTasks) {
+                                        runBlocking { hasTasksForDate(db, date) }
+                                    }
+
+                                    val indicatorColor = when {
+                                        isSelected -> BackgroundColor
+                                        !isCurrentMonth -> Color.LightGray
+                                        else -> PrimaryColor
+                                    }
+
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        modifier = Modifier.fillMaxSize()
+                                    ) {
+                                        Text(
+                                            date.dayOfMonth.toString(),
+                                            fontWeight = textWeight,
+                                            color = textColor,
+                                            fontSize = 14.sp
+                                        )
+
+                                        Spacer(modifier = Modifier.height(2.dp))
+
+                                        // Indicators row
+                                        Row(
+                                            horizontalArrangement = Arrangement.Center,
+                                            modifier = Modifier.height(7.dp)
+                                        ) {
+                                            if (hasReminders) {
+                                                Canvas(modifier = Modifier.size(7.dp)) {
+                                                    drawCircle(color = indicatorColor)
+                                                }
+                                                if (hasDeadlines || hasTasks) Spacer(modifier = Modifier.width(3.dp))
+                                            }
+                                            if (hasDeadlines) {
+                                                Canvas(modifier = Modifier.size(7.dp)) {
+                                                    val path = Path().apply {
+                                                        moveTo(size.width / 2, 0f)
+                                                        lineTo(size.width, size.height)
+                                                        lineTo(0f, size.height)
+                                                        close()
+                                                    }
+                                                    drawPath(path, color = indicatorColor)
+                                                }
+                                                if (hasTasks) Spacer(modifier = Modifier.width(3.dp))
+                                            }
+                                            if (hasTasks) {
+                                                Canvas(modifier = Modifier.size(7.dp)) {
+                                                    drawRect(color = indicatorColor)
+                                                }
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
