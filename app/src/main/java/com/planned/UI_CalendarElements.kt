@@ -24,6 +24,7 @@ import kotlinx.coroutines.runBlocking
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
+import androidx.compose.foundation.border
 
 /* CALENDAR FILTERS */
 var showEvents by mutableStateOf(true)
@@ -189,7 +190,7 @@ fun RenderDayViewItems(
             RenderTaskBucketBlock(
                 bucket = bucket,
                 hourHeight = hourHeight,
-                modifier = Modifier.padding(horizontal = 10.dp)
+                modifier = Modifier.padding(horizontal = (10 + ELEMENT_HORIZONTAL_PADDING).dp)
             )
         }
 
@@ -198,7 +199,7 @@ fun RenderDayViewItems(
             RenderEventBlock(
                 event = event,
                 hourHeight = hourHeight,
-                modifier = Modifier.padding(horizontal = 10.dp)
+                modifier = Modifier.padding(horizontal = (10 + ELEMENT_HORIZONTAL_PADDING).dp)
             )
         }
 
@@ -207,7 +208,7 @@ fun RenderDayViewItems(
             RenderTaskBlock(
                 task = task,
                 hourHeight = hourHeight,
-                modifier = Modifier.padding(horizontal = 10.dp)
+                modifier = Modifier.padding(horizontal = (10 + ELEMENT_HORIZONTAL_PADDING).dp)
             )
         }
     }
@@ -319,6 +320,7 @@ fun RenderTaskBlock(
             .fillMaxWidth()
             .clip(RoundedCornerShape(ELEMENT_CORNER_RADIUS_DAY.dp))
             .background(task.color)
+            .border(6.dp, Color(CardColor), RoundedCornerShape(ELEMENT_CORNER_RADIUS_DAY.dp))
             .clickable {
                 // TODO: open task details
             }
@@ -468,6 +470,7 @@ fun RenderTaskBlockWeek(
             .fillMaxWidth()
             .clip(RoundedCornerShape(ELEMENT_CORNER_RADIUS_WEEK.dp))
             .background(task.color)
+            .border(4.dp, Color(CardColor), RoundedCornerShape(ELEMENT_CORNER_RADIUS_WEEK.dp))
             .clickable {
                 // TODO: open task details
             }
