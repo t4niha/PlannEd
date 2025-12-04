@@ -44,11 +44,11 @@ val Preset23 = Color(0xFF4D4D4D)
 val Preset24 = Color(0xFF000000)
 
 // Priority Presets
-val Preset25 = Color(0xFFE38080)
-val Preset26 = Color(0xFFE3A680)
-val Preset27 = Color(0xFFE3C580)
-val Preset28 = Color(0xFFBFE380)
-val Preset29 = Color(0xFF95E380)
+val Preset25 = Color(0xFFF06262)
+val Preset26 = Color(0xFFFF8A65)
+val Preset27 = Color(0xFFFFD54F)
+val Preset28 = Color(0xFF87C781)
+val Preset29 = Color(0xFF4DB6AC)
 //</editor-fold>
 
 /* SHAPES */
@@ -61,6 +61,8 @@ val CircleShapePrimary = CircleShape
 const val INITIAL_PAGE = 10000
 const val TOTAL_PAGES = 20000
 val HourHeight = 80.dp
+val INNER_CIRCLE_SIZE = 12.dp
+val OUTER_CIRCLE_OFFSET = 4.dp
 //</editor-fold>
 
 /* NAVIGATION */

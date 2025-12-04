@@ -44,8 +44,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.runBlocking
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalTime
@@ -302,7 +304,9 @@ fun MonthView(
     var masterTasks by remember { mutableStateOf<List<MasterTask>>(emptyList()) }
 
     LaunchedEffect(selectedDate) {
-        taskIntervals = db.taskDao().getAllIntervals().filter { it.occurDate == selectedDate }
+        taskIntervals = db.taskDao().getAllIntervals()
+            .filter { it.occurDate == selectedDate }
+            .sortedBy { it.startTime }
         masterTasks = db.taskDao().getAllMasterTasks()
     }
 
@@ -414,11 +418,40 @@ fun MonthView(
                 taskIntervals.forEach { interval ->
                     val masterTask = masterTasks.find { it.id == interval.masterTaskId }
 
+                    // Outer circle color
+                    val outerCircleColor: Color = remember(masterTask?.priority) {
+                        val priorityColors = listOf(
+                            Preset25, // 1 - Red
+                            Preset26, // 2 - Orange
+                            Preset27, // 3 - Yellow
+                            Preset28, // 4 - Lime
+                            Preset29  // 5 - Green
+                        )
+                        val priority = masterTask?.priority ?: 3
+                        priorityColors.getOrNull(priority - 1) ?: Preset27
+                    }
+
+                    // Inner circle color
+                    val innerCircleColor: Color = remember(masterTask) {
+                        runBlocking {
+                            when {
+                                masterTask?.eventId != null -> {
+                                    val event = db.eventDao().getAllMasterEvents().find { it.id == masterTask.eventId }
+                                    event?.color?.let { Converters.toColor(it) } ?: Color(CardColor)
+                                }
+                                masterTask?.categoryId != null -> {
+                                    val category = db.categoryDao().getAll().find { it.id == masterTask.categoryId }
+                                    category?.color?.let { Converters.toColor(it) } ?: Color(CardColor)
+                                }
+                                else -> Color(CardColor)
+                            }
+                        }
+                    }
+
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(vertical = 4.dp)
-                            .border(1.dp, Color.LightGray, RoundedCornerShape(8.dp))
                             .background(Color(CardColor), RoundedCornerShape(8.dp))
                             .clickable {
                                 // TODO: open task details
@@ -427,25 +460,39 @@ fun MonthView(
                     ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = masterTask?.title ?: "Task",
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Medium
-                                )
-                                if (interval.intervalNo > 1 || (masterTask?.noIntervals ?: 1) > 1) {
-                                    Text(
-                                        text = "Interval ${interval.intervalNo} of ${masterTask?.noIntervals ?: 1}",
-                                        fontSize = 12.sp,
-                                        color = Color.Gray
+                            Row(
+                                modifier = Modifier.weight(1f),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                // Double circle
+                                Box(
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(INNER_CIRCLE_SIZE + OUTER_CIRCLE_OFFSET * 2)
+                                            .background(outerCircleColor, CircleShape)
+                                    )
+                                    Box(
+                                        modifier = Modifier
+                                            .size(INNER_CIRCLE_SIZE)
+                                            .background(innerCircleColor, CircleShape)
                                     )
                                 }
+                                Spacer(modifier = Modifier.width(16.dp))
+                                Text(
+                                    text = masterTask?.title ?: "Task",
+                                    fontSize = 16.sp,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
                             }
                             Text(
                                 text = "${interval.startTime.format(DateTimeFormatter.ofPattern("h:mm a"))} - ${interval.endTime.format(DateTimeFormatter.ofPattern("h:mm a"))}",
-                                fontSize = 12.sp,
+                                fontSize = 14.sp,
                                 color = Color.Gray
                             )
                         }

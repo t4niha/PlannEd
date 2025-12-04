@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
@@ -98,7 +99,7 @@ fun Calendars(db: AppDatabase) {
         .fillMaxSize()
         .background(BackgroundColor)
     ) {
-        // Date header (clickable, no ripple)
+        // Date header
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -270,8 +271,12 @@ fun ReminderDeadlineIndicators(db: AppDatabase, date: LocalDate) {
 
     // Load data when date changes
     LaunchedEffect(date) {
-        reminders = db.reminderDao().getAllOccurrences().filter { it.occurDate == date }
-        deadlines = db.deadlineDao().getAll().filter { it.date == date }
+        reminders = db.reminderDao().getAllOccurrences()
+            .filter { it.occurDate == date }
+            .sortedWith(compareBy({ !it.allDay }, { it.time }))
+        deadlines = db.deadlineDao().getAll()
+            .filter { it.date == date }
+            .sortedBy { it.time }
     }
 
     Column(
@@ -419,13 +424,15 @@ fun ReminderDeadlineIndicators(db: AppDatabase, date: LocalDate) {
                                 ) {
                                     Box(
                                         modifier = Modifier
-                                            .size(12.dp)
+                                            .size(INNER_CIRCLE_SIZE)
                                             .background(reminderColor, CircleShape)
                                     )
                                     Spacer(modifier = Modifier.width(16.dp))
                                     Text(
                                         text = masterReminder?.title ?: "Reminder",
-                                        fontSize = 16.sp
+                                        fontSize = 16.sp,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
                                     )
                                 }
                                 Text(
@@ -496,13 +503,15 @@ fun ReminderDeadlineIndicators(db: AppDatabase, date: LocalDate) {
                                 ) {
                                     Box(
                                         modifier = Modifier
-                                            .size(12.dp)
+                                            .size(INNER_CIRCLE_SIZE)
                                             .background(deadlineColor, CircleShape)
                                     )
                                     Spacer(modifier = Modifier.width(16.dp))
                                     Text(
                                         text = deadline.title,
-                                        fontSize = 16.sp
+                                        fontSize = 16.sp,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
                                     )
                                 }
                                 Text(
