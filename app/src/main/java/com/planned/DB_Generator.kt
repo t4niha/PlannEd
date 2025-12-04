@@ -29,15 +29,17 @@ fun generateEventOccurrences(master: MasterEvent): List<EventOccurrence> {
     val today = LocalDate.now()
     val occurrences = mutableListOf<EventOccurrence>()
 
+    // Calculate symmetric window
+    val startLimit = today.minusMonths(generationMonths.toLong())
     val endLimit = master.endDate?.let {
         if (it.isBefore(today.plusMonths(generationMonths.toLong()))) it
         else today.plusMonths(generationMonths.toLong())
     } ?: today.plusMonths(generationMonths.toLong())
 
-    var current = if (master.startDate.isBefore(today)) today else master.startDate
+    // Start from the later of
+    var current = if (master.startDate.isBefore(startLimit)) startLimit else master.startDate
 
     while (!current.isAfter(endLimit)) {
-        // Determine if this date matches the recurrence rule
         val matchesRule = when (master.recurFreq) {
             RecurrenceFrequency.NONE -> current == master.startDate
             RecurrenceFrequency.DAILY -> true
@@ -71,7 +73,7 @@ fun generateEventOccurrences(master: MasterEvent): List<EventOccurrence> {
     return occurrences
 }
 
-/* Generate TaskBucketOccurrences from MasterTaskBucket, merging overlapping TaskBuckets */
+/* Generate TaskBucketOccurrences from MasterTaskBucket, merging overlaps */
 @RequiresApi(Build.VERSION_CODES.O)
 suspend fun generateTaskBucketOccurrences(
     master: MasterTaskBucket,
@@ -80,15 +82,17 @@ suspend fun generateTaskBucketOccurrences(
     val today = LocalDate.now()
     val newOccurrences = mutableListOf<TaskBucketOccurrence>()
 
+    // Calculate symmetric window
+    val startLimit = today.minusMonths(generationMonths.toLong())
     val endLimit = master.endDate?.let {
         if (it.isBefore(today.plusMonths(generationMonths.toLong()))) it
         else today.plusMonths(generationMonths.toLong())
     } ?: today.plusMonths(generationMonths.toLong())
 
-    var current = if (master.startDate.isBefore(today)) today else master.startDate
+    // Start from the later of
+    var current = if (master.startDate.isBefore(startLimit)) startLimit else master.startDate
 
     while (!current.isAfter(endLimit)) {
-        // Determine if this date matches the recurrence rule
         val matchesRule = when (master.recurFreq) {
             RecurrenceFrequency.NONE -> current == master.startDate
             RecurrenceFrequency.DAILY -> true
@@ -185,15 +189,16 @@ fun generateReminderOccurrences(master: MasterReminder): List<ReminderOccurrence
     val today = LocalDate.now()
     val occurrences = mutableListOf<ReminderOccurrence>()
 
+    // Calculate symmetric window
+    val startLimit = today.minusMonths(generationMonths.toLong())
     val endLimit = master.endDate?.let {
         if (it.isBefore(today.plusMonths(generationMonths.toLong()))) it
         else today.plusMonths(generationMonths.toLong())
     } ?: today.plusMonths(generationMonths.toLong())
 
-    var current = if (master.startDate.isBefore(today)) today else master.startDate
+    var current = if (master.startDate.isBefore(startLimit)) startLimit else master.startDate
 
     while (!current.isAfter(endLimit)) {
-        // Determine if this date matches the recurrence rule
         val matchesRule = when (master.recurFreq) {
             RecurrenceFrequency.NONE -> current == master.startDate
             RecurrenceFrequency.DAILY -> true
@@ -225,4 +230,81 @@ fun generateReminderOccurrences(master: MasterReminder): List<ReminderOccurrence
     }
 
     return occurrences
+}
+
+/* Regenerate all occurrences */
+@RequiresApi(Build.VERSION_CODES.O)
+suspend fun regenerateAllOccurrences(db: AppDatabase) {
+    val today = LocalDate.now()
+    val startLimit = today.minusMonths(generationMonths.toLong())
+    val endLimit = today.plusMonths(generationMonths.toLong())
+
+    // Delete occurrences outside the window
+    deleteOccurrencesOutsideWindow(db, startLimit, endLimit)
+
+    // Regenerate all master events
+    val allEvents = db.eventDao().getAllMasterEvents()
+    allEvents.forEach { event ->
+        // Delete old occurrences for this master
+        val oldOccurrences = db.eventDao().getAllOccurrences()
+            .filter { it.masterEventId == event.id }
+        oldOccurrences.forEach { db.eventDao().deleteOccurrence(it.id) }
+
+        // Generate new occurrences
+        val newOccurrences = generateEventOccurrences(event)
+        newOccurrences.forEach { db.eventDao().insertOccurrence(it) }
+    }
+
+    // Regenerate all master reminders
+    val allReminders = db.reminderDao().getAllMasterReminders()
+    allReminders.forEach { reminder ->
+        // Delete old occurrences for this master
+        val oldOccurrences = db.reminderDao().getAllOccurrences()
+            .filter { it.masterReminderId == reminder.id }
+        oldOccurrences.forEach { db.reminderDao().deleteOccurrence(it.id) }
+
+        // Generate new occurrences
+        val newOccurrences = generateReminderOccurrences(reminder)
+        newOccurrences.forEach { db.reminderDao().insertOccurrence(it) }
+    }
+
+    // Regenerate all master task buckets
+    val allBuckets = db.taskBucketDao().getAllMasterBuckets()
+    allBuckets.forEach { bucket ->
+        // Delete old occurrences for this master
+        val oldOccurrences = db.taskBucketDao().getAllBucketOccurrences()
+            .filter { it.masterBucketId == bucket.id }
+        oldOccurrences.forEach { db.taskBucketDao().deleteOccurrence(it.id) }
+
+        // Generate new occurrences
+        val newOccurrences = generateTaskBucketOccurrences(bucket, db)
+        newOccurrences.forEach { db.taskBucketDao().insertOccurrence(it) }
+    }
+
+    // Regenerate task intervals
+    generateTaskIntervals(db)
+}
+
+/* Delete occurrences outside the generation window */
+@RequiresApi(Build.VERSION_CODES.O)
+suspend fun deleteOccurrencesOutsideWindow(db: AppDatabase, startLimit: LocalDate, endLimit: LocalDate) {
+    // Event occurrences
+    db.eventDao().getAllOccurrences()
+        .filter { it.occurDate.isBefore(startLimit) || it.occurDate.isAfter(endLimit) }
+        .forEach { db.eventDao().deleteOccurrence(it.id) }
+
+    // Reminder occurrences
+    db.reminderDao().getAllOccurrences()
+        .filter { it.occurDate.isBefore(startLimit) || it.occurDate.isAfter(endLimit) }
+        .forEach { db.reminderDao().deleteOccurrence(it.id) }
+
+    // Task bucket occurrences
+    db.taskBucketDao().getAllBucketOccurrences()
+        .filter { it.occurDate.isBefore(startLimit) || it.occurDate.isAfter(endLimit) }
+        .forEach { db.taskBucketDao().deleteOccurrence(it.id) }
+
+    // Task intervals
+    db.taskDao().getAllIntervals()
+        .filter { it.occurDate.isBefore(startLimit) || it.occurDate.isAfter(endLimit) }
+        .forEach { db.taskDao().deleteInterval(it.id) }
 }

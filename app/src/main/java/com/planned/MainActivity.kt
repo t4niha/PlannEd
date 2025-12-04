@@ -37,9 +37,10 @@ class MainActivity : ComponentActivity() {
         val db = AppDatabaseProvider.getDatabase(this)
         setContent {
 
-            // Load settings
+            // Load settings and regenerate occurrences
             LaunchedEffect(Unit) {
                 SettingsManager.load(db)
+                regenerateAllOccurrences(db)
             }
             // Home page
             PlanEdTheme {
