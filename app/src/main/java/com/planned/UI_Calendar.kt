@@ -228,8 +228,9 @@ fun Calendars(db: AppDatabase) {
         // Calendar views
         Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
             when (currentView) {
-                "Day" -> DayView(displayedDate, pagerState, dayInitialScrollDone, onScrollDone = { dayInitialScrollDone = true }, currentTime)
+                "Day" -> DayView(db, displayedDate, pagerState, dayInitialScrollDone, onScrollDone = { dayInitialScrollDone = true }, currentTime)
                 "Week" -> WeekView(
+                    db = db,
                     displayedDate = displayedDate,
                     pagerState = pagerState,
                     initialScrollDone = weekInitialScrollDone,

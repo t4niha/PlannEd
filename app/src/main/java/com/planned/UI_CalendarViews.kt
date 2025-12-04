@@ -60,6 +60,7 @@ import java.util.Locale
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun DayView(
+    db: AppDatabase,
     displayedDate: LocalDate,
     pagerState: androidx.compose.foundation.pager.PagerState,
     initialScrollDone: Boolean,
@@ -91,12 +92,18 @@ fun DayView(
             // Hour labels
             Column(modifier = Modifier.verticalScroll(scrollState).padding(top = 10.dp)) {
                 hours.forEach { hour ->
-                    val displayHour = "${if (hour % 12 == 0) 12 else hour % 12} ${if (hour < 12) "AM" else "PM"}"
+                    val displayHour =
+                        "${if (hour % 12 == 0) 12 else hour % 12} ${if (hour < 12) "AM" else "PM"}"
                     Box(
                         modifier = Modifier.width(60.dp).height(HourHeight).padding(start = 8.dp),
                         contentAlignment = Alignment.TopStart
                     ) {
-                        Text(displayHour, fontSize = 14.sp, color = Color.Black, modifier = Modifier.offset(y = (-7).dp))
+                        Text(
+                            displayHour,
+                            fontSize = 14.sp,
+                            color = Color.Black,
+                            modifier = Modifier.offset(y = (-7).dp)
+                        )
                     }
                 }
             }
@@ -107,11 +114,23 @@ fun DayView(
                 Box(modifier = Modifier.verticalScroll(scrollState).fillMaxWidth()) {
                     Column(modifier = Modifier.padding(start = 10.dp, end = 10.dp, top = 10.dp)) {
                         hours.forEach { _ ->
-                            Box(modifier = Modifier.height(HourHeight).fillMaxWidth().border(0.5.dp, Color.LightGray))
+                            Box(
+                                modifier = Modifier.height(HourHeight).fillMaxWidth()
+                                    .border(0.5.dp, Color.LightGray)
+                            )
                         }
                     }
 
-                    // Current time line
+
+                    // Render events, task buckets, and tasks
+                    RenderDayViewItems(
+                        db = db,
+                        date = pageDate,
+                        hourHeight = HourHeight,
+                        modifier = Modifier.padding(top = 10.dp)
+                    )
+
+                    // Current time line (on top)
                     if (pageDate == LocalDate.now()) {
                         Box(
                             modifier = Modifier
@@ -132,6 +151,7 @@ fun DayView(
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun WeekView(
+    db: AppDatabase,
     displayedDate: LocalDate,
     pagerState: androidx.compose.foundation.pager.PagerState,
     initialScrollDone: Boolean,
@@ -261,6 +281,18 @@ fun WeekView(
                                             modifier = Modifier.height(HourHeight).fillMaxWidth().border(0.5.dp, Color.LightGray)
                                         )
                                     }
+                                }
+
+
+                                // Render events, task buckets, and tasks
+                                val dayDate = pageStartOfWeek.plusDays(index.toLong())
+                                BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+                                    RenderWeekViewItems(
+                                        db = db,
+                                        date = dayDate,
+                                        hourHeight = HourHeight,
+                                        columnWidth = maxWidth
+                                    )
                                 }
 
                                 // Current time line
@@ -421,11 +453,11 @@ fun MonthView(
                     // Outer circle color
                     val outerCircleColor: Color = remember(masterTask?.priority) {
                         val priorityColors = listOf(
-                            Preset25, // 1 - Red
-                            Preset26, // 2 - Orange
-                            Preset27, // 3 - Yellow
-                            Preset28, // 4 - Lime
-                            Preset29  // 5 - Green
+                            Preset31, // 1 - Red
+                            Preset32, // 2 - Orange
+                            Preset33, // 3 - Yellow
+                            Preset34, // 4 - Lime
+                            Preset35  // 5 - Green
                         )
                         val priority = masterTask?.priority ?: 3
                         priorityColors.getOrNull(priority - 1) ?: Preset27

@@ -16,18 +16,18 @@ val BackgroundColor = Color.White
 const val CardColor = 0xFFF1F1F1
 
 // Object Presets
-val Preset1 = Color(0xFFEF6E6E)
-val Preset2 = Color(0xFFEF976E)
-val Preset3 = Color(0xFFEFC66E)
-val Preset4 = Color(0xFFEDEF6E)
-val Preset5 = Color(0xFFC4EF6E)
-val Preset6 = Color(0xFF86EF6E)
-val Preset7 = Color(0xFF6EEFAC)
-val Preset8 = Color(0xFF6EEFEB)
-val Preset9 = Color(0xFF6EB1EF)
-val Preset10 = Color(0xFF6E7FEF)
-val Preset11 = Color(0xFF8E6EEF)
-val Preset12 = Color(0xFFD76EEF)
+val Preset1 = Color(0xFFC2B6B2)
+val Preset2 = Color(0xFFD1C4E9)
+val Preset3 = Color(0xFFF8BBD0)
+val Preset4 = Color(0xFFFFCDD2)
+val Preset5 = Color(0xFFFFCCBC)
+val Preset6 = Color(0xFFFFE0B2)
+val Preset7 = Color(0xFFFFF9C4)
+val Preset8 = Color(0xFFDCEDC8)
+val Preset9 = Color(0xFFC8E6C9)
+val Preset10 = Color(0xFFB2DFDB)
+val Preset11 = Color(0xFFB2EBF2)
+val Preset12 = Color(0xFFBBDEFB)
 
 // App Presets
 val Preset13 = Color(0xFF851717)
@@ -44,11 +44,16 @@ val Preset23 = Color(0xFF4D4D4D)
 val Preset24 = Color(0xFF000000)
 
 // Priority Presets
-val Preset25 = Color(0xFFF06262)
-val Preset26 = Color(0xFFFF8A65)
-val Preset27 = Color(0xFFFFD54F)
-val Preset28 = Color(0xFF87C781)
-val Preset29 = Color(0xFF4DB6AC)
+val Preset25 = Color(0xFFE38080)
+val Preset26 = Color(0xFFE3A680)
+val Preset27 = Color(0xFFE3C580)
+val Preset28 = Color(0xFF92C97B)
+val Preset29 = Color(0xFF7ECEA2)
+val Preset31 = Color(0xFFD31414)
+val Preset32 = Color(0xFFD76E12)
+val Preset33 = Color(0xFFD39A14)
+val Preset34 = Color(0xFF5FC20F)
+val Preset35 = Color(0xFF0DC090)
 //</editor-fold>
 
 /* SHAPES */
@@ -63,6 +68,11 @@ const val TOTAL_PAGES = 20000
 val HourHeight = 80.dp
 val INNER_CIRCLE_SIZE = 12.dp
 val OUTER_CIRCLE_OFFSET = 4.dp
+const val ELEMENT_CORNER_RADIUS_DAY = 12
+const val ELEMENT_CORNER_RADIUS_WEEK = 2
+const val ELEMENT_HORIZONTAL_PADDING = 1
+const val ELEMENT_VERTICAL_PADDING = 2
+const val ELEMENT_TEXT_PADDING = 12
 //</editor-fold>
 
 /* NAVIGATION */
