@@ -612,7 +612,7 @@ fun TaskInfoPage(
                 }
                 InfoField("Duration", durationText)
 
-                InfoField("Dependency", dependencyTask?.title ?: "None")
+                InfoField("Dependency Task", dependencyTask?.title ?: "None")
 
                 InfoField("Deadline", deadline?.title ?: "None")
 
@@ -745,8 +745,20 @@ fun TaskUpdateForm(
         durationHours = task.predictedDuration / 60
         durationMinutes = task.predictedDuration % 60
 
-        // Don't recalculate indices - just reset the trigger
-        // The LaunchedEffect(Unit) already set these correctly on initial load
+        // Reset dropdown selections to original task values
+        selectedCategory = task.categoryId?.let { catId ->
+            categories.indexOfFirst { it.id == catId }.takeIf { it >= 0 }
+        }
+        selectedEvent = task.eventId?.let { evId ->
+            events.indexOfFirst { it.id == evId }.takeIf { it >= 0 }
+        }
+        selectedDeadline = task.deadlineId?.let { dlId ->
+            deadlines.indexOfFirst { it.id == dlId }.takeIf { it >= 0 }
+        }
+        selectedDependencyTask = task.dependencyTaskId?.let { depId ->
+            dependencyTasks.indexOfFirst { it.id == depId }.takeIf { it >= 0 }
+        }
+
         resetTrigger++
     }
 
@@ -754,10 +766,9 @@ fun TaskUpdateForm(
         modifier = Modifier
             .fillMaxSize()
             .background(BackgroundColor)
-            .verticalScroll(scrollState)
             .padding(16.dp)
     ) {
-        // Back button
+        // Back button (not scrollable)
         Box(
             modifier = Modifier
                 .clip(RoundedCornerShape(8.dp))
@@ -773,94 +784,101 @@ fun TaskUpdateForm(
         }
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Use TaskForm with current values
-        TaskForm(
-            db = db,
-            title = title,
-            onTitleChange = { title = it },
-            notes = notes,
-            onNotesChange = { notes = it },
-            priority = priority,
-            onPriorityChange = { priority = it },
-            isBreakable = isBreakable,
-            onBreakableChange = { isBreakable = it },
-            isAutoSchedule = isAutoSchedule,
-            startDate = startDate,
-            startTime = startTime,
-            onScheduleChange = { auto, date, time ->
-                isAutoSchedule = auto
-                startDate = date
-                startTime = time
-            },
-            durationHours = durationHours,
-            durationMinutes = durationMinutes,
-            onDurationChange = { h, m ->
-                durationHours = h
-                durationMinutes = m
-            },
-            selectedCategory = selectedCategory,
-            onCategoryChange = { selectedCategory = it },
-            selectedEvent = selectedEvent,
-            onEventChange = { selectedEvent = it },
-            selectedDeadline = selectedDeadline,
-            onDeadlineChange = { selectedDeadline = it },
-            selectedDependencyTask = selectedDependencyTask,
-            onDependencyTaskChange = { selectedDependencyTask = it },
-            breakableLockedByDuration = breakableLockedByDuration,
-            onBreakableLockedByDurationChange = { breakableLockedByDuration = it },
-            resetTrigger = resetTrigger,
-            isEditMode = true,
-            currentTaskId = task.id
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Clear and Save buttons
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
+        // Scrollable content
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(scrollState)
         ) {
-            Button(
-                onClick = { clearForm() },
-                colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
-                modifier = Modifier.weight(1f),
-                contentPadding = PaddingValues(16.dp)
-            ) {
-                Text("Clear", fontSize = 16.sp)
-            }
-            Spacer(modifier = Modifier.width(12.dp))
-            Button(
-                onClick = {
-                    if (title.isBlank()) {
-                        return@Button
-                    }
-                    scope.launch {
-                        val durationInMinutes = (durationHours * 60) + durationMinutes
-                        val updatedTask = task.copy(
-                            title = title,
-                            notes = notes.ifBlank { null },
-                            priority = priority,
-                            breakable = isBreakable,
-                            predictedDuration = durationInMinutes,
-                            startDate = if (isAutoSchedule) null else startDate,
-                            startTime = if (isAutoSchedule) null else startTime,
-                            categoryId = selectedCategory?.let { categories.getOrNull(it)?.id },
-                            eventId = selectedEvent?.let { events.getOrNull(it)?.id },
-                            deadlineId = selectedDeadline?.let { deadlines.getOrNull(it)?.id },
-                            dependencyTaskId = selectedDependencyTask?.let { dependencyTasks.getOrNull(it)?.id }
-                        )
-                        TaskManager.update(db, updatedTask)
-
-                        // Get the updated task from database
-                        val refreshedTask = db.taskDao().getMasterTaskById(task.id) ?: updatedTask
-                        onSaveSuccess(refreshedTask)
-                    }
+            // Use TaskForm with current values
+            TaskForm(
+                db = db,
+                title = title,
+                onTitleChange = { title = it },
+                notes = notes,
+                onNotesChange = { notes = it },
+                priority = priority,
+                onPriorityChange = { priority = it },
+                isBreakable = isBreakable,
+                onBreakableChange = { isBreakable = it },
+                isAutoSchedule = isAutoSchedule,
+                startDate = startDate,
+                startTime = startTime,
+                onScheduleChange = { auto, date, time ->
+                    isAutoSchedule = auto
+                    startDate = date
+                    startTime = time
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
-                modifier = Modifier.weight(1f),
-                contentPadding = PaddingValues(16.dp)
+                durationHours = durationHours,
+                durationMinutes = durationMinutes,
+                onDurationChange = { h, m ->
+                    durationHours = h
+                    durationMinutes = m
+                },
+                selectedCategory = selectedCategory,
+                onCategoryChange = { selectedCategory = it },
+                selectedEvent = selectedEvent,
+                onEventChange = { selectedEvent = it },
+                selectedDeadline = selectedDeadline,
+                onDeadlineChange = { selectedDeadline = it },
+                selectedDependencyTask = selectedDependencyTask,
+                onDependencyTaskChange = { selectedDependencyTask = it },
+                breakableLockedByDuration = breakableLockedByDuration,
+                onBreakableLockedByDurationChange = { breakableLockedByDuration = it },
+                resetTrigger = resetTrigger,
+                isEditMode = true,
+                currentTaskId = task.id
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Reset and Save buttons
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text("Save", fontSize = 16.sp)
+                Button(
+                    onClick = { clearForm() },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
+                    modifier = Modifier.weight(1f),
+                    contentPadding = PaddingValues(16.dp)
+                ) {
+                    Text("Reset", fontSize = 16.sp)
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Button(
+                    onClick = {
+                        if (title.isBlank()) {
+                            return@Button
+                        }
+                        scope.launch {
+                            val durationInMinutes = (durationHours * 60) + durationMinutes
+                            val updatedTask = task.copy(
+                                title = title,
+                                notes = notes.ifBlank { null },
+                                priority = priority,
+                                breakable = isBreakable,
+                                predictedDuration = durationInMinutes,
+                                startDate = if (isAutoSchedule) null else startDate,
+                                startTime = if (isAutoSchedule) null else startTime,
+                                categoryId = selectedCategory?.let { categories.getOrNull(it)?.id },
+                                eventId = selectedEvent?.let { events.getOrNull(it)?.id },
+                                deadlineId = selectedDeadline?.let { deadlines.getOrNull(it)?.id },
+                                dependencyTaskId = selectedDependencyTask?.let { dependencyTasks.getOrNull(it)?.id }
+                            )
+                            TaskManager.update(db, updatedTask)
+
+                            // Get the updated task from database
+                            val refreshedTask = db.taskDao().getMasterTaskById(task.id) ?: updatedTask
+                            onSaveSuccess(refreshedTask)
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
+                    modifier = Modifier.weight(1f),
+                    contentPadding = PaddingValues(16.dp)
+                ) {
+                    Text("Save", fontSize = 16.sp)
+                }
             }
         }
     }
@@ -896,6 +914,18 @@ fun PomodoroPage(
 
     // Calculate elapsed minutes for database
     val elapsedMinutes = elapsedSeconds / 60
+
+    // Auto-stop timer when navigating away or app minimizes
+    DisposableEffect(Unit) {
+        onDispose {
+            if (isRunning) {
+                // Stop the timer and save progress synchronously
+                kotlinx.coroutines.runBlocking {
+                    updateTaskProgress(db, currentTask, intervals, elapsedSeconds / 60)
+                }
+            }
+        }
+    }
 
     // Calculate current interval and stats
     val totalActualDuration = (currentTask.actualDuration ?: 0) + elapsedMinutes
@@ -961,30 +991,34 @@ fun PomodoroPage(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Stats
-            Column(
+            // Stats - centered container with left-aligned text
+            Box(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.Start,
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = "Current Interval: ${currentIntervalData.currentIntervalNo}/${currentTask.noIntervals}",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = Color.Gray
-                )
-                Text(
-                    text = "Time Left: ${formatDuration(currentIntervalData.timeLeft)}",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = Color.Gray
-                )
-                Text(
-                    text = "Overtime: ${formatDuration(currentIntervalData.overtime)}",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = Color.Gray
-                )
+                Column(
+                    horizontalAlignment = Alignment.Start,
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "Current Interval: ${currentIntervalData.currentIntervalNo}/${currentTask.noIntervals}",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color.Gray
+                    )
+                    Text(
+                        text = "Time Left: ${formatDuration(currentIntervalData.timeLeft)}",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color.Gray
+                    )
+                    Text(
+                        text = "Overtime: ${formatDuration(currentIntervalData.overtime)}",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color.Gray
+                    )
+                }
             }
         }
 

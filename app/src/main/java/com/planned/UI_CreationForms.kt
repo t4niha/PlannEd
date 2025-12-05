@@ -538,6 +538,13 @@ fun TaskForm(
         }
     }
 
+    // Reset dependency task when auto-schedule is disabled
+    LaunchedEffect(isAutoSchedule) {
+        if (!isAutoSchedule && selectedDependencyTask != null) {
+            onDependencyTaskChange(null)
+        }
+    }
+
     LaunchedEffect(selectedDeadline, deadlines.size, events.size) {
         if (!isEditMode && selectedDeadline != previousDeadline) {
             if (selectedDeadline != null && deadlines.isNotEmpty()) {
