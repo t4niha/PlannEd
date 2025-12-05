@@ -130,13 +130,13 @@ fun TasksMainView(
         ) {
             TaskCategoryBox(
                 db = db,
-                title = "Unscheduled Tasks",
+                title = "Unscheduled \nTasks",
                 modifier = Modifier.weight(1f),
                 onClick = onUnscheduledClick
             )
             TaskCategoryBox(
                 db = db,
-                title = "Scheduled Tasks",
+                title = "Scheduled \nTasks",
                 modifier = Modifier.weight(1f),
                 onClick = onScheduledClick
             )
@@ -171,29 +171,33 @@ fun TaskCategoryBox(
             .clickable { onClick() }
             .padding(16.dp)
     ) {
-        // Title text aligned to top-start
-        Text(
-            text = title,
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Normal,
-            color = Color.Black,
-            modifier = Modifier.align(Alignment.TopStart)
-        )
-
-        // Count indicator circle in top-right
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .size(24.dp)
-                .clip(CircleShape)
-                .background(if (taskCount > 0) PrimaryColor else Color.Gray),
-            contentAlignment = Alignment.Center
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.Top
         ) {
+            // Count indicator circle
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(if (taskCount > 0) PrimaryColor else Color.LightGray),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = taskCount.toString(),
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Title text
             Text(
-                text = taskCount.toString(),
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White
+                text = title,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Normal,
+                color = Color.Black
             )
         }
     }
@@ -223,7 +227,7 @@ fun UnscheduledTasksList(
         // Back button
         Box(
             modifier = Modifier
-                .padding(12.dp)
+                .padding(16.dp)
                 .clip(RoundedCornerShape(8.dp))
                 .background(PrimaryColor)
                 .clickable { onBack() }
@@ -283,14 +287,14 @@ fun UnscheduledTaskItem(
         // Bullseye circle
         Box(
             modifier = Modifier
-                .size(40.dp)
+                .size(30.dp)
                 .clip(CircleShape)
                 .background(outerColor),
             contentAlignment = Alignment.Center
         ) {
             Box(
                 modifier = Modifier
-                    .size(24.dp)
+                    .size(20.dp)
                     .clip(CircleShape)
                     .background(innerColor)
             )
@@ -351,7 +355,7 @@ fun ScheduledTasksList(
         // Back button
         Box(
             modifier = Modifier
-                .padding(12.dp)
+                .padding(16.dp)
                 .clip(RoundedCornerShape(8.dp))
                 .background(PrimaryColor)
                 .clickable { onBack() }
@@ -411,67 +415,76 @@ fun ScheduledTaskItem(
     val dateFormatter = DateTimeFormatter.ofPattern("MMM dd, yyyy")
     val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
 
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
             .background(Color(CardColor))
             .clickable { onClick() }
-            .padding(12.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .padding(12.dp)
     ) {
-        // Bullseye circle
-        Box(
-            modifier = Modifier
-                .size(40.dp)
-                .clip(CircleShape)
-                .background(outerColor),
-            contentAlignment = Alignment.Center
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
         ) {
+            // Bullseye circle
             Box(
                 modifier = Modifier
-                    .size(24.dp)
+                    .size(30.dp)
                     .clip(CircleShape)
-                    .background(innerColor)
-            )
-        }
+                    .background(outerColor),
+                contentAlignment = Alignment.Center
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(20.dp)
+                        .clip(CircleShape)
+                        .background(innerColor)
+                )
+            }
 
-        Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(12.dp))
 
-        // Title and timings
-        Column(modifier = Modifier.weight(1f)) {
+            // Title with ellipsis
             Text(
                 text = masterTask.title,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Normal,
-                color = Color.Black
+                color = Color.Black,
+                modifier = Modifier.weight(1f),
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
             )
-            Spacer(modifier = Modifier.height(4.dp))
-            // Show all timings for intervals
-            intervals.sortedBy { it.intervalNo }.forEach { interval ->
-                Text(
-                    text = "${interval.occurDate.format(dateFormatter)} ${interval.startTime.format(timeFormatter)} - ${interval.endTime.format(timeFormatter)}",
-                    fontSize = 14.sp,
-                    color = Color.Gray
+
+            // Play button
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(PrimaryColor)
+                    .clickable { onPlayClick() },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.PlayArrow,
+                    contentDescription = "Start",
+                    tint = Color.White,
+                    modifier = Modifier.size(24.dp)
                 )
             }
         }
 
-        // Play button
-        Box(
-            modifier = Modifier
-                .size(40.dp)
-                .clip(CircleShape)
-                .background(PrimaryColor)
-                .clickable { onPlayClick() },
-            contentAlignment = Alignment.Center
+        // Dates and times
+        Column(
+            modifier = Modifier.padding(start = 42.dp)
         ) {
-            Icon(
-                imageVector = Icons.Filled.PlayArrow,
-                contentDescription = "Start",
-                tint = Color.White,
-                modifier = Modifier.size(24.dp)
-            )
+            intervals.sortedBy { it.intervalNo }.forEach { interval ->
+                Text(
+                    text = "${interval.occurDate.format(dateFormatter)}  ${interval.startTime.format(timeFormatter)} - ${interval.endTime.format(timeFormatter)}",
+                    fontSize = 14.sp,
+                    color = Color.Gray
+                )
+            }
         }
     }
 }
@@ -607,7 +620,7 @@ fun InfoField(label: String, value: String) {
             .background(Color(CardColor), RoundedCornerShape(12.dp))
             .padding(12.dp)
     ) {
-        Text(text = label, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
+        Text(text = label, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color.Gray)
         Spacer(modifier = Modifier.height(4.dp))
         Text(text = value, fontSize = 16.sp)
     }
@@ -709,12 +722,7 @@ fun TaskUpdateForm(
                 color = Color.White
             )
         }
-
         Spacer(modifier = Modifier.height(16.dp))
-
-        Text("Update Task", fontSize = 24.sp, fontWeight = FontWeight.Bold)
-
-        Spacer(modifier = Modifier.height(24.dp))
 
         // Use TaskForm with current values
         TaskForm(
@@ -863,13 +871,10 @@ fun PomodoroPage(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color(CardColor), RoundedCornerShape(12.dp))
-                .padding(16.dp)
+                .padding(18.dp)
         ) {
-            Text(text = currentTask.title, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+            Text(text = currentTask.title, fontSize = 20.sp, fontWeight = FontWeight.Medium)
         }
-
-        Spacer(modifier = Modifier.height(12.dp))
 
         if (!currentTask.notes.isNullOrBlank()) {
             Box(
@@ -880,20 +885,20 @@ fun PomodoroPage(
             ) {
                 Text(text = currentTask.notes!!, fontSize = 16.sp)
             }
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(18.dp))
         } else {
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(18.dp))
         }
 
         // Timer display
         PomodoroTimer(elapsedMinutes)
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(18.dp))
 
         // Stats
         Column(
             modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally,
+            horizontalAlignment = Alignment.Start,
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
@@ -906,14 +911,12 @@ fun PomodoroPage(
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Medium
             )
-            if (currentIntervalData.overtime > 0) {
-                Text(
-                    text = "Overtime: ${formatDuration(currentIntervalData.overtime)}",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = Color.Red
-                )
-            }
+            Text(
+                text = "Overtime: ${formatDuration(currentIntervalData.overtime)}",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Medium,
+                color = if (currentIntervalData.overtime > 0) Color.Red else Color.Gray
+            )
         }
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -950,10 +953,11 @@ fun PomodoroPage(
                 },
                 modifier = Modifier.weight(1f),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (isRunning) Color.Red else PrimaryColor
-                )
+                    containerColor = Color.Gray
+                ),
+                contentPadding = PaddingValues(16.dp)
             ) {
-                Text(if (isRunning) "Stop" else "Start", color = Color.White)
+                Text(if (isRunning) "Stop" else "Start", fontSize = 16.sp, color = Color.White)
             }
 
             Button(
@@ -981,9 +985,10 @@ fun PomodoroPage(
                     }
                 },
                 modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))
+                colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
+                contentPadding = PaddingValues(16.dp)
             ) {
-                Text("Complete", color = Color.White)
+                Text("Complete", fontSize = 16.sp, color = Color.White)
             }
         }
     }
@@ -1000,14 +1005,14 @@ fun PomodoroTimer(elapsedMinutes: Int) {
         modifier = Modifier.size(200.dp),
         contentAlignment = Alignment.Center
     ) {
-        // Outer circle (depleting)
+        // Outer circle (filling clockwise)
         androidx.compose.foundation.Canvas(
             modifier = Modifier.fillMaxSize()
         ) {
             drawArc(
                 color = PrimaryColor,
                 startAngle = -90f,
-                sweepAngle = 360f * (1f - progress),
+                sweepAngle = 360f * progress,
                 useCenter = false,
                 style = androidx.compose.ui.graphics.drawscope.Stroke(width = 12.dp.toPx())
             )
