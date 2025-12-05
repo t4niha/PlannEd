@@ -28,7 +28,6 @@ import kotlinx.coroutines.launch
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-// Priority colors for task display
 val priorityColors = listOf(
     Preset31, // 1 - Red
     Preset32, // 2 - Orange
@@ -57,10 +56,6 @@ fun Tasks(db: AppDatabase) {
             onTaskClick = { task ->
                 selectedTask = task
                 currentView = "info"
-            },
-            onPlayClick = { task ->
-                selectedTask = task
-                currentView = "pomodoro"
             }
         )
         "scheduled" -> ScheduledTasksList(
@@ -70,11 +65,6 @@ fun Tasks(db: AppDatabase) {
                 selectedInterval = interval
                 selectedTask = task
                 currentView = "info"
-            },
-            onPlayClick = { interval, task ->
-                selectedInterval = interval
-                selectedTask = task
-                currentView = "pomodoro"
             }
         )
         "info" -> selectedTask?.let { task ->
@@ -86,14 +76,22 @@ fun Tasks(db: AppDatabase) {
                     selectedTask = null
                     selectedInterval = null
                 },
-                onUpdate = { currentView = "update" }
+                onUpdate = { currentView = "update" },
+                onPlay = { currentView = "pomodoro" }
             )
         }
         "update" -> selectedTask?.let { task ->
             TaskUpdateForm(
                 db = db,
                 task = task,
-                onBack = { currentView = "info" }
+                onBack = {
+                    // Reload the task to show updated info
+                    currentView = "info"
+                },
+                onSaveSuccess = { updatedTask ->
+                    selectedTask = updatedTask
+                    currentView = "info"
+                }
             )
         }
         "pomodoro" -> selectedTask?.let { task ->
@@ -101,9 +99,7 @@ fun Tasks(db: AppDatabase) {
                 db = db,
                 task = task,
                 onBack = {
-                    currentView = if (selectedInterval != null) "scheduled" else "unscheduled"
-                    selectedTask = null
-                    selectedInterval = null
+                    currentView = "info"
                 }
             )
         }
@@ -203,14 +199,12 @@ fun TaskCategoryBox(
     }
 }
 
-/* UNSCHEDULED TASKS LIST */
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun UnscheduledTasksList(
     db: AppDatabase,
     onBack: () -> Unit,
-    onTaskClick: (MasterTask) -> Unit,
-    onPlayClick: (MasterTask) -> Unit
+    onTaskClick: (MasterTask) -> Unit
 ) {
     var tasks by remember { mutableStateOf<List<MasterTask>>(emptyList()) }
 
@@ -240,19 +234,32 @@ fun UnscheduledTasksList(
             )
         }
 
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            items(tasks) { task ->
-                UnscheduledTaskItem(
-                    db = db,
-                    task = task,
-                    onClick = { onTaskClick(task) },
-                    onPlayClick = { onPlayClick(task) }
+        if (tasks.isEmpty()) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "No unscheduled tasks",
+                    fontSize = 18.sp,
+                    color = Color.Gray
                 )
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(tasks) { task ->
+                    UnscheduledTaskItem(
+                        db = db,
+                        task = task,
+                        onClick = { onTaskClick(task) }
+                    )
+                }
             }
         }
     }
@@ -263,8 +270,7 @@ fun UnscheduledTasksList(
 fun UnscheduledTaskItem(
     db: AppDatabase,
     task: MasterTask,
-    onClick: () -> Unit,
-    onPlayClick: () -> Unit
+    onClick: () -> Unit
 ) {
     var category by remember { mutableStateOf<Category?>(null) }
 
@@ -299,7 +305,6 @@ fun UnscheduledTaskItem(
                     .background(innerColor)
             )
         }
-
         Spacer(modifier = Modifier.width(12.dp))
 
         // Title
@@ -309,23 +314,7 @@ fun UnscheduledTaskItem(
             fontWeight = FontWeight.Medium,
             modifier = Modifier.weight(1f)
         )
-
-        // Play button
-        Box(
-            modifier = Modifier
-                .size(40.dp)
-                .clip(CircleShape)
-                .background(PrimaryColor)
-                .clickable { onPlayClick() },
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = Icons.Filled.PlayArrow,
-                contentDescription = "Start",
-                tint = Color.White,
-                modifier = Modifier.size(24.dp)
-            )
-        }
+        Spacer(modifier = Modifier.width(12.dp))
     }
 }
 
@@ -335,8 +324,7 @@ fun UnscheduledTaskItem(
 fun ScheduledTasksList(
     db: AppDatabase,
     onBack: () -> Unit,
-    onTaskClick: (TaskInterval, MasterTask) -> Unit,
-    onPlayClick: (TaskInterval, MasterTask) -> Unit
+    onTaskClick: (TaskInterval, MasterTask) -> Unit
 ) {
     var intervals by remember { mutableStateOf<List<TaskInterval>>(emptyList()) }
     var masterTasks by remember { mutableStateOf<Map<Int, MasterTask>>(emptyMap()) }
@@ -368,25 +356,38 @@ fun ScheduledTasksList(
             )
         }
 
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            // Group intervals by masterTaskId
-            val groupedIntervals = intervals.groupBy { it.masterTaskId }
+        // Group intervals by masterTaskId
+        val groupedIntervals = intervals.groupBy { it.masterTaskId }
 
-            groupedIntervals.forEach { (masterTaskId, taskIntervals) ->
-                item {
-                    masterTasks[masterTaskId]?.let { masterTask ->
-                        ScheduledTaskItem(
-                            db = db,
-                            masterTask = masterTask,
-                            intervals = taskIntervals,
-                            onClick = { onTaskClick(taskIntervals.first(), masterTask) },
-                            onPlayClick = { onPlayClick(taskIntervals.first(), masterTask) }
-                        )
+        if (groupedIntervals.isEmpty()) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "No scheduled tasks",
+                    fontSize = 18.sp,
+                    color = Color.Gray
+                )
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                groupedIntervals.forEach { (masterTaskId, taskIntervals) ->
+                    item {
+                        masterTasks[masterTaskId]?.let { masterTask ->
+                            ScheduledTaskItem(
+                                db = db,
+                                masterTask = masterTask,
+                                intervals = taskIntervals,
+                                onClick = { onTaskClick(taskIntervals.first(), masterTask) }
+                            )
+                        }
                     }
                 }
             }
@@ -400,8 +401,7 @@ fun ScheduledTaskItem(
     db: AppDatabase,
     masterTask: MasterTask,
     intervals: List<TaskInterval>,
-    onClick: () -> Unit,
-    onPlayClick: () -> Unit
+    onClick: () -> Unit
 ) {
     var category by remember { mutableStateOf<Category?>(null) }
 
@@ -442,7 +442,6 @@ fun ScheduledTaskItem(
                         .background(innerColor)
                 )
             }
-
             Spacer(modifier = Modifier.width(12.dp))
 
             // Title with ellipsis
@@ -455,28 +454,12 @@ fun ScheduledTaskItem(
                 maxLines = 1,
                 overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
             )
-
-            // Play button
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(PrimaryColor)
-                    .clickable { onPlayClick() },
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.PlayArrow,
-                    contentDescription = "Start",
-                    tint = Color.White,
-                    modifier = Modifier.size(24.dp)
-                )
-            }
+            Spacer(modifier = Modifier.width(12.dp))
         }
 
         // Dates and times
         Column(
-            modifier = Modifier.padding(start = 42.dp)
+            modifier = Modifier.padding(start = 42.dp, top = 8.dp)
         ) {
             intervals.sortedBy { it.intervalNo }.forEach { interval ->
                 Text(
@@ -496,19 +479,23 @@ fun TaskInfoPage(
     db: AppDatabase,
     task: MasterTask,
     onBack: () -> Unit,
-    onUpdate: () -> Unit
+    onUpdate: () -> Unit,
+    onPlay: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
+    val scrollState = rememberScrollState()
     var category by remember { mutableStateOf<Category?>(null) }
     var event by remember { mutableStateOf<MasterEvent?>(null) }
     var deadline by remember { mutableStateOf<Deadline?>(null) }
     var intervals by remember { mutableStateOf<List<TaskInterval>>(emptyList()) }
+    var currentTask by remember { mutableStateOf(task) }
 
-    LaunchedEffect(task) {
-        category = task.categoryId?.let { db.categoryDao().getById(it) }
-        event = task.eventId?.let { db.eventDao().getMasterEventById(it) }
-        deadline = task.deadlineId?.let { db.deadlineDao().getById(it) }
-        intervals = db.taskDao().getIntervalsForTask(task.id).sortedBy { it.intervalNo }
+    LaunchedEffect(task.id) {
+        currentTask = db.taskDao().getMasterTaskById(task.id) ?: task
+        category = currentTask.categoryId?.let { db.categoryDao().getById(it) }
+        event = currentTask.eventId?.let { db.eventDao().getMasterEventById(it) }
+        deadline = currentTask.deadlineId?.let { db.deadlineDao().getById(it) }
+        intervals = db.taskDao().getIntervalsForTask(currentTask.id).sortedBy { it.intervalNo }
     }
 
     val dateFormatter = DateTimeFormatter.ofPattern("MMM dd, yyyy")
@@ -520,63 +507,118 @@ fun TaskInfoPage(
             .background(BackgroundColor)
             .padding(16.dp)
     ) {
-        // Back button
-        Box(
-            modifier = Modifier
-                .clip(RoundedCornerShape(8.dp))
-                .background(PrimaryColor)
-                .clickable { onBack() }
-                .padding(horizontal = 16.dp, vertical = 8.dp)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                "Back",
-                fontSize = 16.sp,
-                color = Color.White
-            )
+            // Back button
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(PrimaryColor)
+                    .clickable { onBack() }
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            ) {
+                Text(
+                    "Back",
+                    fontSize = 16.sp,
+                    color = Color.White
+                )
+            }
+
+            // Play button
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(PrimaryColor)
+                    .clickable { onPlay() },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.PlayArrow,
+                    contentDescription = "Start",
+                    tint = Color.White,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Info fields
-        LazyColumn(
+        // Scrollable content
+        Column(
             modifier = Modifier
                 .weight(1f)
-                .fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .fillMaxWidth()
+                .verticalScroll(scrollState)
         ) {
-            item {
-                InfoField("Title", task.title)
+            // Title
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(18.dp)
+            ) {
+                Text(text = currentTask.title, fontSize = 20.sp, fontWeight = FontWeight.Medium)
             }
-            item {
-                InfoField("Notes", task.notes ?: "None")
+
+            // Notes
+            if (!currentTask.notes.isNullOrBlank()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                ) {
+                    Text(text = currentTask.notes!!, fontSize = 16.sp)
+                }
+                Spacer(modifier = Modifier.height(18.dp))
+            } else {
+                Spacer(modifier = Modifier.height(18.dp))
             }
-            item {
-                InfoField("Priority", task.priority.toString())
-            }
-            item {
-                InfoField("Breakable", if (task.breakable == true) "Yes" else "No")
-            }
-            item {
-                InfoField("Duration", "${task.predictedDuration} minutes")
-            }
-            item {
-                val scheduleText = if (intervals.isEmpty()) {
-                    "None"
-                } else {
-                    intervals.joinToString("\n") { interval ->
-                        "${interval.occurDate.format(dateFormatter)} ${interval.startTime.format(timeFormatter)} - ${interval.endTime.format(timeFormatter)}"
+
+            // Schedule details
+            if (intervals.isNotEmpty()) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 18.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    intervals.forEach { interval ->
+                        Text(
+                            text = "${interval.occurDate.format(dateFormatter)}  ${interval.startTime.format(timeFormatter)} - ${interval.endTime.format(timeFormatter)}",
+                            fontSize = 16.sp,
+                            color = Color.Gray
+                        )
                     }
                 }
-                InfoField("Schedule", scheduleText)
+                Spacer(modifier = Modifier.height(18.dp))
             }
-            item {
+
+            // Info fields
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                val hours = currentTask.predictedDuration / 60
+                val minutes = currentTask.predictedDuration % 60
+                val durationText = when {
+                    hours > 0 && minutes > 0 -> "${hours}h ${minutes}m"
+                    hours > 0 -> "${hours}h"
+                    else -> "${minutes}m"
+                }
+                InfoField("Duration", durationText)
+
                 InfoField("Deadline", deadline?.title ?: "None")
-            }
-            item {
+
                 InfoField("Event", event?.title ?: "None")
-            }
-            item {
+
                 InfoField("Category", category?.title ?: "None")
+
+                InfoField("Priority", currentTask.priority.toString())
+
+                InfoField("Breakable", if (currentTask.breakable == true) "Yes" else "No")
             }
         }
 
@@ -590,7 +632,7 @@ fun TaskInfoPage(
             Button(
                 onClick = {
                     scope.launch {
-                        TaskManager.delete(db, task.id)
+                        TaskManager.delete(db, currentTask.id)
                         onBack()
                     }
                 },
@@ -632,7 +674,8 @@ fun InfoField(label: String, value: String) {
 fun TaskUpdateForm(
     db: AppDatabase,
     task: MasterTask,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onSaveSuccess: (MasterTask) -> Unit
 ) {
     val scope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
@@ -796,7 +839,10 @@ fun TaskUpdateForm(
                             deadlineId = selectedDeadline?.let { deadlines.getOrNull(it)?.id }
                         )
                         TaskManager.update(db, updatedTask)
-                        onBack()
+
+                        // Get the updated task from database
+                        val refreshedTask = db.taskDao().getMasterTaskById(task.id) ?: updatedTask
+                        onSaveSuccess(refreshedTask)
                     }
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
@@ -809,7 +855,6 @@ fun TaskUpdateForm(
     }
 }
 
-/* POMODORO PAGE */
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun PomodoroPage(
@@ -817,9 +862,10 @@ fun PomodoroPage(
     task: MasterTask,
     onBack: () -> Unit
 ) {
-    var elapsedMinutes by remember { mutableIntStateOf(0) }
+    var elapsedSeconds by remember { mutableIntStateOf(0) }
     var isRunning by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+    val scrollState = rememberScrollState()
 
     var intervals by remember { mutableStateOf<List<TaskInterval>>(emptyList()) }
     var currentTask by remember { mutableStateOf(task) }
@@ -832,10 +878,13 @@ fun PomodoroPage(
     // Timer effect
     LaunchedEffect(isRunning) {
         while (isRunning) {
-            delay(60000L) // 1 minute
-            elapsedMinutes++
+            delay(1000L)
+            elapsedSeconds++
         }
     }
+
+    // Calculate elapsed minutes for database
+    val elapsedMinutes = elapsedSeconds / 60
 
     // Calculate current interval and stats
     val totalActualDuration = (currentTask.actualDuration ?: 0) + elapsedMinutes
@@ -845,8 +894,7 @@ fun PomodoroPage(
         modifier = Modifier
             .fillMaxSize()
             .background(BackgroundColor)
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .padding(16.dp)
     ) {
         // Back button
         Row(modifier = Modifier.fillMaxWidth()) {
@@ -867,56 +915,66 @@ fun PomodoroPage(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Title and Notes
-        Box(
+        // Scrollable content
+        Column(
             modifier = Modifier
+                .weight(1f)
                 .fillMaxWidth()
-                .padding(18.dp)
+                .verticalScroll(scrollState),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(text = currentTask.title, fontSize = 20.sp, fontWeight = FontWeight.Medium)
-        }
-
-        if (!currentTask.notes.isNullOrBlank()) {
+            // Title and Notes
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color(CardColor), RoundedCornerShape(12.dp))
-                    .padding(16.dp)
+                    .padding(18.dp)
             ) {
-                Text(text = currentTask.notes!!, fontSize = 16.sp)
+                Text(text = currentTask.title, fontSize = 20.sp, fontWeight = FontWeight.Medium)
             }
-            Spacer(modifier = Modifier.height(18.dp))
-        } else {
-            Spacer(modifier = Modifier.height(18.dp))
-        }
 
-        // Timer display
-        PomodoroTimer(elapsedMinutes)
+            if (!currentTask.notes.isNullOrBlank()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                ) {
+                    Text(text = currentTask.notes!!, fontSize = 16.sp)
+                }
+                Spacer(modifier = Modifier.height(24.dp))
+            } else {
+                Spacer(modifier = Modifier.height(24.dp))
+            }
 
-        Spacer(modifier = Modifier.height(18.dp))
+            // Timer display
+            PomodoroTimer(elapsedSeconds, isRunning)
 
-        // Stats
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.Start,
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Text(
-                text = "Current Interval: ${currentIntervalData.currentIntervalNo}/${currentTask.noIntervals}",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Medium
-            )
-            Text(
-                text = "Time Left: ${formatDuration(currentIntervalData.timeLeft)}",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Medium
-            )
-            Text(
-                text = "Overtime: ${formatDuration(currentIntervalData.overtime)}",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Medium,
-                color = if (currentIntervalData.overtime > 0) Color.Red else Color.Gray
-            )
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Stats
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.Start,
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = "Current Interval: ${currentIntervalData.currentIntervalNo}/${currentTask.noIntervals}",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color.Gray
+                )
+                Text(
+                    text = "Time Left: ${formatDuration(currentIntervalData.timeLeft)}",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color.Gray
+                )
+                Text(
+                    text = "Overtime: ${formatDuration(currentIntervalData.overtime)}",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color.Gray
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -930,17 +988,16 @@ fun PomodoroPage(
                 onClick = {
                     scope.launch {
                         if (isRunning) {
-                            // Stop - update database
+                            // Stop
                             isRunning = false
                             updateTaskProgress(db, currentTask, intervals, elapsedMinutes)
-                            elapsedMinutes = 0
+                            elapsedSeconds = 0
                             // Reload task and intervals
                             currentTask = db.taskDao().getMasterTaskById(task.id) ?: task
                             intervals = db.taskDao().getIntervalsForTask(task.id).sortedBy { it.intervalNo }
                         } else {
                             // Start
                             if (currentTask.status == 1) {
-                                // First time starting - update interval status to 2
                                 intervals.firstOrNull()?.let { firstInterval ->
                                     db.taskDao().updateInterval(firstInterval.copy(status = 2))
                                 }
@@ -996,25 +1053,42 @@ fun PomodoroPage(
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun PomodoroTimer(elapsedMinutes: Int) {
-    val hours = elapsedMinutes / 60
-    val minutes = elapsedMinutes % 60
-    val progress = (minutes / 60f)
+fun PomodoroTimer(elapsedSeconds: Int, isRunning: Boolean) {
+    val totalMinutes = elapsedSeconds / 60
+    val hours = totalMinutes / 60
+    val minutes = totalMinutes % 60
+    val seconds = elapsedSeconds % 60
+
+    val minutesInHour = totalMinutes % 60
+    val progress = (minutesInHour / 60f)
 
     Box(
         modifier = Modifier.size(200.dp),
         contentAlignment = Alignment.Center
     ) {
-        // Outer circle (filling clockwise)
+        // Background full circle
         androidx.compose.foundation.Canvas(
             modifier = Modifier.fillMaxSize()
         ) {
             drawArc(
-                color = PrimaryColor,
+                color = Color.Gray,
+                startAngle = -90f,
+                sweepAngle = 360f,
+                useCenter = false,
+                style = androidx.compose.ui.graphics.drawscope.Stroke(width = 12.dp.toPx())
+            )
+        }
+
+        // Depleting overlay
+        androidx.compose.foundation.Canvas(
+            modifier = Modifier.fillMaxSize()
+        ) {
+            drawArc(
+                color = BackgroundColor,
                 startAngle = -90f,
                 sweepAngle = 360f * progress,
                 useCenter = false,
-                style = androidx.compose.ui.graphics.drawscope.Stroke(width = 12.dp.toPx())
+                style = androidx.compose.ui.graphics.drawscope.Stroke(width = 14.dp.toPx())
             )
         }
 
@@ -1023,13 +1097,14 @@ fun PomodoroTimer(elapsedMinutes: Int) {
             modifier = Modifier
                 .size(160.dp)
                 .clip(CircleShape)
-                .background(Color.LightGray),
+                .background(if (isRunning) PrimaryColor else Color.LightGray),
             contentAlignment = Alignment.Center
         ) {
             Text(
-                text = String.format(Locale.US, "%02d:%02d", hours, minutes),
-                fontSize = 32.sp,
-                fontWeight = FontWeight.Bold
+                text = String.format(Locale.US, "%02d:%02d:%02d", hours, minutes, seconds),
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White
             )
         }
     }

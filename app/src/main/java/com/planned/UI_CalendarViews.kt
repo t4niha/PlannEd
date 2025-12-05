@@ -588,6 +588,7 @@ fun MonthView(
                                     overflow = TextOverflow.Ellipsis
                                 )
                             }
+                            Spacer(modifier = Modifier.width(10.dp))
                             Text(
                                 text = "${interval.startTime.format(DateTimeFormatter.ofPattern("h:mm a"))} - ${interval.endTime.format(DateTimeFormatter.ofPattern("h:mm a"))}",
                                 fontSize = 14.sp,

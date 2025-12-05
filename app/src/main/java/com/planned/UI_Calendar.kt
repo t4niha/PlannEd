@@ -436,6 +436,7 @@ fun ReminderDeadlineIndicators(db: AppDatabase, date: LocalDate) {
                                         overflow = TextOverflow.Ellipsis
                                     )
                                 }
+                                Spacer(modifier = Modifier.width(10.dp))
                                 Text(
                                     text = if (reminder.allDay) "All Day" else reminder.time?.format(DateTimeFormatter.ofPattern("h:mm a")) ?: "",
                                     fontSize = 14.sp,
@@ -515,6 +516,7 @@ fun ReminderDeadlineIndicators(db: AppDatabase, date: LocalDate) {
                                         overflow = TextOverflow.Ellipsis
                                     )
                                 }
+                                Spacer(modifier = Modifier.width(10.dp))
                                 Text(
                                     text = deadline.time.format(DateTimeFormatter.ofPattern("h:mm a")),
                                     fontSize = 14.sp,
