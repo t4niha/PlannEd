@@ -612,7 +612,7 @@ fun TaskInfoPage(
                 }
                 InfoField("Duration", durationText)
 
-                InfoField("Dependency Task", dependencyTask?.title ?: "None")
+                InfoField("Dependency", dependencyTask?.title ?: "None")
 
                 InfoField("Deadline", deadline?.title ?: "None")
 
