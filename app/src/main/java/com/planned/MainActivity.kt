@@ -49,3 +49,14 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
+
+/**
+ TODO: Task form dropdown cascade logic issue
+ TODO: Cancel (dialogue) buttons do same as Save
+ TODO: Task form update needed after Save for dependency option
+ TODO: UI Pages + isException logic
+ TODO: Calendar to object pages
+ TODO: Scheduling breakable tasks only partially when insufficient bucket space
+ TODO: Warning for insufficient bucket space
+ TODO: What to do when impossible to meet deadline given current schedule order?
+**/

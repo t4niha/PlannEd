@@ -278,7 +278,7 @@ fun UnscheduledTaskItem(
         category = task.categoryId?.let { db.categoryDao().getCategoryById(it) }
     }
 
-    val innerColor = category?.let { Converters.toColor(it.color) } ?: Color.Gray
+    val innerColor = category?.let { Converters.toColor(it.color) } ?: Color.LightGray
     val outerColor = priorityColors.getOrNull(task.priority - 1) ?: Color.Gray
 
     Row(
@@ -409,7 +409,7 @@ fun ScheduledTaskItem(
         category = masterTask.categoryId?.let { db.categoryDao().getCategoryById(it) }
     }
 
-    val innerColor = category?.let { Converters.toColor(it.color) } ?: Color.Gray
+    val innerColor = category?.let { Converters.toColor(it.color) } ?: Color.LightGray
     val outerColor = priorityColors.getOrNull(masterTask.priority - 1) ?: Color.Gray
 
     val dateFormatter = DateTimeFormatter.ofPattern("MMM dd, yyyy")

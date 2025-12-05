@@ -541,7 +541,7 @@ fun MonthView(
                                     val category = db.categoryDao().getAll().find { it.id == masterTask.categoryId }
                                     category?.color?.let { Converters.toColor(it) } ?: Color(CardColor)
                                 }
-                                else -> Color(CardColor)
+                                else -> Color.LightGray
                             }
                         }
                     }
