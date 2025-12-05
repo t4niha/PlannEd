@@ -390,6 +390,11 @@ interface EventDao {
     @Query("SELECT * FROM MasterEvent")
     suspend fun getAllEventsWithOccurrences(): List<MasterEventWithOccurrences>
 
+    // Fetch master event by ID
+
+    @Query("SELECT * FROM MasterEvent WHERE id = :eventId")
+    suspend fun getMasterEventById(eventId: Int): MasterEvent?
+
     // Update master event
     @Update suspend fun update(event: MasterEvent)
 

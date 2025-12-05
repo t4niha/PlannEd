@@ -37,29 +37,30 @@ data class OrderedTask(
 /* Clear all task intervals and regenerates them based on scheduling rules */
 @RequiresApi(Build.VERSION_CODES.O)
 suspend fun generateTaskIntervals(db: AppDatabase) {
-    // Step 1: Reset - Clear all task intervals and reset noIntervals
+    // Clear all task intervals and reset noIntervals
     db.taskDao().getAllIntervals().forEach { interval ->
         db.taskDao().deleteInterval(interval.id)
     }
-
-    val allMasterTasks = db.taskDao().getAllMasterTasks()
+    val allMasterTasks = db.taskDao()
+        .getAllMasterTasks()
+        .filter { it.status != 3 }
     allMasterTasks.forEach { task ->
         db.taskDao().update(task.copy(noIntervals = 0))
     }
 
-    // Step 2: Process manually scheduled tasks first
+    // Process manually scheduled tasks
     val manualTasks = allMasterTasks.filter { it.startDate != null && it.startTime != null }
     val autoTasks = allMasterTasks.filter { it.startDate == null || it.startTime == null }
 
     processManuallyScheduledTasks(db, manualTasks)
 
-    // Step 3: Order auto-scheduled tasks by heuristic
+    // Order auto-scheduled tasks by heuristic
     val orderedAutoTasks = orderAutoScheduledTasks(db, autoTasks)
 
-    // Step 4: Get available time slots from task buckets
+    // Get available time slots from task buckets
     val availableSlots = getAvailableTimeSlots(db)
 
-    // Step 5: Assign auto-scheduled tasks into available slots
+    // Assign auto-scheduled tasks into available slots
     assignAutoScheduledTasks(db, orderedAutoTasks, availableSlots)
 }
 
