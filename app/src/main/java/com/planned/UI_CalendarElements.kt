@@ -322,7 +322,8 @@ fun RenderTaskBlock(
             .background(task.color)
             .border(6.dp, Color(CardColor), RoundedCornerShape(ELEMENT_CORNER_RADIUS_DAY.dp))
             .clickable {
-                // TODO: open task details
+                com.planned.selectedTaskForInfo = task.master
+                com.planned.currentScreen = "TaskInfo"
             }
             .padding(ELEMENT_TEXT_PADDING.dp)
     ) {
@@ -472,7 +473,8 @@ fun RenderTaskBlockWeek(
             .background(task.color)
             .border(4.dp, Color(CardColor), RoundedCornerShape(ELEMENT_CORNER_RADIUS_WEEK.dp))
             .clickable {
-                // TODO: open task details
+                com.planned.selectedTaskForInfo = task.master
+                com.planned.currentScreen = "TaskInfo"
             }
     )
 }

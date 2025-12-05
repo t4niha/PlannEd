@@ -541,7 +541,7 @@ fun MonthView(
                                     val category = db.categoryDao().getAll().find { it.id == masterTask.categoryId }
                                     category?.color?.let { Converters.toColor(it) } ?: Color(CardColor)
                                 }
-                                else -> Color.LightGray
+                                else -> Color(CardColor)
                             }
                         }
                     }
@@ -552,7 +552,10 @@ fun MonthView(
                             .padding(vertical = 4.dp)
                             .background(Color(CardColor), RoundedCornerShape(8.dp))
                             .clickable {
-                                // TODO: open task details
+                                masterTask?.let {
+                                    selectedTaskForInfo = it
+                                    currentScreen = "TaskInfo"
+                                }
                             }
                             .padding(12.dp)
                     ) {

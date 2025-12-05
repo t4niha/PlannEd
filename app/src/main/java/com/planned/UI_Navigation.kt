@@ -37,6 +37,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 var currentScreen by mutableStateOf("Calendars")
 var currentCalendarView by mutableStateOf("Day")
 var calendarResetTrigger by mutableIntStateOf(0)
+var selectedTaskForInfo by mutableStateOf<MasterTask?>(null)
 
 /* APP NAVIGATION */
 @RequiresApi(Build.VERSION_CODES.O)
@@ -78,6 +79,40 @@ fun AppNavigation(db: AppDatabase) {
                         "Settings" -> Settings(db)
                         "Developer" -> Developer(db)
                         "Creation" -> Creation(db)
+                        "TaskInfo" -> selectedTaskForInfo?.let { task ->
+                            TaskInfoPage(
+                                db = db,
+                                task = task,
+                                onBack = {
+                                    currentScreen = "Calendars"
+                                    selectedTaskForInfo = null
+                                },
+                                onUpdate = { currentScreen = "TaskUpdate" },
+                                onPlay = { currentScreen = "TaskPomodoro" }
+                            )
+                        }
+                        "TaskUpdate" -> selectedTaskForInfo?.let { task ->
+                            TaskUpdateForm(
+                                db = db,
+                                task = task,
+                                onBack = {
+                                    currentScreen = "TaskInfo"
+                                },
+                                onSaveSuccess = { updatedTask ->
+                                    selectedTaskForInfo = updatedTask
+                                    currentScreen = "TaskInfo"
+                                }
+                            )
+                        }
+                        "TaskPomodoro" -> selectedTaskForInfo?.let { task ->
+                            PomodoroPage(
+                                db = db,
+                                task = task,
+                                onBack = {
+                                    currentScreen = "TaskInfo"
+                                }
+                            )
+                        }
                     }
                 }
             }
