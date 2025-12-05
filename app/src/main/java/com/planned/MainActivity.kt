@@ -51,7 +51,6 @@ class MainActivity : ComponentActivity() {
 }
 
 /**
- TODO: Task form dropdown cascade logic issue, isEditMode needed?
  TODO: Cancel (dialogue) buttons do same as Save
  TODO: Task form update needed after Save for dependency option
  TODO: UI Pages + isException logic

@@ -826,7 +826,6 @@ fun TaskUpdateForm(
                 breakableLockedByDuration = breakableLockedByDuration,
                 onBreakableLockedByDurationChange = { breakableLockedByDuration = it },
                 resetTrigger = resetTrigger,
-                isEditMode = true,
                 currentTaskId = task.id
             )
 

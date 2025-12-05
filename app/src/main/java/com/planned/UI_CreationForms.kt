@@ -447,14 +447,12 @@ fun TaskForm(
     breakableLockedByDuration: Boolean,
     onBreakableLockedByDurationChange: (Boolean) -> Unit,
     resetTrigger: Int,
-    isEditMode: Boolean = false,
     currentTaskId: Int? = null
 ) {
     var categories by remember { mutableStateOf<List<Category>>(emptyList()) }
     var events by remember { mutableStateOf<List<MasterEvent>>(emptyList()) }
     var deadlines by remember { mutableStateOf<List<Deadline>>(emptyList()) }
     var dependencyTasks by remember { mutableStateOf<List<MasterTask>>(emptyList()) }
-    var previousCategory by remember { mutableStateOf<Int?>(null) }
     var previousEvent by remember { mutableStateOf<Int?>(null) }
     var previousDeadline by remember { mutableStateOf<Int?>(null) }
     var previousDependencyTask by remember { mutableStateOf<Int?>(null) }
@@ -545,8 +543,8 @@ fun TaskForm(
         }
     }
 
-    LaunchedEffect(selectedDeadline, deadlines.size, events.size) {
-        if (!isEditMode && selectedDeadline != previousDeadline) {
+    LaunchedEffect(selectedDeadline, deadlines.size, events.size, categories.size) {
+        if (selectedDeadline != previousDeadline) {
             if (selectedDeadline != null && deadlines.isNotEmpty()) {
                 val deadline = deadlines.getOrNull(selectedDeadline)
                 if (deadline != null) {
@@ -592,8 +590,8 @@ fun TaskForm(
     }
 
     // Lock category when event is selected
-    LaunchedEffect(selectedEvent, events.size) {
-        if (!isEditMode && selectedDeadline == null && selectedEvent != previousEvent) {
+    LaunchedEffect(selectedEvent, events.size, categories.size) {
+        if (selectedDeadline == null && selectedEvent != previousEvent) {
             if (selectedEvent != null && events.isNotEmpty()) {
                 val event = events.getOrNull(selectedEvent)
                 if (event != null) {
@@ -712,8 +710,7 @@ fun TaskForm(
             initialSelection = selectedDeadline,
             key = resetTrigger
         )
-        if (deadlineValue != previousDeadline) {
-            previousDeadline = deadlineValue
+        if (deadlineValue != selectedDeadline) {
             onDeadlineChange(deadlineValue)
         }
         Spacer(modifier = Modifier.height(12.dp))
@@ -726,12 +723,9 @@ fun TaskForm(
             key = resetTrigger,
             locked = selectedDeadline != null
         )
-        // Only call onChange when value actually changes and not locked
-        if (eventValue != previousEvent) {
-            previousEvent = eventValue
-            if (selectedDeadline == null) {
-                onEventChange(eventValue)
-            }
+        // Only allow user changes when not locked
+        if (selectedDeadline == null && eventValue != selectedEvent) {
+            onEventChange(eventValue)
         }
         Spacer(modifier = Modifier.height(12.dp))
 
@@ -743,12 +737,9 @@ fun TaskForm(
             key = resetTrigger,
             locked = selectedEvent != null || selectedDeadline != null
         )
-        // Only call onChange when value actually changes and not locked
-        if (categoryValue != previousCategory) {
-            previousCategory = categoryValue
-            if (selectedEvent == null && selectedDeadline == null) {
-                onCategoryChange(categoryValue)
-            }
+        // Only allow user changes when not locked
+        if (selectedEvent == null && selectedDeadline == null && categoryValue != selectedCategory) {
+            onCategoryChange(categoryValue)
         }
     }
 }
