@@ -8,8 +8,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
@@ -45,6 +47,7 @@ fun Tasks(db: AppDatabase) {
 
     when (currentView) {
         "main" -> TasksMainView(
+            db = db,
             onUnscheduledClick = { currentView = "unscheduled" },
             onScheduledClick = { currentView = "scheduled" }
         )
@@ -107,9 +110,11 @@ fun Tasks(db: AppDatabase) {
     }
 }
 
-/* MAIN VIEW - Two boxes for Unscheduled and Scheduled */
+/* MAIN VIEW */
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun TasksMainView(
+    db: AppDatabase,
     onUnscheduledClick: () -> Unit,
     onScheduledClick: () -> Unit
 ) {
@@ -124,11 +129,13 @@ fun TasksMainView(
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             TaskCategoryBox(
+                db = db,
                 title = "Unscheduled Tasks",
                 modifier = Modifier.weight(1f),
                 onClick = onUnscheduledClick
             )
             TaskCategoryBox(
+                db = db,
                 title = "Scheduled Tasks",
                 modifier = Modifier.weight(1f),
                 onClick = onScheduledClick
@@ -137,27 +144,58 @@ fun TasksMainView(
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun TaskCategoryBox(
+    db: AppDatabase,
     title: String,
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
+    var taskCount by remember { mutableIntStateOf(0) }
+
+    LaunchedEffect(Unit) {
+        val tasks = db.taskDao().getAllMasterTasks().filter { it.status != 3 }
+        taskCount = if (title.contains("Unscheduled")) {
+            tasks.filter { it.noIntervals == 0 }.size
+        } else {
+            tasks.filter { it.noIntervals > 0 }.size
+        }
+    }
+
     Box(
         modifier = modifier
             .aspectRatio(1f)
             .clip(RoundedCornerShape(16.dp))
-            .background(Color.LightGray)
+            .background(Color(CardColor))
             .clickable { onClick() }
-            .padding(16.dp),
-        contentAlignment = Alignment.Center
+            .padding(16.dp)
     ) {
+        // Title text aligned to top-start
         Text(
             text = title,
             fontSize = 18.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color.Black
+            fontWeight = FontWeight.Normal,
+            color = Color.Black,
+            modifier = Modifier.align(Alignment.TopStart)
         )
+
+        // Count indicator circle in top-right
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .size(24.dp)
+                .clip(CircleShape)
+                .background(if (taskCount > 0) PrimaryColor else Color.Gray),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = taskCount.toString(),
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White
+            )
+        }
     }
 }
 
@@ -183,8 +221,19 @@ fun UnscheduledTasksList(
             .background(BackgroundColor)
     ) {
         // Back button
-        TextButton(onClick = onBack) {
-            Text("← Back", fontSize = 16.sp)
+        Box(
+            modifier = Modifier
+                .padding(12.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(PrimaryColor)
+                .clickable { onBack() }
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+        ) {
+            Text(
+                "Back",
+                fontSize = 16.sp,
+                color = Color.White
+            )
         }
 
         LazyColumn(
@@ -300,8 +349,19 @@ fun ScheduledTasksList(
             .background(BackgroundColor)
     ) {
         // Back button
-        TextButton(onClick = onBack) {
-            Text("← Back", fontSize = 16.sp)
+        Box(
+            modifier = Modifier
+                .padding(12.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(PrimaryColor)
+                .clickable { onBack() }
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+        ) {
+            Text(
+                "Back",
+                fontSize = 16.sp,
+                color = Color.White
+            )
         }
 
         LazyColumn(
@@ -348,6 +408,9 @@ fun ScheduledTaskItem(
     val innerColor = category?.let { Converters.toColor(it.color) } ?: Color.Gray
     val outerColor = priorityColors.getOrNull(masterTask.priority - 1) ?: Color.Gray
 
+    val dateFormatter = DateTimeFormatter.ofPattern("MMM dd, yyyy")
+    val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -380,14 +443,15 @@ fun ScheduledTaskItem(
             Text(
                 text = masterTask.title,
                 fontSize = 16.sp,
-                fontWeight = FontWeight.Medium
+                fontWeight = FontWeight.Normal,
+                color = Color.Black
             )
             Spacer(modifier = Modifier.height(4.dp))
-            // Show all timings for breakable tasks
+            // Show all timings for intervals
             intervals.sortedBy { it.intervalNo }.forEach { interval ->
                 Text(
-                    text = "${interval.startTime.format(DateTimeFormatter.ofPattern("HH:mm"))} - ${interval.endTime.format(DateTimeFormatter.ofPattern("HH:mm"))}",
-                    fontSize = 12.sp,
+                    text = "${interval.occurDate.format(dateFormatter)} ${interval.startTime.format(timeFormatter)} - ${interval.endTime.format(timeFormatter)}",
+                    fontSize = 14.sp,
                     color = Color.Gray
                 )
             }
@@ -425,12 +489,17 @@ fun TaskInfoPage(
     var category by remember { mutableStateOf<Category?>(null) }
     var event by remember { mutableStateOf<MasterEvent?>(null) }
     var deadline by remember { mutableStateOf<Deadline?>(null) }
+    var intervals by remember { mutableStateOf<List<TaskInterval>>(emptyList()) }
 
     LaunchedEffect(task) {
         category = task.categoryId?.let { db.categoryDao().getById(it) }
         event = task.eventId?.let { db.eventDao().getMasterEventById(it) }
         deadline = task.deadlineId?.let { db.deadlineDao().getById(it) }
+        intervals = db.taskDao().getIntervalsForTask(task.id).sortedBy { it.intervalNo }
     }
+
+    val dateFormatter = DateTimeFormatter.ofPattern("MMM dd, yyyy")
+    val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
 
     Column(
         modifier = Modifier
@@ -439,8 +508,18 @@ fun TaskInfoPage(
             .padding(16.dp)
     ) {
         // Back button
-        TextButton(onClick = onBack) {
-            Text("← Back", fontSize = 16.sp)
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(8.dp))
+                .background(PrimaryColor)
+                .clickable { onBack() }
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+        ) {
+            Text(
+                "Back",
+                fontSize = 16.sp,
+                color = Color.White
+            )
         }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -465,35 +544,26 @@ fun TaskInfoPage(
                 InfoField("Breakable", if (task.breakable == true) "Yes" else "No")
             }
             item {
-                InfoField("Predicted Duration", "${task.predictedDuration} minutes")
+                InfoField("Duration", "${task.predictedDuration} minutes")
             }
             item {
-                InfoField("Actual Duration", "${task.actualDuration ?: 0} minutes")
+                val scheduleText = if (intervals.isEmpty()) {
+                    "None"
+                } else {
+                    intervals.joinToString("\n") { interval ->
+                        "${interval.occurDate.format(dateFormatter)} ${interval.startTime.format(timeFormatter)} - ${interval.endTime.format(timeFormatter)}"
+                    }
+                }
+                InfoField("Schedule", scheduleText)
             }
             item {
-                InfoField("Status", when(task.status) {
-                    1 -> "Not Started"
-                    2 -> "In Progress"
-                    3 -> "Completed"
-                    else -> "Unknown"
-                })
-            }
-            item {
-                InfoField("Category", category?.title ?: "None")
+                InfoField("Deadline", deadline?.title ?: "None")
             }
             item {
                 InfoField("Event", event?.title ?: "None")
             }
             item {
-                InfoField("Deadline", deadline?.title ?: "None")
-            }
-            if (task.startDate != null && task.startTime != null) {
-                item {
-                    InfoField("Start Date", task.startDate.toString())
-                }
-                item {
-                    InfoField("Start Time", task.startTime.toString())
-                }
+                InfoField("Category", category?.title ?: "None")
             }
         }
 
@@ -512,16 +582,18 @@ fun TaskInfoPage(
                     }
                 },
                 modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+                colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
+                contentPadding = PaddingValues(16.dp)
             ) {
-                Text("Delete", color = Color.White)
+                Text("Delete", fontSize = 16.sp, color = Color.White)
             }
             Button(
                 onClick = onUpdate,
                 modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
+                colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
+                contentPadding = PaddingValues(16.dp)
             ) {
-                Text("Update", color = Color.White)
+                Text("Update", fontSize = 16.sp, color = Color.White)
             }
         }
     }
@@ -549,88 +621,182 @@ fun TaskUpdateForm(
     task: MasterTask,
     onBack: () -> Unit
 ) {
-    // Use the same creation form but with pre-filled values
-    // This will be the TaskForm from UI_CreationForms.kt with initial values
+    val scope = rememberCoroutineScope()
+    val scrollState = rememberScrollState()
+
+    // State variables matching TaskForm
     var title by remember { mutableStateOf(task.title) }
     var notes by remember { mutableStateOf(task.notes ?: "") }
     var priority by remember { mutableIntStateOf(task.priority) }
-    var breakable by remember { mutableStateOf(task.breakable) }
-    var predictedDuration by remember { mutableIntStateOf(task.predictedDuration) }
-    var categoryId by remember { mutableStateOf(task.categoryId) }
-    var eventId by remember { mutableStateOf(task.eventId) }
-    var deadlineId by remember { mutableStateOf(task.deadlineId) }
+    var isBreakable by remember { mutableStateOf(task.breakable ?: false) }
+    var isAutoSchedule by remember { mutableStateOf(task.startDate == null || task.startTime == null) }
     var startDate by remember { mutableStateOf(task.startDate) }
     var startTime by remember { mutableStateOf(task.startTime) }
+    var durationHours by remember { mutableIntStateOf(task.predictedDuration / 60) }
+    var durationMinutes by remember { mutableIntStateOf(task.predictedDuration % 60) }
+    var breakableLockedByDuration by remember { mutableStateOf(false) }
 
-    val scope = rememberCoroutineScope()
+    // Categories, events, deadlines - converted to indices
+    var categories by remember { mutableStateOf<List<Category>>(emptyList()) }
+    var events by remember { mutableStateOf<List<MasterEvent>>(emptyList()) }
+    var deadlines by remember { mutableStateOf<List<Deadline>>(emptyList()) }
+
+    var selectedCategory by remember { mutableStateOf<Int?>(null) }
+    var selectedEvent by remember { mutableStateOf<Int?>(null) }
+    var selectedDeadline by remember { mutableStateOf<Int?>(null) }
+
+    var resetTrigger by remember { mutableIntStateOf(0) }
+
+    LaunchedEffect(Unit) {
+        categories = CategoryManager.getAll(db)
+        events = EventManager.getAll(db)
+        deadlines = DeadlineManager.getAll(db)
+
+        // Convert IDs to indices
+        selectedCategory = task.categoryId?.let { catId ->
+            categories.indexOfFirst { it.id == catId }.takeIf { it >= 0 }
+        }
+        selectedEvent = task.eventId?.let { evId ->
+            events.indexOfFirst { it.id == evId }.takeIf { it >= 0 }
+        }
+        selectedDeadline = task.deadlineId?.let { dlId ->
+            deadlines.indexOfFirst { it.id == dlId }.takeIf { it >= 0 }
+        }
+    }
+
+    fun clearForm() {
+        title = task.title
+        notes = task.notes ?: ""
+        priority = task.priority
+        isBreakable = task.breakable ?: false
+        isAutoSchedule = task.startDate == null || task.startTime == null
+        startDate = task.startDate
+        startTime = task.startTime
+        durationHours = task.predictedDuration / 60
+        durationMinutes = task.predictedDuration % 60
+
+        selectedCategory = task.categoryId?.let { catId ->
+            categories.indexOfFirst { it.id == catId }.takeIf { it >= 0 }
+        }
+        selectedEvent = task.eventId?.let { evId ->
+            events.indexOfFirst { it.id == evId }.takeIf { it >= 0 }
+        }
+        selectedDeadline = task.deadlineId?.let { dlId ->
+            deadlines.indexOfFirst { it.id == dlId }.takeIf { it >= 0 }
+        }
+
+        resetTrigger++
+    }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(BackgroundColor)
+            .verticalScroll(scrollState)
             .padding(16.dp)
     ) {
         // Back button
-        TextButton(onClick = onBack) {
-            Text("← Back", fontSize = 16.sp)
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(8.dp))
+                .background(PrimaryColor)
+                .clickable { onBack() }
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+        ) {
+            Text(
+                "Back",
+                fontSize = 16.sp,
+                color = Color.White
+            )
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
         Text("Update Task", fontSize = 24.sp, fontWeight = FontWeight.Bold)
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
-        // Form fields (simplified - you can expand this with proper form fields)
-        LazyColumn(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            item {
-                OutlinedTextField(
-                    value = title,
-                    onValueChange = { title = it },
-                    label = { Text("Title") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-            item {
-                OutlinedTextField(
-                    value = notes,
-                    onValueChange = { notes = it },
-                    label = { Text("Notes") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-            // Add more fields as needed
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Save button
-        Button(
-            onClick = {
-                scope.launch {
-                    val updatedTask = task.copy(
-                        title = title,
-                        notes = notes.ifBlank { null },
-                        priority = priority,
-                        breakable = breakable,
-                        predictedDuration = predictedDuration,
-                        categoryId = categoryId,
-                        eventId = eventId,
-                        deadlineId = deadlineId,
-                        startDate = startDate,
-                        startTime = startTime
-                    )
-                    TaskManager.update(db, updatedTask)
-                    onBack()
-                }
+        // Use TaskForm with current values
+        TaskForm(
+            db = db,
+            title = title,
+            onTitleChange = { title = it },
+            notes = notes,
+            onNotesChange = { notes = it },
+            priority = priority,
+            onPriorityChange = { priority = it },
+            isBreakable = isBreakable,
+            onBreakableChange = { isBreakable = it },
+            isAutoSchedule = isAutoSchedule,
+            startDate = startDate,
+            startTime = startTime,
+            onScheduleChange = { auto, date, time ->
+                isAutoSchedule = auto
+                startDate = date
+                startTime = time
             },
+            durationHours = durationHours,
+            durationMinutes = durationMinutes,
+            onDurationChange = { h, m ->
+                durationHours = h
+                durationMinutes = m
+            },
+            selectedCategory = selectedCategory,
+            onCategoryChange = { selectedCategory = it },
+            selectedEvent = selectedEvent,
+            onEventChange = { selectedEvent = it },
+            selectedDeadline = selectedDeadline,
+            onDeadlineChange = { selectedDeadline = it },
+            breakableLockedByDuration = breakableLockedByDuration,
+            onBreakableLockedByDurationChange = { breakableLockedByDuration = it },
+            resetTrigger = resetTrigger
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Clear and Save buttons
+        Row(
             modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text("Save", color = Color.White)
+            Button(
+                onClick = { clearForm() },
+                colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
+                modifier = Modifier.weight(1f),
+                contentPadding = PaddingValues(16.dp)
+            ) {
+                Text("Clear", fontSize = 16.sp)
+            }
+            Spacer(modifier = Modifier.width(12.dp))
+            Button(
+                onClick = {
+                    if (title.isBlank()) {
+                        return@Button
+                    }
+                    scope.launch {
+                        val durationInMinutes = (durationHours * 60) + durationMinutes
+                        val updatedTask = task.copy(
+                            title = title,
+                            notes = notes.ifBlank { null },
+                            priority = priority,
+                            breakable = isBreakable,
+                            predictedDuration = durationInMinutes,
+                            startDate = if (isAutoSchedule) null else startDate,
+                            startTime = if (isAutoSchedule) null else startTime,
+                            categoryId = selectedCategory?.let { categories.getOrNull(it)?.id },
+                            eventId = selectedEvent?.let { events.getOrNull(it)?.id },
+                            deadlineId = selectedDeadline?.let { deadlines.getOrNull(it)?.id }
+                        )
+                        TaskManager.update(db, updatedTask)
+                        onBack()
+                    }
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
+                modifier = Modifier.weight(1f),
+                contentPadding = PaddingValues(16.dp)
+            ) {
+                Text("Save", fontSize = 16.sp)
+            }
         }
     }
 }
@@ -676,8 +842,18 @@ fun PomodoroPage(
     ) {
         // Back button
         Row(modifier = Modifier.fillMaxWidth()) {
-            TextButton(onClick = onBack) {
-                Text("← Back", fontSize = 16.sp)
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(PrimaryColor)
+                    .clickable { onBack() }
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            ) {
+                Text(
+                    "Back",
+                    fontSize = 16.sp,
+                    color = Color.White
+                )
             }
         }
 
