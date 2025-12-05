@@ -307,7 +307,8 @@ object TaskManager {
         predictedDuration: Int, // in minutes
         categoryId: Int?,
         eventId: Int?,
-        deadlineId: Int?
+        deadlineId: Int?,
+        dependencyTaskId: Int?
     ) {
         val task = MasterTask(
             title = title,
@@ -320,7 +321,8 @@ object TaskManager {
             predictedDuration = predictedDuration,
             categoryId = categoryId,
             eventId = eventId,
-            deadlineId = deadlineId
+            deadlineId = deadlineId,
+            dependencyTaskId = dependencyTaskId
         )
         db.taskDao().insert(task)
 
@@ -345,10 +347,10 @@ object TaskManager {
     // Delete master task
     @RequiresApi(Build.VERSION_CODES.O)
     suspend fun delete(db: AppDatabase, taskId: Int) {
-        db.taskDao().deleteMasterTask(taskId)
+        // Handle dependency cleanup
+        onTaskDeleted(db, taskId)
 
-        // Regenerate task intervals since task deleted
-        onTaskChanged(db)
+        db.taskDao().deleteMasterTask(taskId)
     }
 }
 

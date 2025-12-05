@@ -275,7 +275,7 @@ fun UnscheduledTaskItem(
     var category by remember { mutableStateOf<Category?>(null) }
 
     LaunchedEffect(task.categoryId) {
-        category = task.categoryId?.let { db.categoryDao().getById(it) }
+        category = task.categoryId?.let { db.categoryDao().getCategoryById(it) }
     }
 
     val innerColor = category?.let { Converters.toColor(it.color) } ?: Color.Gray
@@ -406,7 +406,7 @@ fun ScheduledTaskItem(
     var category by remember { mutableStateOf<Category?>(null) }
 
     LaunchedEffect(masterTask.categoryId) {
-        category = masterTask.categoryId?.let { db.categoryDao().getById(it) }
+        category = masterTask.categoryId?.let { db.categoryDao().getCategoryById(it) }
     }
 
     val innerColor = category?.let { Converters.toColor(it.color) } ?: Color.Gray
@@ -487,14 +487,16 @@ fun TaskInfoPage(
     var category by remember { mutableStateOf<Category?>(null) }
     var event by remember { mutableStateOf<MasterEvent?>(null) }
     var deadline by remember { mutableStateOf<Deadline?>(null) }
+    var dependencyTask by remember { mutableStateOf<MasterTask?>(null) }
     var intervals by remember { mutableStateOf<List<TaskInterval>>(emptyList()) }
     var currentTask by remember { mutableStateOf(task) }
 
     LaunchedEffect(task.id) {
         currentTask = db.taskDao().getMasterTaskById(task.id) ?: task
-        category = currentTask.categoryId?.let { db.categoryDao().getById(it) }
+        category = currentTask.categoryId?.let { db.categoryDao().getCategoryById(it) }
         event = currentTask.eventId?.let { db.eventDao().getMasterEventById(it) }
-        deadline = currentTask.deadlineId?.let { db.deadlineDao().getById(it) }
+        deadline = currentTask.deadlineId?.let { db.deadlineDao().getDeadlineById(it) }
+        dependencyTask = currentTask.dependencyTaskId?.let { db.taskDao().getMasterTaskById(it) }
         intervals = db.taskDao().getIntervalsForTask(currentTask.id).sortedBy { it.intervalNo }
     }
 
@@ -610,6 +612,8 @@ fun TaskInfoPage(
                 }
                 InfoField("Duration", durationText)
 
+                InfoField("Dependency Task", dependencyTask?.title ?: "None")
+
                 InfoField("Deadline", deadline?.title ?: "None")
 
                 InfoField("Event", event?.title ?: "None")
@@ -696,10 +700,12 @@ fun TaskUpdateForm(
     var categories by remember { mutableStateOf<List<Category>>(emptyList()) }
     var events by remember { mutableStateOf<List<MasterEvent>>(emptyList()) }
     var deadlines by remember { mutableStateOf<List<Deadline>>(emptyList()) }
+    var dependencyTasks by remember { mutableStateOf<List<MasterTask>>(emptyList()) }
 
     var selectedCategory by remember { mutableStateOf<Int?>(null) }
     var selectedEvent by remember { mutableStateOf<Int?>(null) }
     var selectedDeadline by remember { mutableStateOf<Int?>(null) }
+    var selectedDependencyTask by remember { mutableStateOf<Int?>(null) }
 
     var resetTrigger by remember { mutableIntStateOf(0) }
 
@@ -707,6 +713,11 @@ fun TaskUpdateForm(
         categories = CategoryManager.getAll(db)
         events = EventManager.getAll(db)
         deadlines = DeadlineManager.getAll(db)
+
+        // Get tasks that can be dependencies (auto-scheduled tasks only)
+        dependencyTasks = TaskManager.getAll(db).filter {
+            it.status == 1 && it.startDate == null && it.startTime == null && it.id != task.id
+        }
 
         // Convert IDs to indices
         selectedCategory = task.categoryId?.let { catId ->
@@ -717,6 +728,9 @@ fun TaskUpdateForm(
         }
         selectedDeadline = task.deadlineId?.let { dlId ->
             deadlines.indexOfFirst { it.id == dlId }.takeIf { it >= 0 }
+        }
+        selectedDependencyTask = task.dependencyTaskId?.let { depId ->
+            dependencyTasks.indexOfFirst { it.id == depId }.takeIf { it >= 0 }
         }
     }
 
@@ -731,16 +745,8 @@ fun TaskUpdateForm(
         durationHours = task.predictedDuration / 60
         durationMinutes = task.predictedDuration % 60
 
-        selectedCategory = task.categoryId?.let { catId ->
-            categories.indexOfFirst { it.id == catId }.takeIf { it >= 0 }
-        }
-        selectedEvent = task.eventId?.let { evId ->
-            events.indexOfFirst { it.id == evId }.takeIf { it >= 0 }
-        }
-        selectedDeadline = task.deadlineId?.let { dlId ->
-            deadlines.indexOfFirst { it.id == dlId }.takeIf { it >= 0 }
-        }
-
+        // Don't recalculate indices - just reset the trigger
+        // The LaunchedEffect(Unit) already set these correctly on initial load
         resetTrigger++
     }
 
@@ -798,9 +804,13 @@ fun TaskUpdateForm(
             onEventChange = { selectedEvent = it },
             selectedDeadline = selectedDeadline,
             onDeadlineChange = { selectedDeadline = it },
+            selectedDependencyTask = selectedDependencyTask,
+            onDependencyTaskChange = { selectedDependencyTask = it },
             breakableLockedByDuration = breakableLockedByDuration,
             onBreakableLockedByDurationChange = { breakableLockedByDuration = it },
-            resetTrigger = resetTrigger
+            resetTrigger = resetTrigger,
+            isEditMode = true,
+            currentTaskId = task.id
         )
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -836,7 +846,8 @@ fun TaskUpdateForm(
                             startTime = if (isAutoSchedule) null else startTime,
                             categoryId = selectedCategory?.let { categories.getOrNull(it)?.id },
                             eventId = selectedEvent?.let { events.getOrNull(it)?.id },
-                            deadlineId = selectedDeadline?.let { deadlines.getOrNull(it)?.id }
+                            deadlineId = selectedDeadline?.let { deadlines.getOrNull(it)?.id },
+                            dependencyTaskId = selectedDependencyTask?.let { dependencyTasks.getOrNull(it)?.id }
                         )
                         TaskManager.update(db, updatedTask)
 

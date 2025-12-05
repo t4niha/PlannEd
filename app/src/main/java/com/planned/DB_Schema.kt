@@ -155,9 +155,9 @@ data class TaskBucketOccurrence(
 @Entity(
     foreignKeys = [
         ForeignKey(
-            entity = MasterTaskBucket::class,
+            entity = MasterTask::class,
             parentColumns = ["id"],
-            childColumns = ["bucketId"],
+            childColumns = ["dependencyTaskId"],
             onDelete = ForeignKey.SET_NULL
         ),
         ForeignKey(
@@ -199,7 +199,7 @@ data class MasterTask(
     val timeLeft: Int? = null,              // auto calculated (sum of occurrences)
     val overTime: Int? = null,              // auto-calculated (sum of occurrences)
 
-    val bucketId: Int? = null,              // back-end access to this only
+    val dependencyTaskId: Int? = null,      // task that must be completed before this one
     val eventId: Int? = null,
     val deadlineId: Int? = null,
     val categoryId: Int? = null
@@ -255,16 +255,16 @@ data class MasterReminder(
     val notes: String? = null,
     val color: String,
 
-    val startDate: LocalDate,                // date when reminder occurs
-    val endDate: LocalDate? = null,          // for recurring reminders only, date when occurrences stop
+    val startDate: LocalDate,
+    val endDate: LocalDate? = null,
 
-    val time: LocalTime?,                    // null if all day
-    val allDay: Boolean = true,
+    val time: LocalTime? = null,
+    val allDay: Boolean,
 
-    val recurFreq: RecurrenceFrequency,      // only once / daily / weekly / monthly / yearly
-    val recurRule: RecurrenceRule,           // none / days of week 1-7 / date 1-31 / date DD-MM
+    val recurFreq: RecurrenceFrequency,
+    val recurRule: RecurrenceRule,
 
-    val categoryId: Int? = null,
+    val categoryId: Int? = null
 )
 
 @Entity(
@@ -285,64 +285,47 @@ data class ReminderOccurrence(
     val notes: String? = null,
 
     val occurDate: LocalDate,
-    val time: LocalTime?,                    // null if all day
-    val allDay: Boolean = true,
+    val time: LocalTime? = null,
+    val allDay: Boolean,
 
-    val isException: Boolean = false         // back-end access only, if individually changed
+    val isException: Boolean = false
 )
 //</editor-fold>
 
-// AppSetting
+// ATI
+//<editor-fold desc="ATI">
+
+@Entity
+data class EventATI(
+    @PrimaryKey val eventId: Int,
+    val viewScore: Int = 0,
+    val createScore: Int = 0,
+    val totalScore: Int = 0
+)
+
+@Entity
+data class UserATI(
+    @PrimaryKey val userId: Int = 0,
+    val data: String = "{}"
+)
+//</editor-fold>
+
+// Settings
 //<editor-fold desc="Settings">
 
 @Entity
 data class AppSetting(
     @PrimaryKey val id: Int = 0,
-    val startWeekOnMonday: Boolean,
-    val primaryColor: String,
-    val showDeveloper: Boolean,
-    val breakDuration: Int,
-    val breakEvery: Int
-)
-//</editor-fold>
-
-/* ATI MODULE */
-//<editor-fold desc="ATI">
-
-// EventATI
-@Entity(
-    foreignKeys = [
-        ForeignKey(
-            entity = MasterEvent::class,
-            parentColumns = ["id"],
-            childColumns = ["eventId"],
-            onDelete = ForeignKey.CASCADE
-        )
-    ]
-)
-data class EventATI(
-    @PrimaryKey(autoGenerate = true) val id: Int = 0,
-    val eventId: Int,
-    val avgActualVsPredicted: Float?,
-    val avgDelayMinutes: Int?,
-    val rescheduleCount: Int?,
-    val bestTimesJson: String?,
-    val worstTimesJson: String?
-)
-
-// UserATI
-@Entity
-data class UserATI(
-    @PrimaryKey(autoGenerate = true) val id: Int = 0,
-    val productivityByTimeJson: String?,
-    val productivityByDayJson: String?,
-    val reschedulingByTimeJson: String?,
-    val reschedulingByDayJson: String?,
-    val commonPaddingMinutes: Int?
+    val startWeekOnMonday: Boolean = false,
+    val primaryColor: String = "#FF205898",
+    val showDeveloper: Boolean = true,
+    val breakDuration: Int = 5,
+    val breakEvery: Int = 30
 )
 //</editor-fold>
 
 /* DAOs */
+//<editor-fold desc="DAOs">
 
 // Category
 @Dao
@@ -354,18 +337,15 @@ interface CategoryDao {
     @Query("SELECT * FROM Category") suspend fun getAll(): List<Category>
 
     // Fetch category by ID
-    @Query("SELECT * FROM Category WHERE id = :categoryId") suspend fun getById(categoryId: Int): Category?
+    @Query("SELECT * FROM Category WHERE id = :categoryId")
+    suspend fun getCategoryById(categoryId: Int): Category?
 
-    // Fetch all master events linked to this category
-    @Transaction
-    @Query("SELECT * FROM MasterEvent WHERE categoryId = :categoryId")
-    suspend fun getEventsForCategory(categoryId: Int): List<MasterEvent>
-
-    // Update existing category
+    // Update category
     @Update suspend fun update(category: Category)
 
-    // Delete category by ID
-    @Query("DELETE FROM Category WHERE id = :categoryId") suspend fun deleteById(categoryId: Int)
+    // Delete category
+    @Query("DELETE FROM Category WHERE id = :categoryId")
+    suspend fun deleteById(categoryId: Int)
 }
 
 // Event
@@ -381,6 +361,10 @@ interface EventDao {
     @Query("SELECT * FROM MasterEvent ORDER BY startDate, startTime")
     suspend fun getAllMasterEvents(): List<MasterEvent>
 
+    // Fetch master event by ID
+    @Query("SELECT * FROM MasterEvent WHERE id = :eventId")
+    suspend fun getMasterEventById(eventId: Int): MasterEvent?
+
     // Fetch all event occurrences ordered by date and time
     @Query("SELECT * FROM EventOccurrence ORDER BY occurDate, startTime")
     suspend fun getAllOccurrences(): List<EventOccurrence>
@@ -389,11 +373,6 @@ interface EventDao {
     @Transaction
     @Query("SELECT * FROM MasterEvent")
     suspend fun getAllEventsWithOccurrences(): List<MasterEventWithOccurrences>
-
-    // Fetch master event by ID
-
-    @Query("SELECT * FROM MasterEvent WHERE id = :eventId")
-    suspend fun getMasterEventById(eventId: Int): MasterEvent?
 
     // Update master event
     @Update suspend fun update(event: MasterEvent)
@@ -420,30 +399,33 @@ interface DeadlineDao {
     @Query("SELECT * FROM Deadline") suspend fun getAll(): List<Deadline>
 
     // Fetch deadline by ID
-    @Query("SELECT * FROM Deadline WHERE id = :deadlineId") suspend fun getById(deadlineId: Int): Deadline?
+    @Query("SELECT * FROM Deadline WHERE id = :deadlineId")
+    suspend fun getDeadlineById(deadlineId: Int): Deadline?
 
     // Update deadline
     @Update suspend fun update(deadline: Deadline)
 
-    // Delete deadline by ID
-    @Query("DELETE FROM Deadline WHERE id = :deadlineId") suspend fun deleteById(deadlineId: Int)
-
-    // Fetch all deadlines for a specific event
-    @Query("SELECT * FROM Deadline WHERE eventId = :eventId") suspend fun getByEvent(eventId: Int): List<Deadline>
+    // Delete deadline
+    @Query("DELETE FROM Deadline WHERE id = :deadlineId")
+    suspend fun deleteById(deadlineId: Int)
 }
 
 // Task Bucket
 @Dao
 interface TaskBucketDao {
-    // Insert new master task bucket
+    // Insert new master bucket
     @Insert suspend fun insert(masterBucket: MasterTaskBucket): Long
 
-    // Insert new task bucket occurrence
-    @Insert suspend fun insertOccurrence(bucketOccurrence: TaskBucketOccurrence)
+    // Insert new bucket occurrence
+    @Insert suspend fun insertOccurrence(occurrence: TaskBucketOccurrence)
 
     // Fetch all master buckets ordered by date and time
     @Query("SELECT * FROM MasterTaskBucket ORDER BY startDate, startTime")
     suspend fun getAllMasterBuckets(): List<MasterTaskBucket>
+
+    // Fetch master bucket by ID
+    @Query("SELECT * FROM MasterTaskBucket WHERE id = :bucketId")
+    suspend fun getMasterBucketById(bucketId: Int): MasterTaskBucket?
 
     // Fetch all bucket occurrences ordered by date and time
     @Query("SELECT * FROM TaskBucketOccurrence ORDER BY occurDate, startTime")
@@ -525,6 +507,10 @@ interface ReminderDao {
     // Fetch all master reminders ordered by date and time
     @Query("SELECT * FROM MasterReminder ORDER BY startDate, time")
     suspend fun getAllMasterReminders(): List<MasterReminder>
+
+    // Fetch master reminder by ID
+    @Query("SELECT * FROM MasterReminder WHERE id = :reminderId")
+    suspend fun getMasterReminderById(reminderId: Int): MasterReminder?
 
     // Fetch all reminder occurrences ordered by date and time
     @Query("SELECT * FROM ReminderOccurrence ORDER BY occurDate, time")
@@ -650,10 +636,10 @@ data class MasterTaskWithDeadline(
     @Relation(parentColumn = "deadlineId", entityColumn = "id")
     val deadline: Deadline?
 )
-data class MasterTaskWithBucket(
+data class MasterTaskWithDependency(
     @Embedded val masterTask: MasterTask,
-    @Relation(parentColumn = "bucketId", entityColumn = "id")
-    val bucket: MasterTaskBucket?
+    @Relation(parentColumn = "dependencyTaskId", entityColumn = "id")
+    val dependencyTask: MasterTask?
 )
 
 // MasterReminder
@@ -684,7 +670,7 @@ data class CategoryWithMasterReminders(
         AppSetting::class,
         EventATI::class, UserATI::class
     ],
-    version = 6
+    version = 7
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {

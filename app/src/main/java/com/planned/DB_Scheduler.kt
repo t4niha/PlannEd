@@ -7,12 +7,12 @@ import java.time.LocalTime
 
 /**
 Ordering Factors:
- 1) Priority (1-5)
- 2) Urgency (Deadline)
- 3) Category Score (ATI - TODO)
- 4) Event Score (ATI - TODO)
- 5) Date Created (Task ID)
-**/
+1) Priority (1-5)
+2) Urgency (Deadline)
+3) Category Score (ATI - TODO)
+4) Event Score (ATI - TODO)
+5) Date Created (Task ID)
+ **/
 
 /* Available time slots for task scheduling */
 data class AvailableTimeSlot(
@@ -125,7 +125,58 @@ private suspend fun orderAutoScheduledTasks(db: AppDatabase, autoTasks: List<Mas
         { it.third.third } // ID (lower = created first)
     )).map {
         OrderedTask(it.first, it.first.predictedDuration)
-    }.toMutableList()
+    }.toMutableList().also { orderedList ->
+        // Apply dependency chain ordering
+        resolveDependencyChains(orderedList)
+    }
+}
+
+/* Resolve dependency chains to ensure dependent tasks are scheduled after their dependencies */
+@RequiresApi(Build.VERSION_CODES.O)
+private fun resolveDependencyChains(orderedTasks: MutableList<OrderedTask>) {
+    // Build a map of task ID to index for quick lookup
+    val taskIndexMap = mutableMapOf<Int, Int>()
+    orderedTasks.forEachIndexed { index, orderedTask ->
+        taskIndexMap[orderedTask.masterTask.id] = index
+    }
+
+    // Track tasks that have been moved to avoid infinite loops
+    val movedTasks = mutableSetOf<Int>()
+
+    // Iterate through tasks and check dependencies
+    var i = 0
+    while (i < orderedTasks.size) {
+        val currentTask = orderedTasks[i]
+        val dependencyId = currentTask.masterTask.dependencyTaskId
+
+        if (dependencyId != null) {
+            val dependencyIndex = taskIndexMap[dependencyId]
+
+            // If dependency exists in the list and is after the current task
+            if (dependencyIndex != null && dependencyIndex > i) {
+                // Check if we've already moved this dependency to avoid loops
+                if (!movedTasks.contains(dependencyId)) {
+                    // Move the dependency task to be right before the current task
+                    val dependencyTask = orderedTasks.removeAt(dependencyIndex)
+                    orderedTasks.add(i, dependencyTask)
+
+                    // Update index map
+                    taskIndexMap[dependencyId] = i
+                    orderedTasks.forEachIndexed { idx, task ->
+                        taskIndexMap[task.masterTask.id] = idx
+                    }
+
+                    // Mark this task as moved
+                    movedTasks.add(dependencyId)
+
+                    // Don't increment i, recheck this position
+                    continue
+                }
+            }
+        }
+
+        i++
+    }
 }
 
 /* Get all available time slots */

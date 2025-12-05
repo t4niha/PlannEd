@@ -23,14 +23,12 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
 /* CONSTANTS */
 private val COLUMN_WIDTH = 120.dp
 private val HEADER_BG = Color.LightGray
 private val GRID_COLOR = Color.LightGray
-private val buttonShape = RoundedCornerShape(10.dp)
 
 // Occurrence generation months
 var generationMonths by mutableIntStateOf(1)
@@ -450,7 +448,7 @@ fun Developer(db: AppDatabase) {
                     "Category ID",
                     "Event ID",
                     "Deadline ID",
-                    "Bucket ID"
+                    "Dependency Task ID"
                 )
             ) { t ->
                 listOf(
@@ -466,7 +464,7 @@ fun Developer(db: AppDatabase) {
                     t.categoryId?.toString() ?: "",
                     t.eventId?.toString() ?: "",
                     t.deadlineId?.toString() ?: "",
-                    t.bucketId?.toString() ?: ""
+                    t.dependencyTaskId?.toString() ?: ""
                 )
             }
 

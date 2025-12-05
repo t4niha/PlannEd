@@ -450,3 +450,16 @@ suspend fun onTaskBucketDeleted(db: AppDatabase) {
 suspend fun onTaskChanged(db: AppDatabase) {
     generateTaskIntervals(db)
 }
+
+/* Handle task deletion - null out dependencyTaskId in dependent tasks */
+@RequiresApi(Build.VERSION_CODES.O)
+suspend fun onTaskDeleted(db: AppDatabase, taskId: Int) {
+    // Set dependencyTaskId to null in tasks that depend on this task
+    val tasks = db.taskDao().getAllMasterTasks()
+    tasks.filter { it.dependencyTaskId == taskId }.forEach { task ->
+        db.taskDao().update(task.copy(dependencyTaskId = null))
+    }
+
+    // Regenerate task intervals
+    generateTaskIntervals(db)
+}

@@ -99,6 +99,7 @@ fun Creation(db: AppDatabase) {
     var taskSelectedCategory by remember { mutableStateOf<Int?>(null) }
     var taskSelectedEvent by remember { mutableStateOf<Int?>(null) }
     var taskSelectedDeadline by remember { mutableStateOf<Int?>(null) }
+    var taskSelectedDependencyTask by remember { mutableStateOf<Int?>(null) }
     var taskBreakableLockedByDuration by remember { mutableStateOf(false) }
 
     // Reminder
@@ -170,6 +171,7 @@ fun Creation(db: AppDatabase) {
         taskSelectedCategory = null
         taskSelectedEvent = null
         taskSelectedDeadline = null
+        taskSelectedDependencyTask = null
         taskBreakableLockedByDuration = false
 
         // Reminder
@@ -247,6 +249,8 @@ fun Creation(db: AppDatabase) {
                         onEventChange = { taskSelectedEvent = it },
                         selectedDeadline = taskSelectedDeadline,
                         onDeadlineChange = { taskSelectedDeadline = it },
+                        selectedDependencyTask = taskSelectedDependencyTask,
+                        onDependencyTaskChange = { taskSelectedDependencyTask = it },
                         breakableLockedByDuration = taskBreakableLockedByDuration,
                         onBreakableLockedByDurationChange = { taskBreakableLockedByDuration = it },
                         resetTrigger = resetTrigger
@@ -418,6 +422,9 @@ fun Creation(db: AppDatabase) {
                                     val categories = CategoryManager.getAll(db)
                                     val events = EventManager.getAll(db)
                                     val deadlines = DeadlineManager.getAll(db)
+                                    val dependencyTasks = TaskManager.getAll(db).filter {
+                                        it.status == 1 && it.startDate == null && it.startTime == null
+                                    }
 
                                     val durationInMinutes = (taskDurationHours * 60) + taskDurationMinutes
                                     TaskManager.insert(
@@ -431,7 +438,8 @@ fun Creation(db: AppDatabase) {
                                         predictedDuration = durationInMinutes,
                                         categoryId = taskSelectedCategory?.let { categories.getOrNull(it)?.id },
                                         eventId = taskSelectedEvent?.let { events.getOrNull(it)?.id },
-                                        deadlineId = taskSelectedDeadline?.let { deadlines.getOrNull(it)?.id }
+                                        deadlineId = taskSelectedDeadline?.let { deadlines.getOrNull(it)?.id },
+                                        dependencyTaskId = taskSelectedDependencyTask?.let { dependencyTasks.getOrNull(it)?.id }
                                     )
                                     clearAllForms()
                                     showSuccessNotification = true
@@ -527,7 +535,8 @@ fun Creation(db: AppDatabase) {
                                             predictedDuration = durationInMinutes,
                                             categoryId = deadlineSelectedCategory?.let { categories.getOrNull(it)?.id },
                                             eventId = deadlineSelectedEvent?.let { events.getOrNull(it)?.id },
-                                            deadlineId = createdDeadline?.id
+                                            deadlineId = createdDeadline?.id,
+                                            dependencyTaskId = null
                                         )
                                     }
 
