@@ -51,6 +51,8 @@ class MainActivity : ComponentActivity() {
 }
 
 /**
+ TODO: Fix UI pages (category, event, deadline, reminder, task bucket) - all/this (isException)
+ TODO: Calendar to UI pages
  TODO: Task info back to calendar doesn't scroll to that task, only to today
  TODO: Task update form dropdown loop glitch
  TODO: Cancel (dialogue) buttons do same as Save
