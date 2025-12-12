@@ -15,7 +15,7 @@ fun runSample(db: AppDatabase) = runBlocking {
     CategoryManager.insert(
         db = db,
         title = "School",
-        notes = "All academic related items",
+        notes = "All academic related",
         color = Preset1
     )
     val schoolCatId = db.categoryDao().getAll().last().id
@@ -24,7 +24,7 @@ fun runSample(db: AppDatabase) = runBlocking {
     CategoryManager.insert(
         db = db,
         title = "Soccer",
-        notes = "Soccer team activities",
+        notes = "Soccer lessons",
         color = Preset5
     )
     val soccerCatId = db.categoryDao().getAll().last().id

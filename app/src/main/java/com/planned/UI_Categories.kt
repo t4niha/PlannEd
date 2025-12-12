@@ -165,7 +165,7 @@ fun CategoryInfoPage(
     LaunchedEffect(category.id) {
         currentCategory = db.categoryDao().getCategoryById(category.id) ?: category
 
-        // Count related items
+        // Related items
         val events = db.eventDao().getAllMasterEvents().filter { it.categoryId == category.id }
         val deadlines = db.deadlineDao().getAll().filter { it.categoryId == category.id }
         val tasks = db.taskDao().getAllMasterTasks().filter { it.categoryId == category.id }

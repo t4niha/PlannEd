@@ -55,7 +55,7 @@ data class TaskBlock(
     val endTime: LocalTime
 )
 
-/* FETCH DATA FOR A GIVEN DATE */
+/* FETCH DATA FOR GIVEN DATE */
 
 @RequiresApi(Build.VERSION_CODES.O)
 suspend fun getEventsForDate(db: AppDatabase, date: LocalDate): List<EventBlock> {

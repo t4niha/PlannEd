@@ -19,7 +19,7 @@ object SettingsManager {
     suspend fun load(db: AppDatabase) {
         var s = db.settingsDao().getAll()
 
-        // If null, create defaults and insert
+        // If null, insert defaults
         if (s == null) {
             s = AppSetting(
                 id = 0,
@@ -129,10 +129,10 @@ object EventManager {
         // Create a copy with ID
         val insertedEvent = event.copy(id = insertedId)
 
-        // Generate occurrences automatically
+        // Generate occurrences
         val occurrences = generateEventOccurrences(insertedEvent)
 
-        // Insert all generated occurrences
+        // Insert generated occurrences
         occurrences.forEach { occurrence ->
             db.eventDao().insertOccurrence(occurrence)
         }
@@ -191,7 +191,7 @@ object DeadlineManager {
         )
         db.deadlineDao().insert(deadline)
 
-        // Regenerate task intervals since deadlines affect urgency
+        // Regenerate task intervals
         onTaskChanged(db)
     }
 
@@ -205,7 +205,7 @@ object DeadlineManager {
     suspend fun update(db: AppDatabase, deadline: Deadline) {
         db.deadlineDao().update(deadline)
 
-        // Regenerate task intervals since deadline date may have changed
+        // Regenerate task intervals
         onTaskChanged(db)
     }
 
@@ -245,7 +245,7 @@ object TaskBucketManager {
         // Create a copy with ID
         val insertedBucket = bucket.copy(id = insertedId)
 
-        // Generate occurrences with merging logic automatically
+        // Generate occurrences with merging
         val occurrences = generateTaskBucketOccurrences(insertedBucket, db)
 
         // Insert all generated occurrences
@@ -253,7 +253,7 @@ object TaskBucketManager {
             db.taskBucketDao().insertOccurrence(occurrence)
         }
 
-        // Regenerate task intervals with new bucket availability
+        // Regenerate task intervals
         onTaskBucketDeleted(db)
     }
 
@@ -287,7 +287,7 @@ object TaskBucketManager {
     suspend fun delete(db: AppDatabase, bucketId: Int) {
         db.taskBucketDao().deleteMasterBucket(bucketId)
 
-        // Regenerate task intervals since bucket deleted
+        // Regenerate task intervals
         onTaskBucketDeleted(db)
     }
 }
@@ -304,7 +304,7 @@ object TaskManager {
         breakable: Boolean,
         startDate: LocalDate?,
         startTime: LocalTime?,
-        predictedDuration: Int, // in minutes
+        predictedDuration: Int,
         categoryId: Int?,
         eventId: Int?,
         deadlineId: Int?,
@@ -315,7 +315,7 @@ object TaskManager {
             notes = notes,
             priority = priority,
             breakable = breakable,
-            noIntervals = 0, // Will be set by generator
+            noIntervals = 0,
             startDate = startDate,
             startTime = startTime,
             predictedDuration = predictedDuration,
@@ -326,7 +326,7 @@ object TaskManager {
         )
         db.taskDao().insert(task)
 
-        // Regenerate task intervals with new task
+        // Regenerate task intervals
         onTaskChanged(db)
     }
 
@@ -340,14 +340,14 @@ object TaskManager {
     suspend fun update(db: AppDatabase, task: MasterTask) {
         db.taskDao().update(task)
 
-        // Regenerate task intervals since task changed
+        // Regenerate task intervals
         onTaskChanged(db)
     }
 
     // Delete master task
     @RequiresApi(Build.VERSION_CODES.O)
     suspend fun delete(db: AppDatabase, taskId: Int) {
-        // Handle dependency cleanup
+        // Handle dependency
         onTaskDeleted(db, taskId)
 
         db.taskDao().deleteMasterTask(taskId)
@@ -390,7 +390,7 @@ object ReminderManager {
         // Create a copy with ID
         val insertedReminder = reminder.copy(id = insertedId)
 
-        // Generate occurrences automatically
+        // Generate occurrences
         val occurrences = generateReminderOccurrences(insertedReminder)
 
         // Insert all generated occurrences

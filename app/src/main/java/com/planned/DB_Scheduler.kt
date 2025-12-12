@@ -7,6 +7,7 @@ import java.time.LocalTime
 
 /**
 Ordering Factors:
+0) Dependency
 1) Priority (1-5)
 2) Urgency (Deadline)
 3) Category Score (ATI - TODO)
@@ -31,13 +32,13 @@ data class AvailableTimeSlot(
 /* Ordering auto-scheduled tasks */
 data class OrderedTask(
     val masterTask: MasterTask,
-    var remainingDuration: Int // Updated as task is broken into intervals
+    var remainingDuration: Int
 )
 
-/* Clear all task intervals and regenerates them based on scheduling rules */
+/* Clear task intervals and regenerate */
 @RequiresApi(Build.VERSION_CODES.O)
 suspend fun generateTaskIntervals(db: AppDatabase) {
-    // Clear all task intervals and reset noIntervals
+    // Clear task intervals, reset noIntervals
     db.taskDao().getAllIntervals().forEach { interval ->
         db.taskDao().deleteInterval(interval.id)
     }
@@ -48,7 +49,7 @@ suspend fun generateTaskIntervals(db: AppDatabase) {
         db.taskDao().update(task.copy(noIntervals = 0))
     }
 
-    // Process manually scheduled tasks
+    // Set manually scheduled tasks
     val manualTasks = allMasterTasks.filter { it.startDate != null && it.startTime != null }
     val autoTasks = allMasterTasks.filter { it.startDate == null || it.startTime == null }
 
@@ -64,7 +65,7 @@ suspend fun generateTaskIntervals(db: AppDatabase) {
     assignAutoScheduledTasks(db, orderedAutoTasks, availableSlots)
 }
 
-/* Process manually scheduled tasks */
+/* Set manually scheduled tasks */
 @RequiresApi(Build.VERSION_CODES.O)
 private suspend fun processManuallyScheduledTasks(db: AppDatabase, manualTasks: List<MasterTask>) {
     for (task in manualTasks) {
@@ -106,35 +107,35 @@ private suspend fun orderAutoScheduledTasks(db: AppDatabase, autoTasks: List<Mas
             allDeadlines.find { it.id == deadlineId }
         }
 
-        // Calculate urgency (days until deadline, null if no deadline)
+        // Calculate urgency
         val urgency = deadline?.let {
             val daysUntil = java.time.temporal.ChronoUnit.DAYS.between(today, it.date)
             daysUntil.toInt()
         }
 
-        // Placeholder scores
-        val categoryScore = 0 // TODO: Implement category score calculation
-        val eventScore = 0 // TODO: Implement event score calculation
+        // ATI scores
+        val categoryScore = 0 // TODO: Category score calculation
+        val eventScore = 0 // TODO: Event score calculation
 
         Triple(task, urgency, Triple(categoryScore, eventScore, task.id))
     }.sortedWith(compareBy(
-        { it.first.priority }, // Priority (1 = highest, 5 = lowest)
-        { it.second ?: Int.MAX_VALUE }, // Urgency (fewer days = higher urgency, null = lowest)
-        { it.third.first }, // Category Score placeholder
-        { it.third.second }, // Event Score placeholder
-        { it.third.third } // ID (lower = created first)
+        { it.first.priority },
+        { it.second ?: Int.MAX_VALUE },
+        { it.third.first },
+        { it.third.second },
+        { it.third.third }
     )).map {
         OrderedTask(it.first, it.first.predictedDuration)
     }.toMutableList().also { orderedList ->
-        // Apply dependency chain ordering
+        // Dependency chain ordering
         resolveDependencyChains(orderedList)
     }
 }
 
-/* Resolve dependency chains to ensure dependent tasks are scheduled after their dependencies */
+/* Resolve dependency chains */
 @RequiresApi(Build.VERSION_CODES.O)
 private fun resolveDependencyChains(orderedTasks: MutableList<OrderedTask>) {
-    // Build a map of task ID to index for quick lookup
+    // Map task ID to index
     val taskIndexMap = mutableMapOf<Int, Int>()
     orderedTasks.forEachIndexed { index, orderedTask ->
         taskIndexMap[orderedTask.masterTask.id] = index
@@ -143,7 +144,7 @@ private fun resolveDependencyChains(orderedTasks: MutableList<OrderedTask>) {
     // Track tasks that have been moved to avoid infinite loops
     val movedTasks = mutableSetOf<Int>()
 
-    // Iterate through tasks and check dependencies
+    // Iterate through tasks, check dependencies
     var i = 0
     while (i < orderedTasks.size) {
         val currentTask = orderedTasks[i]
@@ -152,11 +153,11 @@ private fun resolveDependencyChains(orderedTasks: MutableList<OrderedTask>) {
         if (dependencyId != null) {
             val dependencyIndex = taskIndexMap[dependencyId]
 
-            // If dependency exists in the list and is after the current task
+            // If dependency exists and is after current task
             if (dependencyIndex != null && dependencyIndex > i) {
-                // Check if we've already moved this dependency to avoid loops
+                // Check if already moved this dependency
                 if (!movedTasks.contains(dependencyId)) {
-                    // Move the dependency task to be right before the current task
+                    // Move dependency task to right before current task
                     val dependencyTask = orderedTasks.removeAt(dependencyIndex)
                     orderedTasks.add(i, dependencyTask)
 
@@ -169,7 +170,6 @@ private fun resolveDependencyChains(orderedTasks: MutableList<OrderedTask>) {
                     // Mark this task as moved
                     movedTasks.add(dependencyId)
 
-                    // Don't increment i, recheck this position
                     continue
                 }
             }
@@ -201,19 +201,19 @@ private suspend fun getAvailableTimeSlots(db: AppDatabase): MutableList<Availabl
             )
         )
 
-        // Subtract all manual intervals on this date
+        // Subtract all manual intervals
         val manualIntervalsOnDate = manualIntervals.filter { it.occurDate == bucket.occurDate }
 
         for (manualInterval in manualIntervalsOnDate) {
             val newSlots = mutableListOf<AvailableTimeSlot>()
 
             for (slot in currentSlots) {
-                // Check if manual interval overlaps with this slot
+                // Check if manual interval overlaps with slot
                 if (doTimeRangesOverlap(
                         slot.startTime, slot.endTime,
                         manualInterval.startTime, manualInterval.endTime
                     )) {
-                    // Split the slot around the manual interval
+                    // Split slot around manual interval
                     val splitSlots = subtractTimeRange(
                         slot,
                         manualInterval.startTime,
@@ -236,7 +236,7 @@ private suspend fun getAvailableTimeSlots(db: AppDatabase): MutableList<Availabl
     return availableSlots.sortedWith(compareBy({ it.date }, { it.startTime })).toMutableList()
 }
 
-/* Subtract a time range from a slot, returning the remaining slots */
+/* Subtract time range from a slot, return remaining slots */
 @RequiresApi(Build.VERSION_CODES.O)
 private fun subtractTimeRange(
     slot: AvailableTimeSlot,
@@ -245,7 +245,7 @@ private fun subtractTimeRange(
 ): List<AvailableTimeSlot> {
     val result = mutableListOf<AvailableTimeSlot>()
 
-    // If the subtraction completely covers the slot, return empty
+    // If the subtraction completely covers slot, return empty
     if (!subtractStart.isAfter(slot.startTime) && !subtractEnd.isBefore(slot.endTime)) {
         return result
     }
@@ -301,7 +301,7 @@ private suspend fun assignAutoScheduledTasks(
         val task = currentTask.masterTask
         val durationNeeded = currentTask.remainingDuration
 
-        // Try to find a slot that fits this task
+        // Find slot that fits this task
         var assigned = false
 
         for (i in availableSlots.indices) {
@@ -309,7 +309,7 @@ private suspend fun assignAutoScheduledTasks(
             val slotDuration = slot.durationMinutes()
 
             if (slotDuration >= durationNeeded) {
-                // Slot can fit the entire task (or remaining duration)
+                // Slot can fit the entire task
                 val endTime = slot.startTime.plusMinutes(durationNeeded.toLong())
 
                 // Get current interval count for this task
@@ -334,7 +334,7 @@ private suspend fun assignAutoScheduledTasks(
                 // Update master task noIntervals
                 db.taskDao().update(task.copy(noIntervals = intervalNo))
 
-                // Update the slot
+                // Update slot
                 if (slotDuration == durationNeeded) {
                     // Slot is completely filled, remove it
                     availableSlots.removeAt(i)
@@ -353,8 +353,7 @@ private suspend fun assignAutoScheduledTasks(
                 break
 
             } else if (task.breakable == true && slotDuration >= MIN_INTERVAL_SIZE) {
-                // Task is breakable and slot has enough space (>= MIN_INTERVAL_SIZE)
-                // Assign partial interval
+                // Task is breakable and slot has enough space, assign partial interval
                 val endTime = slot.endTime
 
                 // Get current interval count for this task
@@ -392,8 +391,7 @@ private suspend fun assignAutoScheduledTasks(
         }
 
         if (!assigned) {
-            // No suitable slot found, task remains unassigned (intervalNo = 0)
-            // Remove from processing list
+            // No suitable slot found, task remains unassigned, remove from list
             tasksToProcess.removeAt(0)
         }
     }

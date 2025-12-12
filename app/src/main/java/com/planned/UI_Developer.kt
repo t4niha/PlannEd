@@ -25,11 +25,6 @@ import kotlinx.coroutines.launch
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.ui.unit.sp
 
-/* CONSTANTS */
-private val COLUMN_WIDTH = 120.dp
-private val HEADER_BG = Color.LightGray
-private val GRID_COLOR = Color.LightGray
-
 // Occurrence generation months
 var generationMonths by mutableIntStateOf(1)
 
@@ -90,7 +85,7 @@ fun Developer(db: AppDatabase) {
                     .background(Color(CardColor), RoundedCornerShape(12.dp))
                     .padding(16.dp)
             ) {
-                // Generation Months Adjuster
+                // Generation Months adjuster
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
@@ -157,7 +152,7 @@ fun Developer(db: AppDatabase) {
             }
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Clear and Sample Buttons
+            // Clear and Sample buttons
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween

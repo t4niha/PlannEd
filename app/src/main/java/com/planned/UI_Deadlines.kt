@@ -337,7 +337,7 @@ fun DeadlineUpdateView(
         previousEvent = selectedEvent
     }
 
-    // Lock category when event is selected
+    // Lock category when event selected
     LaunchedEffect(selectedEvent, events.size) {
         val currentEventIndex = selectedEvent
         val previousEventIndex = previousEvent

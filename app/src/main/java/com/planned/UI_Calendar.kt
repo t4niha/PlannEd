@@ -82,10 +82,8 @@ fun Calendars(db: AppDatabase) {
     LaunchedEffect(pagerState.currentPage, currentView) {
         if (currentView == "Week") {
             val startOfWeek = displayedDate.with(TemporalAdjusters.previousOrSame(getFirstDayOfWeek()))
-            // Check if selectedDateForWeek is still in the current week
             val endOfWeek = displayedDate.with(TemporalAdjusters.nextOrSame(getLastDayOfWeek()))
             if (selectedDateForWeek.isBefore(startOfWeek) || selectedDateForWeek.isAfter(endOfWeek)) {
-                // Reset to today if it's in current week, otherwise first day of week
                 selectedDateForWeek = if (!today.isBefore(startOfWeek) && !today.isAfter(endOfWeek)) {
                     today
                 } else {
@@ -156,7 +154,7 @@ fun Calendars(db: AppDatabase) {
                             datePickerState.selectedDateMillis?.let { millis ->
                                 val selectedDateFromPicker = LocalDate.ofEpochDay(millis / 86400000L)
 
-                                // Calculate offset and scroll to that page
+                                // Calculate offset and auto scroll
                                 when (currentView) {
                                     "Day" -> {
                                         val dayOffset = java.time.temporal.ChronoUnit.DAYS.between(today, selectedDateFromPicker)

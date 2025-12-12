@@ -29,18 +29,18 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 val priorityColors = listOf(
-    Preset31, // 1 - Red
-    Preset32, // 2 - Orange
-    Preset33, // 3 - Yellow
-    Preset34, // 4 - Lime
-    Preset35  // 5 - Green
+    Preset31, // 1
+    Preset32, // 2
+    Preset33, // 3
+    Preset34, // 4
+    Preset35  // 5
 )
 
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
 fun Tasks(db: AppDatabase) {
-    var currentView by remember { mutableStateOf("main") } // main, unscheduled, scheduled, info, pomodoro
+    var currentView by remember { mutableStateOf("main") }
     var selectedTask by remember { mutableStateOf<MasterTask?>(null) }
     var selectedInterval by remember { mutableStateOf<TaskInterval?>(null) }
 
@@ -85,7 +85,6 @@ fun Tasks(db: AppDatabase) {
                 db = db,
                 task = task,
                 onBack = {
-                    // Reload the task to show updated info
                     currentView = "info"
                 },
                 onSaveSuccess = { updatedTask ->
@@ -171,7 +170,7 @@ fun TaskCategoryBox(
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.Top
         ) {
-            // Count indicator circle
+            // Count indicator
             Box(
                 modifier = Modifier
                     .size(36.dp)
@@ -188,7 +187,7 @@ fun TaskCategoryBox(
             }
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Title text
+            // Title
             Text(
                 text = title,
                 fontSize = 18.sp,
@@ -444,7 +443,7 @@ fun ScheduledTaskItem(
             }
             Spacer(modifier = Modifier.width(12.dp))
 
-            // Title with ellipsis
+            // Title
             Text(
                 text = masterTask.title,
                 fontSize = 16.sp,
@@ -549,7 +548,6 @@ fun TaskInfoPage(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Scrollable content
         Column(
             modifier = Modifier
                 .weight(1f)
@@ -684,7 +682,7 @@ fun TaskUpdateForm(
     val scope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
 
-    // State variables matching TaskForm
+    // State variables
     var title by remember { mutableStateOf(task.title) }
     var notes by remember { mutableStateOf(task.notes ?: "") }
     var priority by remember { mutableIntStateOf(task.priority) }
@@ -696,7 +694,7 @@ fun TaskUpdateForm(
     var durationMinutes by remember { mutableIntStateOf(task.predictedDuration % 60) }
     var breakableLockedByDuration by remember { mutableStateOf(false) }
 
-    // Categories, events, deadlines - converted to indices
+    // Categories, events, deadlines
     var categories by remember { mutableStateOf<List<Category>>(emptyList()) }
     var events by remember { mutableStateOf<List<MasterEvent>>(emptyList()) }
     var deadlines by remember { mutableStateOf<List<Deadline>>(emptyList()) }
@@ -714,7 +712,7 @@ fun TaskUpdateForm(
         events = EventManager.getAll(db)
         deadlines = DeadlineManager.getAll(db)
 
-        // Get tasks that can be dependencies (auto-scheduled tasks only)
+        // Get tasks that can be dependencies
         dependencyTasks = TaskManager.getAll(db).filter {
             it.status == 1 && it.startDate == null && it.startTime == null && it.id != task.id
         }
@@ -768,7 +766,7 @@ fun TaskUpdateForm(
             .background(BackgroundColor)
             .padding(16.dp)
     ) {
-        // Back button (not scrollable)
+        // Back button
         Box(
             modifier = Modifier
                 .clip(RoundedCornerShape(8.dp))
@@ -784,7 +782,6 @@ fun TaskUpdateForm(
         }
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Scrollable content
         Column(
             modifier = Modifier
                 .weight(1f)
@@ -867,7 +864,7 @@ fun TaskUpdateForm(
                             )
                             TaskManager.update(db, updatedTask)
 
-                            // Get the updated task from database
+                            // Get updated task from database
                             val refreshedTask = db.taskDao().getMasterTaskById(task.id) ?: updatedTask
                             onSaveSuccess(refreshedTask)
                         }
@@ -911,14 +908,14 @@ fun PomodoroPage(
         }
     }
 
-    // Calculate elapsed minutes for database
+    // Calculate elapsed minutes
     val elapsedMinutes = elapsedSeconds / 60
 
-    // Auto-stop timer when navigating away or app minimizes
+    // Auto-stop timer when navigating away
     DisposableEffect(Unit) {
         onDispose {
             if (isRunning) {
-                // Stop the timer and save progress synchronously
+                // Stop the timer and save progress
                 kotlinx.coroutines.runBlocking {
                     updateTaskProgress(db, currentTask, intervals, elapsedSeconds / 60)
                 }
@@ -955,7 +952,6 @@ fun PomodoroPage(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Scrollable content
         Column(
             modifier = Modifier
                 .weight(1f)
@@ -990,7 +986,7 @@ fun PomodoroPage(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Stats - centered container with left-aligned text
+            // Stats
             Box(
                 modifier = Modifier.fillMaxWidth(),
                 contentAlignment = Alignment.Center
@@ -1155,6 +1151,7 @@ fun PomodoroTimer(elapsedSeconds: Int, isRunning: Boolean) {
 }
 
 /* HELPER FUNCTIONS */
+
 data class IntervalData(
     val currentIntervalNo: Int,
     val timeLeft: Int,
@@ -1187,7 +1184,7 @@ fun getCurrentIntervalData(
     val durationIntoInterval = totalActualDuration - cumulativeDuration
     val timeLeft = maxOf(0, intervalDuration - durationIntoInterval)
 
-    // Calculate overtime (only if on last interval and exceeded predicted duration)
+    // Calculate overtime
     val overtime = if (currentInterval.intervalNo == task.noIntervals && task.predictedDuration < totalActualDuration) {
         totalActualDuration - task.predictedDuration
     } else {
@@ -1240,10 +1237,10 @@ suspend fun updateTaskProgress(
         if (newActualDuration >= cumulativeDuration + intervalDuration) {
             // This interval is complete
             if (interval.intervalNo < task.noIntervals) {
-                // Not the last interval - delete it
+                // Not last interval, delete it
                 db.taskDao().deleteInterval(interval.id)
             } else {
-                // Last interval - update with overtime
+                // Last interval, update with overtime
                 val intervalTimeLeft = 0
                 val intervalOvertime = newActualDuration - cumulativeDuration - intervalDuration
                 db.taskDao().updateInterval(
@@ -1255,7 +1252,7 @@ suspend fun updateTaskProgress(
                 )
             }
         } else {
-            // This interval is current or future
+            // Current or future interval
             val durationIntoInterval = newActualDuration - cumulativeDuration
             val intervalTimeLeft = maxOf(0, intervalDuration - durationIntoInterval)
             db.taskDao().updateInterval(

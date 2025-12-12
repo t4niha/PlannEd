@@ -201,7 +201,7 @@ fun WeekView(
         }
 
         Column(modifier = Modifier.fillMaxSize()) {
-            // Weekday headers with selectable dates
+            // Weekday headers
             val startOfWeek = displayedDate.with(TemporalAdjusters.previousOrSame(getFirstDayOfWeek()))
             Row(
                 modifier = Modifier
@@ -519,11 +519,11 @@ fun MonthView(
                     // Outer circle color
                     val outerCircleColor: Color = remember(masterTask?.priority) {
                         val priorityColors = listOf(
-                            Preset31, // 1 - Red
-                            Preset32, // 2 - Orange
-                            Preset33, // 3 - Yellow
-                            Preset34, // 4 - Lime
-                            Preset35  // 5 - Green
+                            Preset31, // 1
+                            Preset32, // 2
+                            Preset33, // 3
+                            Preset34, // 4
+                            Preset35  // 5
                         )
                         val priority = masterTask?.priority ?: 3
                         priorityColors.getOrNull(priority - 1) ?: Preset27

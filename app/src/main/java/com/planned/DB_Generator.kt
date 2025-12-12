@@ -17,7 +17,7 @@ enum class RecurrenceFrequency {
     NONE, DAILY, WEEKLY, MONTHLY, YEARLY
 }
 data class RecurrenceRule(
-    val daysOfWeek: List<Int>? = null,      // 1 = Mon ... 7 = Sun
+    val daysOfWeek: List<Int>? = null,      // 1 = Mon - 7 = Sun
     val daysOfMonth: List<Int>? = null,     // 1 - 31
     val monthAndDay: Pair<Int, Int>? = null // DD-MM
 )
@@ -110,13 +110,13 @@ suspend fun generateTaskBucketOccurrences(
                 endTime = master.endTime
             )
 
-            // Get all existing occurrences on this date, excluding this master's occurrences
+            // Get all existing occurrences on this date, excluding this master's
             val existingOccurrencesOnDate = db.taskBucketDao()
                 .getOccurrencesByDate(current)
                 .filter { it.masterBucketId != master.id }
                 .toMutableList()
 
-            // Find all overlapping occurrences and merge them together
+            // Find all overlapping occurrences, merge them
             val overlappingOccurrences = mutableListOf<TaskBucketOccurrence>()
 
             for (existing in existingOccurrencesOnDate) {
@@ -128,8 +128,8 @@ suspend fun generateTaskBucketOccurrences(
                 }
             }
 
+            // Merge overlapping occurrences into one
             if (overlappingOccurrences.isNotEmpty()) {
-                // Merge all overlapping occurrences into one
                 var mergedStartTime = newOccurrence.startTime
                 var mergedEndTime = newOccurrence.endTime
 
@@ -142,7 +142,7 @@ suspend fun generateTaskBucketOccurrences(
                     }
                 }
 
-                // Keep the first overlapping occurrence, update it with merged times
+                // Keep first overlapping occurrence, update with merged times
                 val keepOccurrence = overlappingOccurrences.first()
                 db.taskBucketDao().updateBucketOccurrence(
                     keepOccurrence.copy(
@@ -152,7 +152,7 @@ suspend fun generateTaskBucketOccurrences(
                     )
                 )
 
-                // Delete all other overlapping occurrences, merge into one
+                // Delete all other overlapping occurrences
                 for (i in 1 until overlappingOccurrences.size) {
                     db.taskBucketDao().deleteOccurrence(overlappingOccurrences[i].id)
                 }
@@ -239,13 +239,13 @@ suspend fun regenerateAllOccurrences(db: AppDatabase) {
     val startLimit = today.minusMonths(generationMonths.toLong())
     val endLimit = today.plusMonths(generationMonths.toLong())
 
-    // Delete occurrences outside the window
+    // Delete occurrences outside window
     deleteOccurrencesOutsideWindow(db, startLimit, endLimit)
 
     // Regenerate all master events
     val allEvents = db.eventDao().getAllMasterEvents()
     allEvents.forEach { event ->
-        // Delete old occurrences for this master
+        // Delete old occurrences
         val oldOccurrences = db.eventDao().getAllOccurrences()
             .filter { it.masterEventId == event.id }
         oldOccurrences.forEach { db.eventDao().deleteOccurrence(it.id) }
@@ -258,7 +258,7 @@ suspend fun regenerateAllOccurrences(db: AppDatabase) {
     // Regenerate all master reminders
     val allReminders = db.reminderDao().getAllMasterReminders()
     allReminders.forEach { reminder ->
-        // Delete old occurrences for this master
+        // Delete old occurrences
         val oldOccurrences = db.reminderDao().getAllOccurrences()
             .filter { it.masterReminderId == reminder.id }
         oldOccurrences.forEach { db.reminderDao().deleteOccurrence(it.id) }
@@ -271,7 +271,7 @@ suspend fun regenerateAllOccurrences(db: AppDatabase) {
     // Regenerate all master task buckets
     val allBuckets = db.taskBucketDao().getAllMasterBuckets()
     allBuckets.forEach { bucket ->
-        // Delete old occurrences for this master
+        // Delete old occurrences
         val oldOccurrences = db.taskBucketDao().getAllBucketOccurrences()
             .filter { it.masterBucketId == bucket.id }
         oldOccurrences.forEach { db.taskBucketDao().deleteOccurrence(it.id) }

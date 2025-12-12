@@ -29,21 +29,21 @@ fun Creation(db: AppDatabase) {
     var selectedType by remember { mutableStateOf("Task") }
     val scope = rememberCoroutineScope()
 
-    // State for validation notification
+    // Validation notification
     var showValidationNotification by remember { mutableStateOf(false) }
     var validationMessage by remember { mutableStateOf("") }
 
-    // State for overlap notification
+    // Overlap notification
     var showOverlapNotification by remember { mutableStateOf(false) }
     var overlapMessage by remember { mutableStateOf("") }
 
-    // State for success notification
+    // Success notification
     var showSuccessNotification by remember { mutableStateOf(false) }
 
     // Reset trigger
     var resetTrigger by remember { mutableIntStateOf(0) }
 
-    /* State variables for all forms */
+    /* State variables */
 
     // Category
     var categoryTitle by remember { mutableStateOf("") }
@@ -187,7 +187,7 @@ fun Creation(db: AppDatabase) {
         reminderSelectedDaysOfMonth = setOf(1)
         reminderSelectedCategory = null
 
-        // Increment reset trigger to force fields to reset
+        // Increment reset trigger
         resetTrigger++
 
         // Scroll to top
@@ -196,7 +196,7 @@ fun Creation(db: AppDatabase) {
         }
     }
 
-    // Clear all forms when selectedType changes
+    // Clear all forms when Type changes
     LaunchedEffect(selectedType) {
         clearAllForms()
     }
@@ -503,7 +503,7 @@ fun Creation(db: AppDatabase) {
                                     val categories = CategoryManager.getAll(db)
                                     val events = EventManager.getAll(db)
 
-                                    // Insert the deadline first
+                                    // Insert deadline first
                                     DeadlineManager.insert(
                                         db = db,
                                         title = deadlineTitle,
@@ -514,7 +514,7 @@ fun Creation(db: AppDatabase) {
                                         eventId = deadlineSelectedEvent?.let { events.getOrNull(it)?.id }
                                     )
 
-                                    // If auto schedule task is enabled, create task
+                                    // If auto schedule task enabled, create task
                                     if (deadlineAutoScheduleTask) {
                                         val allDeadlines = DeadlineManager.getAll(db)
                                         val createdDeadline = allDeadlines.lastOrNull { deadline ->
@@ -730,7 +730,7 @@ fun Creation(db: AppDatabase) {
             }
         }
 
-        // Validation notification dropdown
+        // Validation notification
         AnimatedVisibility(
             visible = showValidationNotification,
             enter = slideInVertically(initialOffsetY = { -it }) + fadeIn(),
@@ -759,7 +759,7 @@ fun Creation(db: AppDatabase) {
             }
         }
 
-        // Overlap notification dropdown
+        // Overlap notification
         AnimatedVisibility(
             visible = showOverlapNotification,
             enter = slideInVertically(initialOffsetY = { -it }) + fadeIn(),
@@ -788,7 +788,7 @@ fun Creation(db: AppDatabase) {
             }
         }
 
-        // Success notification dropdown
+        // Success notification
         AnimatedVisibility(
             visible = showSuccessNotification,
             enter = slideInVertically(initialOffsetY = { -it }) + fadeIn(),

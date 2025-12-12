@@ -28,7 +28,6 @@ import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
 /* UTILITY FUNCTIONS */
-//<editor-fold desc="Date & Time">
 
 @RequiresApi(Build.VERSION_CODES.O)
 fun validateStartTime(time: LocalTime): LocalTime {
@@ -150,7 +149,6 @@ fun validateTimeNotPast(time: LocalTime, date: LocalDate): LocalTime {
         time
     }
 }
-//</editor-fold>
 
 /* TYPE PICKER FIELD */
 @OptIn(ExperimentalAnimationApi::class)
@@ -422,7 +420,7 @@ fun datePickerField(
         selectedDate = initialDate ?: LocalDate.now().plusDays(1)
     }
 
-    // Validate when otherDate changes
+    // Validate when other Date changes
     LaunchedEffect(otherDate) {
         if (otherDate != null) {
             val validated = if (isStartDate) {
@@ -553,7 +551,7 @@ fun timePickerField(
         }
     }
 
-    // Validate against past time when contextDate changes (for Deadline form)
+    // Validate against past time
     LaunchedEffect(contextDate) {
         if (!allowPastTimes && contextDate != null && minTime == null) {
             val validated = validateTimeNotPast(selectedTime, contextDate)
@@ -749,7 +747,7 @@ fun recurrencePickerField(
                                 .clickable {
                                     recurrenceFreq = freq
                                     showRecurrenceDropdown = false
-                                    // Reset end date when switching to "Don't Repeat"
+                                    // Reset end date when "Don't Repeat"
                                     if (freq == RecurrenceFrequency.NONE) {
                                         endDate = startDate.plusMonths(1)
                                         repeatForever = true
@@ -988,11 +986,11 @@ fun priorityPickerField(
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
                 val priorityColors = listOf(
-                    Preset25, // 1 - Red
-                    Preset26, // 2 - Orange
-                    Preset27, // 3 - Yellow
-                    Preset28, // 4 - Lime
-                    Preset29  // 5 - Green
+                    Preset25, // 1
+                    Preset26, // 2
+                    Preset27, // 3
+                    Preset28, // 4
+                    Preset29  // 5
                 )
 
                 (1..5).forEach { p ->
@@ -1198,7 +1196,7 @@ fun schedulePickerField(
     var startDate by remember(key) { mutableStateOf(initialDate) }
     var startTime by remember(key) { mutableStateOf(initialTime) }
 
-    // Restore state once when inputs change
+    // Restore state when inputs change
     LaunchedEffect(key) {
         isAutoSchedule = initialAutoSchedule
         startDate = initialDate
@@ -1208,13 +1206,12 @@ fun schedulePickerField(
     val totalDurationMinutes = (durationHours * 60) + durationMinutes
     val autoScheduleLocked = totalDurationMinutes > 1439
 
-    // Auto-schedule is forced to ON when locked
+    // Auto-schedule forced ON when locked
     val effectiveAutoSchedule = if (autoScheduleLocked) true else isAutoSchedule
 
-    // Validate start time when switching to manual schedule
+    // Validate start time by manual
     LaunchedEffect(effectiveAutoSchedule) {
         if (!effectiveAutoSchedule && startTime != null && startDate != null) {
-            // CRITICAL: Past time FIRST, then duration LAST (duration overrides)
             var validated = validateTimeNotPast(startTime!!, startDate!!)
             validated = validateStartTimeForTask(validated, totalDurationMinutes)
             if (validated != startTime) {
@@ -1224,10 +1221,9 @@ fun schedulePickerField(
         }
     }
 
-    // Validate start time when date changes (for manual schedule)
+    // Validate start time by date
     LaunchedEffect(startDate) {
         if (!effectiveAutoSchedule && startTime != null && startDate != null) {
-            // CRITICAL: Past time FIRST, then duration LAST (duration overrides)
             var validated = validateTimeNotPast(startTime!!, startDate!!)
             validated = validateStartTimeForTask(validated, totalDurationMinutes)
             if (validated != startTime) {
@@ -1237,10 +1233,9 @@ fun schedulePickerField(
         }
     }
 
-    // Validate start time when duration changes (for manual schedule)
+    // Validate start time by duration
     LaunchedEffect(durationHours, durationMinutes) {
         if (!effectiveAutoSchedule && startTime != null && startDate != null) {
-            // CRITICAL: Past time FIRST, then duration LAST (duration overrides)
             var validated = validateTimeNotPast(startTime!!, startDate!!)
             validated = validateStartTimeForTask(validated, totalDurationMinutes)
             if (validated != startTime) {
@@ -1480,7 +1475,7 @@ fun checkboxField(
         isChecked = initialChecked
     }
 
-    // If force checked, always show as checked
+    // Force checked, always show as checked
     val displayChecked = if (forceChecked) true else if (locked) false else isChecked
 
     Box(

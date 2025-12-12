@@ -148,7 +148,7 @@ suspend fun checkEventOverlapWithEvents(
     return OverlapInfo(hasOverlap = false)
 }
 
-/* Check if a new Event would overlap with existing Task Bucket occurrences */
+/* Check if a new Event would overlap with existing Task Buckets */
 @RequiresApi(Build.VERSION_CODES.O)
 suspend fun checkEventOverlapWithBuckets(
     db: AppDatabase,
@@ -276,7 +276,7 @@ suspend fun checkBucketOverlapWithBuckets(
     return OverlapInfo(hasOverlap = false)
 }
 
-/* Check if a new Task Bucket would overlap with existing Event occurrences */
+/* Check if a new Task Bucket would overlap with existing Events */
 @RequiresApi(Build.VERSION_CODES.O)
 suspend fun checkBucketOverlapWithEvents(
     db: AppDatabase,
@@ -357,7 +357,7 @@ fun formatOverlapMessage(overlapInfo: OverlapInfo): String {
     return "Timing clashes with ${overlapInfo.conflictType} \non $dateStr at $timeStr"
 }
 
-/* Get maximum bucket duration from database */
+/* Get maximum bucket duration */
 @RequiresApi(Build.VERSION_CODES.O)
 suspend fun getMaxBucketDurationMinutes(db: AppDatabase): Int? {
     val allBucketOccurrences = db.taskBucketDao().getAllBucketOccurrences()
@@ -441,7 +441,7 @@ suspend fun onDeadlineDeleted(db: AppDatabase, deadlineId: Int) {
 /* Handle task bucket deletion */
 @RequiresApi(Build.VERSION_CODES.O)
 suspend fun onTaskBucketDeleted(db: AppDatabase) {
-    // Just regenerate task intervals
+    // Regenerate task intervals
     generateTaskIntervals(db)
 }
 
@@ -451,10 +451,10 @@ suspend fun onTaskChanged(db: AppDatabase) {
     generateTaskIntervals(db)
 }
 
-/* Handle task deletion - null out dependencyTaskId in dependent tasks */
+/* Handle task deletion */
 @RequiresApi(Build.VERSION_CODES.O)
 suspend fun onTaskDeleted(db: AppDatabase, taskId: Int) {
-    // Set dependencyTaskId to null in tasks that depend on this task
+    // Set dependencyTaskId to null
     val tasks = db.taskDao().getAllMasterTasks()
     tasks.filter { it.dependencyTaskId == taskId }.forEach { task ->
         db.taskDao().update(task.copy(dependencyTaskId = null))

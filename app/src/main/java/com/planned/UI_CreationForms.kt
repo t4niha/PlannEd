@@ -243,7 +243,7 @@ fun DeadlineForm(
         }
     }
 
-    // Lock category when event is selected, update when event changes
+    // Lock category when event selected, update when event changes
     LaunchedEffect(selectedEvent, events.size) {
         if (selectedEvent != previousEvent) {
             if (selectedEvent != null && events.isNotEmpty()) {
@@ -334,7 +334,7 @@ fun DeadlineForm(
         onEventChange(eventValue)
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Category locked when Event is selected
+        // Category locked when Event selected
         val categoryValue = dropdownField(
             label = "Category",
             items = categories.map { it.title },
@@ -463,12 +463,12 @@ fun TaskForm(
         events = EventManager.getAll(db)
         deadlines = DeadlineManager.getAll(db)
 
-        // Get tasks that can be dependencies (auto-scheduled tasks only, excluding current task)
+        // Get tasks that can be dependencies
         dependencyTasks = TaskManager.getAll(db).filter {
             it.status == 1 &&
-                    it.startDate == null &&
-                    it.startTime == null &&
-                    it.id != currentTaskId
+            it.startDate == null &&
+            it.startTime == null &&
+            it.id != currentTaskId
         }
 
         // Get max bucket duration
@@ -491,7 +491,7 @@ fun TaskForm(
         }
     }
 
-    // Validate start time for manual tasks when duration, time, date, or schedule mode changes
+    // Validate start time for manual tasks by duration, time, date, schedule mode
     LaunchedEffect(durationHours, durationMinutes, startTime, startDate, isAutoSchedule) {
         if (!isAutoSchedule && startTime != null && startDate != null) {
             val totalDurationMinutes = (durationHours * 60) + durationMinutes
@@ -503,7 +503,7 @@ fun TaskForm(
             // Calculate the maximum start time based on duration
             var maxAllowedStartTime: LocalTime? = null
             if (totalDurationMinutes <= 1439) {
-                val maxEndMinutes = 23 * 60 + 59  // 23:59
+                val maxEndMinutes = 23 * 60 + 59
                 val maxStartMinutes = maxEndMinutes - totalDurationMinutes
                 if (maxStartMinutes >= 0) {
                     val maxStartHours = maxStartMinutes / 60
@@ -512,7 +512,7 @@ fun TaskForm(
                 }
             }
 
-            // Apply duration constraint first
+            // Apply duration constraint
             if (maxAllowedStartTime != null && validated.isAfter(maxAllowedStartTime)) {
                 validated = maxAllowedStartTime
             }
@@ -522,21 +522,21 @@ fun TaskForm(
                 if (validated.isBefore(now) || validated == now) {
                     val candidateTime = now.plusMinutes(1)
 
-                    // Only use candidate if it respects the absolute duration limit
+                    // Only use if it respects absolute duration limit
                     if (maxAllowedStartTime == null || !candidateTime.isAfter(maxAllowedStartTime)) {
                         validated = candidateTime
                     }
                 }
             }
 
-            // Only update if validation changed the time
+            // Update if validation changed time
             if (validated != startTime) {
                 onScheduleChange(false, startDate, validated)
             }
         }
     }
 
-    // Reset dependency task when auto-schedule is disabled
+    // Reset dependency task when auto-schedule disabled
     LaunchedEffect(isAutoSchedule) {
         if (!isAutoSchedule && selectedDependencyTask != null) {
             onDependencyTaskChange(null)
@@ -589,7 +589,7 @@ fun TaskForm(
         }
     }
 
-    // Lock category when event is selected
+    // Lock category when event selected
     LaunchedEffect(selectedEvent, events.size, categories.size) {
         if (selectedDeadline == null && selectedEvent != previousEvent) {
             if (selectedEvent != null && events.isNotEmpty()) {
@@ -635,7 +635,7 @@ fun TaskForm(
         onPriorityChange(priorityValue)
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Duration picker with callback
+        // Duration picker
         val (hours, minutes) = durationPickerField(
             initialHours = durationHours,
             initialMinutes = durationMinutes,
@@ -650,7 +650,7 @@ fun TaskForm(
         }
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Schedule picker with time validation callback
+        // Schedule picker with time validation
         val (autoSchedule, date, time) = schedulePickerField(
             initialAutoSchedule = isAutoSchedule,
             initialDate = startDate,
@@ -684,7 +684,7 @@ fun TaskForm(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Dependency Task dropdown - locked if not auto-schedule
+        // Dependency Task dropdown locked if not auto-schedule
         val dependencyTaskValue = dropdownField(
             label = "Dependency Task",
             items = dependencyTasks.map { it.title },
@@ -692,7 +692,6 @@ fun TaskForm(
             key = resetTrigger,
             locked = !isAutoSchedule
         )
-        // Only call onChange when value actually changes
         if (dependencyTaskValue != previousDependencyTask) {
             previousDependencyTask = dependencyTaskValue
             if (isAutoSchedule) {
@@ -715,7 +714,7 @@ fun TaskForm(
         }
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Event locked when Deadline is selected
+        // Event locked when Deadline selected
         val eventValue = dropdownField(
             label = "Event",
             items = events.map { it.title },
@@ -729,7 +728,7 @@ fun TaskForm(
         }
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Category locked when Event/Deadline is selected
+        // Category locked when Event/Deadline selected
         val categoryValue = dropdownField(
             label = "Category",
             items = categories.map { it.title },

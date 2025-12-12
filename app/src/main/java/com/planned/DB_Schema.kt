@@ -196,8 +196,8 @@ data class MasterTask(
     val actualDuration: Int? = null,        // back-end access to this only, total final duration
 
     val status: Int? = 1,                   // 1 = not started, 2 = in progress, 3 = completed
-    val timeLeft: Int? = null,              // auto calculated (sum of occurrences)
-    val overTime: Int? = null,              // auto-calculated (sum of occurrences)
+    val timeLeft: Int? = null,              // auto calculated
+    val overTime: Int? = null,              // auto-calculated
 
     val dependencyTaskId: Int? = null,      // task that must be completed before this one
     val eventId: Int? = null,
@@ -225,12 +225,12 @@ data class TaskInterval(
 
     val occurDate: LocalDate,
 
-    val startTime: LocalTime,               // updates as task progresses (pomodoro)
+    val startTime: LocalTime,               // updates as task progresses
     val endTime: LocalTime,
 
     val status: Int? = 1,
-    val timeLeft: Int? = null,              // auto calculated (pomodoro)
-    val overTime: Int? = null,              // auto-calculated (pomodoro)
+    val timeLeft: Int? = null,              // auto calculated
+    val overTime: Int? = null,              // auto-calculated
 )
 //</editor-fold>
 
