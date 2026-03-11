@@ -52,10 +52,14 @@ class MainActivity : ComponentActivity() {
 
 /**
  TODO: Fix UI pages (category, event, deadline, reminder, task bucket) - all/this (isException)
+ TODO: refresh schedule button
+ TODO: if task is completed in its allocated time but finished early, don't need to refresh schedule!?!??!
  TODO: Calendar to UI pages navigation
+ TODO: notifications?
  TODO: Status indicators and overtime warnings for task elements on calendar
  TODO: Confirmation dialogs for destructive operations (delete master objects, cascading deletions)
  TODO: Kanban board?
+ TODO: POMODORO have the option to control timer spread (not just an hour!)
  TODO: Task info back to calendar doesn't scroll to that task, only to today
  TODO: Task update form dropdown loop glitch
  TODO: Cancel (dialogue) buttons do same as Save
