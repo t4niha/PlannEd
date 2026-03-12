@@ -52,6 +52,7 @@ class MainActivity : ComponentActivity() {
 
 /**
  TODO: Fix UI pages (category, event, deadline, reminder, task bucket) - all/this (isException)
+ TODO: On creation don't allow duplicate titles for events, categories
  TODO: refresh schedule button
  TODO: if task is completed in its allocated time but finished early, don't need to refresh schedule!?!??!
  TODO: Calendar to UI pages navigation
