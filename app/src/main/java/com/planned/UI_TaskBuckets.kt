@@ -232,7 +232,7 @@ fun TaskBucketInfoPage(
                 .verticalScroll(scrollState)
         ) {
             Box(modifier = Modifier.fillMaxWidth().padding(18.dp)) {
-                Text(text = "Task Bucket Details", fontSize = 20.sp, fontWeight = FontWeight.Medium)
+                Text(text = "Task Bucket", fontSize = 20.sp, fontWeight = FontWeight.Medium)
             }
 
             Column(
