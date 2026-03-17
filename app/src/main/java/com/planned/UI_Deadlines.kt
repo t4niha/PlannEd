@@ -113,7 +113,7 @@ fun DeadlinesListView(
                     item {
                         Text(
                             text = categoryName,
-                            fontSize = 18.sp,
+                            fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color.Gray,
                             modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 4.dp)
@@ -151,8 +151,8 @@ fun DeadlineItemView(
         }
     }
 
-    val dateFormatter = DateTimeFormatter.ofPattern("MMM dd, yyyy")
-    val timeFormatter = DateTimeFormatter.ofPattern("h:mm a")
+    val dateFormatter = java.time.format.DateTimeFormatter.ofPattern("MMMM d, yyyy")
+    val timeFormatter = java.time.format.DateTimeFormatter.ofPattern("h:mm a")
 
     Row(
         modifier = Modifier
@@ -174,7 +174,7 @@ fun DeadlineItemView(
                 overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
             )
             Text(
-                text = "${deadline.date.format(dateFormatter)} at ${deadline.time.format(timeFormatter)}",
+                text = "${deadline.time.format(timeFormatter)}, ${deadline.date.format(dateFormatter)}",
                 fontSize = 14.sp,
                 color = Color.Gray
             )

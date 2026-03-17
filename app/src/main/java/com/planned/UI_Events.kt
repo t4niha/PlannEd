@@ -109,7 +109,7 @@ fun EventsList(
                     item {
                         Text(
                             text = categoryName,
-                            fontSize = 18.sp,
+                            fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color.Gray,
                             modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 4.dp)
@@ -140,6 +140,17 @@ fun EventListItem(
         else -> Preset1
     }
 
+    val timeFormatter = java.time.format.DateTimeFormatter.ofPattern("h:mm a")
+    val dateFormatter = java.time.format.DateTimeFormatter.ofPattern("MMMM d, yyyy")
+    val timeText = "${event.startTime.format(timeFormatter)} - ${event.endTime.format(timeFormatter)}"
+    val recurrenceText = when (event.recurFreq) {
+        RecurrenceFrequency.NONE -> event.startDate.format(dateFormatter)
+        RecurrenceFrequency.DAILY -> "Daily"
+        RecurrenceFrequency.WEEKLY -> "Weekly"
+        RecurrenceFrequency.MONTHLY -> "Monthly"
+        RecurrenceFrequency.YEARLY -> "Yearly"
+    }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -153,7 +164,7 @@ fun EventListItem(
         Spacer(modifier = Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(text = event.title, fontSize = 16.sp, fontWeight = FontWeight.Medium)
-            Text(text = "${event.startTime} - ${event.endTime}", fontSize = 14.sp, color = Color.Gray)
+            Text(text = "$timeText, $recurrenceText", fontSize = 14.sp, color = Color.Gray)
         }
     }
 }
@@ -218,7 +229,16 @@ fun EventInfoPage(
                 InfoField("End Date", currentEvent.endDate?.toString() ?: "N/A")
                 InfoField("Start Time", currentEvent.startTime.toString())
                 InfoField("End Time", currentEvent.endTime.toString())
-                InfoField("Recurrence", currentEvent.recurFreq.name)
+                InfoField("Recurrence", currentEvent.recurFreq.name.lowercase().replaceFirstChar { it.uppercase() } +
+                        when (currentEvent.recurFreq) {
+                            RecurrenceFrequency.WEEKLY -> currentEvent.recurRule.daysOfWeek?.sorted()?.joinToString(", ") { d ->
+                                when (d) { 1 -> "Mo"; 2 -> "Tu"; 3 -> "We"; 4 -> "Th"; 5 -> "Fr"; 6 -> "Sa"; 7 -> "Su"; else -> "" }
+                            }?.let { "\n$it" } ?: ""
+                            RecurrenceFrequency.MONTHLY -> currentEvent.recurRule.daysOfMonth?.sorted()?.joinToString(", ")?.let { "\n$it" } ?: ""
+                            RecurrenceFrequency.YEARLY -> currentEvent.recurRule.monthAndDay?.let { "\n${it.second}/${it.first}" } ?: ""
+                            else -> ""
+                        }
+                )
                 InfoField("Category", category?.title ?: "None")
             }
         }

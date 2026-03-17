@@ -108,7 +108,7 @@ fun RemindersListView(
                     item {
                         Text(
                             text = categoryName,
-                            fontSize = 18.sp,
+                            fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color.Gray,
                             modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 4.dp)
@@ -130,8 +130,8 @@ fun ReminderItemView(
     onClick: () -> Unit
 ) {
     val reminderColor = Converters.toColor(reminder.color)
-    val timeFormatter = DateTimeFormatter.ofPattern("h:mm a")
-    val dateFormatter = DateTimeFormatter.ofPattern("MMM dd, yyyy")
+    val timeFormatter = java.time.format.DateTimeFormatter.ofPattern("h:mm a")
+    val dateFormatter = java.time.format.DateTimeFormatter.ofPattern("MMMM d, yyyy")
 
     Row(
         modifier = Modifier
@@ -154,9 +154,9 @@ fun ReminderItemView(
             )
             Text(
                 text = if (reminder.allDay)
-                    "${reminder.startDate.format(dateFormatter)} - All Day"
+                    "${reminder.startDate.format(dateFormatter)}, All Day"
                 else
-                    "${reminder.startDate.format(dateFormatter)} at ${reminder.time?.format(timeFormatter) ?: ""}",
+                    "${reminder.time?.format(timeFormatter) ?: ""}, ${reminder.startDate.format(dateFormatter)}",
                 fontSize = 14.sp,
                 color = Color.Gray
             )
@@ -234,29 +234,16 @@ fun ReminderInfoView(
                 InfoField("Start Date", currentReminder.startDate.format(dateFormatter))
                 InfoField("End Date", currentReminder.endDate?.format(dateFormatter) ?: "N/A")
                 InfoField("Time", if (currentReminder.allDay) "All Day" else currentReminder.time?.format(timeFormatter) ?: "")
-                InfoField("Recurrence", currentReminder.recurFreq.name)
-
-                when (currentReminder.recurFreq) {
-                    RecurrenceFrequency.WEEKLY -> {
-                        val daysOfWeek = currentReminder.recurRule.daysOfWeek
-                        if (daysOfWeek != null && daysOfWeek.isNotEmpty()) {
-                            val dayNames = daysOfWeek.sorted().joinToString(", ") { dayNum ->
-                                when (dayNum) {
-                                    1 -> "Mon"; 2 -> "Tue"; 3 -> "Wed"; 4 -> "Thu"
-                                    5 -> "Fri"; 6 -> "Sat"; 7 -> "Sun"; else -> ""
-                                }
-                            }
-                            InfoField("Days", dayNames)
+                InfoField("Recurrence", currentReminder.recurFreq.name.lowercase().replaceFirstChar { it.uppercase() } +
+                        when (currentReminder.recurFreq) {
+                            RecurrenceFrequency.WEEKLY -> currentReminder.recurRule.daysOfWeek?.sorted()?.joinToString(", ") { d ->
+                                when (d) { 1 -> "Mo"; 2 -> "Tu"; 3 -> "We"; 4 -> "Th"; 5 -> "Fr"; 6 -> "Sa"; 7 -> "Su"; else -> "" }
+                            }?.let { "\n$it" } ?: ""
+                            RecurrenceFrequency.MONTHLY -> currentReminder.recurRule.daysOfMonth?.sorted()?.joinToString(", ")?.let { "\n$it" } ?: ""
+                            RecurrenceFrequency.YEARLY -> currentReminder.recurRule.monthAndDay?.let { "\n${it.second}/${it.first}" } ?: ""
+                            else -> ""
                         }
-                    }
-                    RecurrenceFrequency.MONTHLY -> {
-                        val daysOfMonth = currentReminder.recurRule.daysOfMonth
-                        if (daysOfMonth != null && daysOfMonth.isNotEmpty()) {
-                            InfoField("Days of Month", daysOfMonth.sorted().joinToString(", "))
-                        }
-                    }
-                    else -> {}
-                }
+                )
 
                 InfoField("Category", category?.title ?: "None")
             }

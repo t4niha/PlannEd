@@ -22,6 +22,49 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 
+fun formatBucketRecurrence(bucket: MasterTaskBucket, startWeekOnMonday: Boolean): String {
+    return when (bucket.recurFreq) {
+        RecurrenceFrequency.NONE -> "No Recurrence"
+        RecurrenceFrequency.DAILY -> "Daily"
+        RecurrenceFrequency.WEEKLY -> {
+            val days = bucket.recurRule.daysOfWeek ?: emptyList()
+            // Order: if week starts Monday: 1,2,3,4,5,6,7 else 7,1,2,3,4,5,6
+            val order = if (startWeekOnMonday) listOf(1,2,3,4,5,6,7) else listOf(7,1,2,3,4,5,6)
+            val sorted = days.sortedBy { order.indexOf(it) }
+            val dayNames = sorted.joinToString(", ") { d ->
+                when (d) { 1 -> "Mo"; 2 -> "Tu"; 3 -> "We"; 4 -> "Th"; 5 -> "Fr"; 6 -> "Sa"; 7 -> "Su"; else -> "" }
+            }
+            "Weekly $dayNames"
+        }
+        RecurrenceFrequency.MONTHLY -> {
+            val days = bucket.recurRule.daysOfMonth?.sorted()?.joinToString(", ") ?: ""
+            "Monthly $days"
+        }
+        RecurrenceFrequency.YEARLY -> "Yearly"
+    }
+}
+
+fun formatBucketRecurrenceMultiline(bucket: MasterTaskBucket, startWeekOnMonday: Boolean): String {
+    return when (bucket.recurFreq) {
+        RecurrenceFrequency.NONE -> "No Recurrence"
+        RecurrenceFrequency.DAILY -> "Daily"
+        RecurrenceFrequency.WEEKLY -> {
+            val days = bucket.recurRule.daysOfWeek ?: emptyList()
+            val order = if (startWeekOnMonday) listOf(1,2,3,4,5,6,7) else listOf(7,1,2,3,4,5,6)
+            val sorted = days.sortedBy { order.indexOf(it) }
+            val dayNames = sorted.joinToString(", ") { d ->
+                when (d) { 1 -> "Mo"; 2 -> "Tu"; 3 -> "We"; 4 -> "Th"; 5 -> "Fr"; 6 -> "Sa"; 7 -> "Su"; else -> "" }
+            }
+            "Weekly\n$dayNames"
+        }
+        RecurrenceFrequency.MONTHLY -> {
+            val days = bucket.recurRule.daysOfMonth?.sorted()?.joinToString(", ") ?: ""
+            "Monthly\n$days"
+        }
+        RecurrenceFrequency.YEARLY -> "Yearly"
+    }
+}
+
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
@@ -120,6 +163,10 @@ fun TaskBucketListItem(
     bucket: MasterTaskBucket,
     onClick: () -> Unit
 ) {
+    val timeFormatter = java.time.format.DateTimeFormatter.ofPattern("h:mm a")
+    val startWeekOnMonday = SettingsManager.settings?.startWeekOnMonday ?: false
+    val recurrenceText = formatBucketRecurrence(bucket, startWeekOnMonday)
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -131,12 +178,12 @@ fun TaskBucketListItem(
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = "${bucket.startTime} - ${bucket.endTime}",
+                text = "${bucket.startTime.format(timeFormatter)} - ${bucket.endTime.format(timeFormatter)}",
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Medium
             )
             Text(
-                text = bucket.recurFreq.name,
+                text = recurrenceText,
                 fontSize = 14.sp,
                 color = Color.Gray
             )
@@ -194,9 +241,9 @@ fun TaskBucketInfoPage(
             ) {
                 InfoField("Start Date", currentBucket.startDate.toString())
                 InfoField("End Date", currentBucket.endDate?.toString() ?: "N/A")
-                InfoField("Start Time", currentBucket.startTime.toString())
-                InfoField("End Time", currentBucket.endTime.toString())
-                InfoField("Recurrence", currentBucket.recurFreq.name)
+                InfoField("Start Time", java.time.format.DateTimeFormatter.ofPattern("h:mm a").let { currentBucket.startTime.format(it) })
+                InfoField("End Time", java.time.format.DateTimeFormatter.ofPattern("h:mm a").let { currentBucket.endTime.format(it) })
+                InfoField("Recurrence", formatBucketRecurrenceMultiline(currentBucket, SettingsManager.settings?.startWeekOnMonday ?: false))
             }
         }
 

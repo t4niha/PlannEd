@@ -259,7 +259,7 @@ fun UnscheduledTasksList(
                     item {
                         Text(
                             text = categoryName,
-                            fontSize = 18.sp,
+                            fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color.Gray,
                             modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 4.dp)
@@ -374,7 +374,7 @@ fun ScheduledTasksList(
                     item {
                         Text(
                             text = categoryName,
-                            fontSize = 18.sp,
+                            fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color.Gray,
                             modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 4.dp)
@@ -415,8 +415,8 @@ fun ScheduledTaskItem(
     val innerColor = category?.let { Converters.toColor(it.color) } ?: Color.LightGray
     val outerColor = priorityColors.getOrNull(masterTask.priority - 1) ?: Color.Gray
 
-    val dateFormatter = DateTimeFormatter.ofPattern("MMM dd, yyyy")
-    val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
+    val dateFormatter = DateTimeFormatter.ofPattern("MMMM d, yyyy")
+    val timeFormatter = DateTimeFormatter.ofPattern("h:mm a")
 
     Column(
         modifier = Modifier
@@ -448,7 +448,7 @@ fun ScheduledTaskItem(
         Column(modifier = Modifier.padding(start = 42.dp, top = 8.dp)) {
             intervals.sortedBy { it.intervalNo }.forEach { interval ->
                 Text(
-                    text = "${interval.occurDate.format(dateFormatter)}  ${interval.startTime.format(timeFormatter)} - ${interval.endTime.format(timeFormatter)}",
+                    text = "${interval.startTime.format(timeFormatter)} - ${interval.endTime.format(timeFormatter)}, ${interval.occurDate.format(dateFormatter)}",
                     fontSize = 14.sp,
                     color = Color.Gray
                 )
@@ -520,8 +520,8 @@ fun TaskInfoPage(
         updateDataReady = true
     }
 
-    val dateFormatter = DateTimeFormatter.ofPattern("MMM dd, yyyy")
-    val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
+    val dateFormatter = DateTimeFormatter.ofPattern("MMMM d, yyyy")
+    val timeFormatter = DateTimeFormatter.ofPattern("h:mm a")
 
     Column(
         modifier = Modifier
@@ -585,7 +585,7 @@ fun TaskInfoPage(
                 ) {
                     intervals.forEach { interval ->
                         Text(
-                            text = "${interval.occurDate.format(dateFormatter)}  ${interval.startTime.format(timeFormatter)} - ${interval.endTime.format(timeFormatter)}",
+                            text = "${interval.startTime.format(timeFormatter)} - ${interval.endTime.format(timeFormatter)}, ${interval.occurDate.format(dateFormatter)}",
                             fontSize = 16.sp,
                             color = Color.Gray
                         )
