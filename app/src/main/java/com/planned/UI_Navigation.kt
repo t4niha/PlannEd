@@ -38,6 +38,7 @@ var currentScreen by mutableStateOf("Calendars")
 var currentCalendarView by mutableStateOf("Day")
 var calendarResetTrigger by mutableIntStateOf(0)
 var selectedTaskForInfo by mutableStateOf<MasterTask?>(null)
+var navUpdateFormData by mutableStateOf<UpdateFormData?>(null)
 
 /* APP NAVIGATION */
 @RequiresApi(Build.VERSION_CODES.O)
@@ -86,31 +87,33 @@ fun AppNavigation(db: AppDatabase) {
                                 onBack = {
                                     currentScreen = "Calendars"
                                     selectedTaskForInfo = null
+                                    navUpdateFormData = null
                                 },
+                                onUpdateDataReady = { data -> navUpdateFormData = data },
                                 onUpdate = { currentScreen = "TaskUpdate" },
                                 onPlay = { currentScreen = "TaskPomodoro" }
                             )
                         }
                         "TaskUpdate" -> selectedTaskForInfo?.let { task ->
-                            TaskUpdateForm(
-                                db = db,
-                                task = task,
-                                onBack = {
-                                    currentScreen = "TaskInfo"
-                                },
-                                onSaveSuccess = { updatedTask ->
-                                    selectedTaskForInfo = updatedTask
-                                    currentScreen = "TaskInfo"
-                                }
-                            )
+                            navUpdateFormData?.let { formData ->
+                                TaskUpdateForm(
+                                    db = db,
+                                    task = task,
+                                    preloadedData = formData,
+                                    onBack = { currentScreen = "TaskInfo" },
+                                    onSaveSuccess = { updatedTask ->
+                                        selectedTaskForInfo = updatedTask
+                                        navUpdateFormData = null
+                                        currentScreen = "TaskInfo"
+                                    }
+                                )
+                            }
                         }
                         "TaskPomodoro" -> selectedTaskForInfo?.let { task ->
                             PomodoroPage(
                                 db = db,
                                 task = task,
-                                onBack = {
-                                    currentScreen = "TaskInfo"
-                                }
+                                onBack = { currentScreen = "TaskInfo" }
                             )
                         }
                     }
@@ -131,14 +134,12 @@ fun Header(
 ) {
     Column(modifier = Modifier.background(BackgroundColor)) {
         CenterAlignedTopAppBar(
-            // Menu button
             navigationIcon = {
                 IconButton(onClick = onMenuClick) {
                     Icon(Icons.Filled.Menu, contentDescription = "Menu", modifier = Modifier.size(32.dp))
                 }
             },
             title = {
-                // View selector buttons
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
@@ -176,17 +177,12 @@ fun Header(
 
                     Spacer(modifier = Modifier.width(8.dp))
 
-                    // Create button
                     IconButton(onClick = onCreateClick) {
-                        Icon(Icons.Filled.Add,
-                            contentDescription = "Create",
-                            modifier = Modifier.size(32.dp))
+                        Icon(Icons.Filled.Add, contentDescription = "Create", modifier = Modifier.size(32.dp))
                     }
                 }
             },
-            colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = BackgroundColor
-            ),
+            colors = TopAppBarDefaults.topAppBarColors(containerColor = BackgroundColor),
             modifier = Modifier.fillMaxWidth()
         )
         Spacer(modifier = Modifier.height(10.dp))
@@ -233,7 +229,6 @@ fun NavigationDrawer(
         ) {
             Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
 
-                // Drawer items
                 @Composable
                 fun DrawerItem(label: String, onClick: () -> Unit) {
                     TextButton(
@@ -250,7 +245,6 @@ fun NavigationDrawer(
                     HorizontalDivider(thickness = 1.dp, color = Color.LightGray)
                 }
 
-                // Checkable boxes
                 @Composable
                 fun CheckableBox(isChecked: Boolean, onToggle: () -> Unit) {
                     Box(
@@ -277,7 +271,6 @@ fun NavigationDrawer(
                     }
                 }
 
-                // Drawer rows
                 @Composable
                 fun DrawerRow(
                     label: String,
@@ -315,7 +308,6 @@ fun NavigationDrawer(
                     }
                 }
 
-                // Icons
                 @Composable
                 fun CalendarIcon() {
                     Icon(
@@ -344,7 +336,6 @@ fun NavigationDrawer(
                     )
                 }
 
-                // Drawer Contents
                 DrawerRow("Categories", { CalendarIcon() }) {
                     currentScreen = "Categories"
                     onDrawerToggle()

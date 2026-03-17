@@ -36,6 +36,17 @@ val priorityColors = listOf(
     Preset35  // 5
 )
 
+data class UpdateFormData(
+    val categories: List<Category>,
+    val events: List<MasterEvent>,
+    val deadlines: List<Deadline>,
+    val dependencyTasks: List<MasterTask>,
+    val selectedCategory: Int?,
+    val selectedEvent: Int?,
+    val selectedDeadline: Int?,
+    val selectedDependencyTask: Int?
+)
+
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
@@ -43,6 +54,7 @@ fun Tasks(db: AppDatabase) {
     var currentView by remember { mutableStateOf("main") }
     var selectedTask by remember { mutableStateOf<MasterTask?>(null) }
     var selectedInterval by remember { mutableStateOf<TaskInterval?>(null) }
+    var updateFormData by remember { mutableStateOf<UpdateFormData?>(null) }
 
     when (currentView) {
         "main" -> TasksMainView(
@@ -75,31 +87,33 @@ fun Tasks(db: AppDatabase) {
                     currentView = if (selectedInterval != null) "scheduled" else "unscheduled"
                     selectedTask = null
                     selectedInterval = null
+                    updateFormData = null
                 },
+                onUpdateDataReady = { data -> updateFormData = data },
                 onUpdate = { currentView = "update" },
                 onPlay = { currentView = "pomodoro" }
             )
         }
         "update" -> selectedTask?.let { task ->
-            TaskUpdateForm(
-                db = db,
-                task = task,
-                onBack = {
-                    currentView = "info"
-                },
-                onSaveSuccess = { updatedTask ->
-                    selectedTask = updatedTask
-                    currentView = "info"
-                }
-            )
+            updateFormData?.let { formData ->
+                TaskUpdateForm(
+                    db = db,
+                    task = task,
+                    preloadedData = formData,
+                    onBack = { currentView = "info" },
+                    onSaveSuccess = { updatedTask ->
+                        selectedTask = updatedTask
+                        updateFormData = null
+                        currentView = "info"
+                    }
+                )
+            }
         }
         "pomodoro" -> selectedTask?.let { task ->
             PomodoroPage(
                 db = db,
                 task = task,
-                onBack = {
-                    currentView = "info"
-                }
+                onBack = { currentView = "info" }
             )
         }
     }
@@ -226,38 +240,20 @@ fun UnscheduledTasksList(
                 .clickable { onBack() }
                 .padding(horizontal = 16.dp, vertical = 8.dp)
         ) {
-            Text(
-                "Back",
-                fontSize = 16.sp,
-                color = Color.White
-            )
+            Text("Back", fontSize = 16.sp, color = Color.White)
         }
 
         if (tasks.isEmpty()) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "No unscheduled tasks",
-                    fontSize = 18.sp,
-                    color = Color.Gray
-                )
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(text = "No unscheduled tasks", fontSize = 18.sp, color = Color.Gray)
             }
         } else {
             LazyColumn(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .padding(12.dp),
+                modifier = Modifier.weight(1f).fillMaxWidth().padding(12.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(tasks) { task ->
-                    UnscheduledTaskItem(
-                        db = db,
-                        task = task,
-                        onClick = { onTaskClick(task) }
-                    )
+                    UnscheduledTaskItem(db = db, task = task, onClick = { onTaskClick(task) })
                 }
             }
         }
@@ -289,24 +285,13 @@ fun UnscheduledTaskItem(
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Bullseye circle
         Box(
-            modifier = Modifier
-                .size(30.dp)
-                .clip(CircleShape)
-                .background(outerColor),
+            modifier = Modifier.size(30.dp).clip(CircleShape).background(outerColor),
             contentAlignment = Alignment.Center
         ) {
-            Box(
-                modifier = Modifier
-                    .size(20.dp)
-                    .clip(CircleShape)
-                    .background(innerColor)
-            )
+            Box(modifier = Modifier.size(20.dp).clip(CircleShape).background(innerColor))
         }
         Spacer(modifier = Modifier.width(12.dp))
-
-        // Title
         Text(
             text = task.title,
             fontSize = 16.sp,
@@ -334,12 +319,7 @@ fun ScheduledTasksList(
         masterTasks = tasks.associateBy { it.id }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(BackgroundColor)
-    ) {
-        // Back button
+    Column(modifier = Modifier.fillMaxSize().background(BackgroundColor)) {
         Box(
             modifier = Modifier
                 .padding(16.dp)
@@ -348,33 +328,18 @@ fun ScheduledTasksList(
                 .clickable { onBack() }
                 .padding(horizontal = 16.dp, vertical = 8.dp)
         ) {
-            Text(
-                "Back",
-                fontSize = 16.sp,
-                color = Color.White
-            )
+            Text("Back", fontSize = 16.sp, color = Color.White)
         }
 
-        // Group intervals by masterTaskId
         val groupedIntervals = intervals.groupBy { it.masterTaskId }
 
         if (groupedIntervals.isEmpty()) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "No scheduled tasks",
-                    fontSize = 18.sp,
-                    color = Color.Gray
-                )
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(text = "No scheduled tasks", fontSize = 18.sp, color = Color.Gray)
             }
         } else {
             LazyColumn(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .padding(12.dp),
+                modifier = Modifier.weight(1f).fillMaxWidth().padding(12.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 groupedIntervals.forEach { (masterTaskId, taskIntervals) ->
@@ -422,28 +387,14 @@ fun ScheduledTaskItem(
             .clickable { onClick() }
             .padding(12.dp)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Bullseye circle
+        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Box(
-                modifier = Modifier
-                    .size(30.dp)
-                    .clip(CircleShape)
-                    .background(outerColor),
+                modifier = Modifier.size(30.dp).clip(CircleShape).background(outerColor),
                 contentAlignment = Alignment.Center
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(20.dp)
-                        .clip(CircleShape)
-                        .background(innerColor)
-                )
+                Box(modifier = Modifier.size(20.dp).clip(CircleShape).background(innerColor))
             }
             Spacer(modifier = Modifier.width(12.dp))
-
-            // Title
             Text(
                 text = masterTask.title,
                 fontSize = 16.sp,
@@ -455,11 +406,7 @@ fun ScheduledTaskItem(
             )
             Spacer(modifier = Modifier.width(12.dp))
         }
-
-        // Dates and times
-        Column(
-            modifier = Modifier.padding(start = 42.dp, top = 8.dp)
-        ) {
+        Column(modifier = Modifier.padding(start = 42.dp, top = 8.dp)) {
             intervals.sortedBy { it.intervalNo }.forEach { interval ->
                 Text(
                     text = "${interval.occurDate.format(dateFormatter)}  ${interval.startTime.format(timeFormatter)} - ${interval.endTime.format(timeFormatter)}",
@@ -478,6 +425,7 @@ fun TaskInfoPage(
     db: AppDatabase,
     task: MasterTask,
     onBack: () -> Unit,
+    onUpdateDataReady: (UpdateFormData) -> Unit,
     onUpdate: () -> Unit,
     onPlay: () -> Unit
 ) {
@@ -489,6 +437,7 @@ fun TaskInfoPage(
     var dependencyTask by remember { mutableStateOf<MasterTask?>(null) }
     var intervals by remember { mutableStateOf<List<TaskInterval>>(emptyList()) }
     var currentTask by remember { mutableStateOf(task) }
+    var updateDataReady by remember { mutableStateOf(false) }
 
     LaunchedEffect(task.id) {
         currentTask = db.taskDao().getMasterTaskById(task.id) ?: task
@@ -497,6 +446,39 @@ fun TaskInfoPage(
         deadline = currentTask.deadlineId?.let { db.deadlineDao().getDeadlineById(it) }
         dependencyTask = currentTask.dependencyTaskId?.let { db.taskDao().getMasterTaskById(it) }
         intervals = db.taskDao().getIntervalsForTask(currentTask.id).sortedBy { it.intervalNo }
+
+        // Preload update form data in the background
+        val categories = CategoryManager.getAll(db)
+        val events = EventManager.getAll(db)
+        val deadlines = DeadlineManager.getAll(db)
+        val dependencyTasks = TaskManager.getAll(db).filter {
+            it.status == 1 && it.startDate == null && it.startTime == null && it.id != currentTask.id
+        }
+        val selectedCategory = currentTask.categoryId?.let { catId ->
+            categories.indexOfFirst { it.id == catId }.takeIf { it >= 0 }
+        }
+        val selectedEvent = currentTask.eventId?.let { evId ->
+            events.indexOfFirst { it.id == evId }.takeIf { it >= 0 }
+        }
+        val selectedDeadline = currentTask.deadlineId?.let { dlId ->
+            deadlines.indexOfFirst { it.id == dlId }.takeIf { it >= 0 }
+        }
+        val selectedDependencyTask = currentTask.dependencyTaskId?.let { depId ->
+            dependencyTasks.indexOfFirst { it.id == depId }.takeIf { it >= 0 }
+        }
+        onUpdateDataReady(
+            UpdateFormData(
+                categories = categories,
+                events = events,
+                deadlines = deadlines,
+                dependencyTasks = dependencyTasks,
+                selectedCategory = selectedCategory,
+                selectedEvent = selectedEvent,
+                selectedDeadline = selectedDeadline,
+                selectedDependencyTask = selectedDependencyTask
+            )
+        )
+        updateDataReady = true
     }
 
     val dateFormatter = DateTimeFormatter.ofPattern("MMM dd, yyyy")
@@ -513,7 +495,6 @@ fun TaskInfoPage(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Back button
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(8.dp))
@@ -521,14 +502,8 @@ fun TaskInfoPage(
                     .clickable { onBack() }
                     .padding(horizontal = 16.dp, vertical = 8.dp)
             ) {
-                Text(
-                    "Back",
-                    fontSize = 16.sp,
-                    color = Color.White
-                )
+                Text("Back", fontSize = 16.sp, color = Color.White)
             }
-
-            // Play button
             Box(
                 modifier = Modifier
                     .size(40.dp)
@@ -549,27 +524,14 @@ fun TaskInfoPage(
         Spacer(modifier = Modifier.height(16.dp))
 
         Column(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
-                .verticalScroll(scrollState)
+            modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(scrollState)
         ) {
-            // Title
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(18.dp)
-            ) {
+            Box(modifier = Modifier.fillMaxWidth().padding(18.dp)) {
                 Text(text = currentTask.title, fontSize = 20.sp, fontWeight = FontWeight.Medium)
             }
 
-            // Notes
             if (!currentTask.notes.isNullOrBlank()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
-                ) {
+                Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
                     Text(text = currentTask.notes!!, fontSize = 16.sp)
                 }
                 Spacer(modifier = Modifier.height(18.dp))
@@ -577,12 +539,9 @@ fun TaskInfoPage(
                 Spacer(modifier = Modifier.height(18.dp))
             }
 
-            // Schedule details
             if (intervals.isNotEmpty()) {
                 Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 18.dp),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     intervals.forEach { interval ->
@@ -596,7 +555,6 @@ fun TaskInfoPage(
                 Spacer(modifier = Modifier.height(18.dp))
             }
 
-            // Info fields
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -609,24 +567,17 @@ fun TaskInfoPage(
                     else -> "${minutes}m"
                 }
                 InfoField("Duration", durationText)
-
                 InfoField("Dependency Task", dependencyTask?.title ?: "None")
-
                 InfoField("Deadline", deadline?.title ?: "None")
-
                 InfoField("Event", event?.title ?: "None")
-
                 InfoField("Category", category?.title ?: "None")
-
                 InfoField("Priority", currentTask.priority.toString())
-
                 InfoField("Breakable", if (currentTask.breakable == true) "Yes" else "No")
             }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Bottom buttons
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -645,9 +596,11 @@ fun TaskInfoPage(
                 Text("Delete", fontSize = 16.sp, color = Color.White)
             }
             Button(
-                onClick = onUpdate,
+                onClick = { if (updateDataReady) onUpdate() },
                 modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (updateDataReady) PrimaryColor else Color.LightGray
+                ),
                 contentPadding = PaddingValues(16.dp)
             ) {
                 Text("Update", fontSize = 16.sp, color = Color.White)
@@ -676,13 +629,13 @@ fun InfoField(label: String, value: String) {
 fun TaskUpdateForm(
     db: AppDatabase,
     task: MasterTask,
+    preloadedData: UpdateFormData,
     onBack: () -> Unit,
     onSaveSuccess: (MasterTask) -> Unit
 ) {
     val scope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
 
-    // State variables
     var title by remember { mutableStateOf(task.title) }
     var notes by remember { mutableStateOf(task.notes ?: "") }
     var priority by remember { mutableIntStateOf(task.priority) }
@@ -694,46 +647,17 @@ fun TaskUpdateForm(
     var durationMinutes by remember { mutableIntStateOf(task.predictedDuration % 60) }
     var breakableLockedByDuration by remember { mutableStateOf(false) }
 
-    // Categories, events, deadlines
-    var categories by remember { mutableStateOf<List<Category>>(emptyList()) }
-    var events by remember { mutableStateOf<List<MasterEvent>>(emptyList()) }
-    var deadlines by remember { mutableStateOf<List<Deadline>>(emptyList()) }
-    var dependencyTasks by remember { mutableStateOf<List<MasterTask>>(emptyList()) }
+    val categories = preloadedData.categories
+    val events = preloadedData.events
+    val deadlines = preloadedData.deadlines
+    val dependencyTasks = preloadedData.dependencyTasks
 
-    var selectedCategory by remember { mutableStateOf<Int?>(null) }
-    var selectedEvent by remember { mutableStateOf<Int?>(null) }
-    var selectedDeadline by remember { mutableStateOf<Int?>(null) }
-    var selectedDependencyTask by remember { mutableStateOf<Int?>(null) }
+    var selectedCategory by remember { mutableStateOf(preloadedData.selectedCategory) }
+    var selectedEvent by remember { mutableStateOf(preloadedData.selectedEvent) }
+    var selectedDeadline by remember { mutableStateOf(preloadedData.selectedDeadline) }
+    var selectedDependencyTask by remember { mutableStateOf(preloadedData.selectedDependencyTask) }
 
     var resetTrigger by remember { mutableIntStateOf(0) }
-    var dataLoaded by remember { mutableStateOf(false) }
-
-    LaunchedEffect(Unit) {
-        categories = CategoryManager.getAll(db)
-        events = EventManager.getAll(db)
-        deadlines = DeadlineManager.getAll(db)
-
-        // Get tasks that can be dependencies
-        dependencyTasks = TaskManager.getAll(db).filter {
-            it.status == 1 && it.startDate == null && it.startTime == null && it.id != task.id
-        }
-
-        // Convert IDs to indices
-        selectedCategory = task.categoryId?.let { catId ->
-            categories.indexOfFirst { it.id == catId }.takeIf { it >= 0 }
-        }
-        selectedEvent = task.eventId?.let { evId ->
-            events.indexOfFirst { it.id == evId }.takeIf { it >= 0 }
-        }
-        selectedDeadline = task.deadlineId?.let { dlId ->
-            deadlines.indexOfFirst { it.id == dlId }.takeIf { it >= 0 }
-        }
-        selectedDependencyTask = task.dependencyTaskId?.let { depId ->
-            dependencyTasks.indexOfFirst { it.id == depId }.takeIf { it >= 0 }
-        }
-        delay(500)
-        dataLoaded = true
-    }
 
     fun clearForm() {
         title = task.title
@@ -745,21 +669,10 @@ fun TaskUpdateForm(
         startTime = task.startTime
         durationHours = task.predictedDuration / 60
         durationMinutes = task.predictedDuration % 60
-
-        // Reset dropdown selections to original task values
-        selectedCategory = task.categoryId?.let { catId ->
-            categories.indexOfFirst { it.id == catId }.takeIf { it >= 0 }
-        }
-        selectedEvent = task.eventId?.let { evId ->
-            events.indexOfFirst { it.id == evId }.takeIf { it >= 0 }
-        }
-        selectedDeadline = task.deadlineId?.let { dlId ->
-            deadlines.indexOfFirst { it.id == dlId }.takeIf { it >= 0 }
-        }
-        selectedDependencyTask = task.dependencyTaskId?.let { depId ->
-            dependencyTasks.indexOfFirst { it.id == depId }.takeIf { it >= 0 }
-        }
-
+        selectedCategory = preloadedData.selectedCategory
+        selectedEvent = preloadedData.selectedEvent
+        selectedDeadline = preloadedData.selectedDeadline
+        selectedDependencyTask = preloadedData.selectedDependencyTask
         resetTrigger++
     }
 
@@ -769,7 +682,6 @@ fun TaskUpdateForm(
             .background(BackgroundColor)
             .padding(16.dp)
     ) {
-        // Back button
         Box(
             modifier = Modifier
                 .clip(RoundedCornerShape(8.dp))
@@ -777,30 +689,11 @@ fun TaskUpdateForm(
                 .clickable { onBack() }
                 .padding(horizontal = 16.dp, vertical = 8.dp)
         ) {
-            Text(
-                "Back",
-                fontSize = 16.sp,
-                color = Color.White
-            )
+            Text("Back", fontSize = 16.sp, color = Color.White)
         }
         Spacer(modifier = Modifier.height(16.dp))
 
-        if (!dataLoaded) {
-            Box(
-                modifier = Modifier.weight(1f).fillMaxWidth(),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(64.dp),
-                    color = PrimaryColor,
-                    strokeWidth = 6.dp
-                )
-            }
-        } else Column(
-            modifier = Modifier
-                .weight(1f)
-                .verticalScroll(scrollState)
-        ) {
+        Column(modifier = Modifier.weight(1f).verticalScroll(scrollState)) {
             TaskForm(
                 db = db,
                 title = title,
@@ -841,7 +734,6 @@ fun TaskUpdateForm(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Reset and Save buttons
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
@@ -857,9 +749,7 @@ fun TaskUpdateForm(
                 Spacer(modifier = Modifier.width(12.dp))
                 Button(
                     onClick = {
-                        if (title.isBlank()) {
-                            return@Button
-                        }
+                        if (title.isBlank()) return@Button
                         scope.launch {
                             val durationInMinutes = (durationHours * 60) + durationMinutes
                             val updatedTask = task.copy(
@@ -876,8 +766,6 @@ fun TaskUpdateForm(
                                 dependencyTaskId = selectedDependencyTask?.let { dependencyTasks.getOrNull(it)?.id }
                             )
                             TaskManager.update(db, updatedTask)
-
-                            // Get updated task from database
                             val refreshedTask = db.taskDao().getMasterTaskById(task.id) ?: updatedTask
                             onSaveSuccess(refreshedTask)
                         }
@@ -913,7 +801,6 @@ fun PomodoroPage(
         currentTask = db.taskDao().getMasterTaskById(task.id) ?: task
     }
 
-    // Timer effect
     LaunchedEffect(isRunning) {
         while (isRunning) {
             delay(1000L)
@@ -921,14 +808,11 @@ fun PomodoroPage(
         }
     }
 
-    // Calculate elapsed minutes
     val elapsedMinutes = elapsedSeconds / 60
 
-    // Auto-stop timer when navigating away
     DisposableEffect(Unit) {
         onDispose {
             if (isRunning) {
-                // Stop the timer and save progress
                 kotlinx.coroutines.runBlocking {
                     updateTaskProgress(db, currentTask, intervals, elapsedSeconds / 60)
                 }
@@ -936,17 +820,10 @@ fun PomodoroPage(
         }
     }
 
-    // Calculate current interval and stats
     val totalActualDuration = (currentTask.actualDuration ?: 0) + elapsedMinutes
     val currentIntervalData = getCurrentIntervalData(intervals, totalActualDuration, currentTask)
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(BackgroundColor)
-            .padding(16.dp)
-    ) {
-        // Back button
+    Column(modifier = Modifier.fillMaxSize().background(BackgroundColor).padding(16.dp)) {
         Row(modifier = Modifier.fillMaxWidth()) {
             Box(
                 modifier = Modifier
@@ -955,38 +832,22 @@ fun PomodoroPage(
                     .clickable { onBack() }
                     .padding(horizontal = 16.dp, vertical = 8.dp)
             ) {
-                Text(
-                    "Back",
-                    fontSize = 16.sp,
-                    color = Color.White
-                )
+                Text("Back", fontSize = 16.sp, color = Color.White)
             }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
         Column(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
-                .verticalScroll(scrollState),
+            modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(scrollState),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Title and Notes
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(18.dp)
-            ) {
+            Box(modifier = Modifier.fillMaxWidth().padding(18.dp)) {
                 Text(text = currentTask.title, fontSize = 20.sp, fontWeight = FontWeight.Medium)
             }
 
             if (!currentTask.notes.isNullOrBlank()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
-                ) {
+                Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
                     Text(text = currentTask.notes!!, fontSize = 16.sp)
                 }
                 Spacer(modifier = Modifier.height(24.dp))
@@ -994,37 +855,25 @@ fun PomodoroPage(
                 Spacer(modifier = Modifier.height(24.dp))
             }
 
-            // Timer display
             PomodoroTimer(elapsedSeconds, isRunning)
-
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Stats
-            Box(
-                modifier = Modifier.fillMaxWidth(),
-                contentAlignment = Alignment.Center
-            ) {
+            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                 Column(
                     horizontalAlignment = Alignment.Start,
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Text(
                         text = "Current Interval: ${currentIntervalData.currentIntervalNo}/${currentTask.noIntervals}",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = Color.Gray
+                        fontSize = 16.sp, fontWeight = FontWeight.Medium, color = Color.Gray
                     )
                     Text(
                         text = "Time Left: ${formatDuration(currentIntervalData.timeLeft)}",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = Color.Gray
+                        fontSize = 16.sp, fontWeight = FontWeight.Medium, color = Color.Gray
                     )
                     Text(
                         text = "Overtime: ${formatDuration(currentIntervalData.overtime)}",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = Color.Gray
+                        fontSize = 16.sp, fontWeight = FontWeight.Medium, color = Color.Gray
                     )
                 }
             }
@@ -1032,7 +881,6 @@ fun PomodoroPage(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Control buttons
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -1041,15 +889,12 @@ fun PomodoroPage(
                 onClick = {
                     scope.launch {
                         if (isRunning) {
-                            // Stop
                             isRunning = false
                             updateTaskProgress(db, currentTask, intervals, elapsedMinutes)
                             elapsedSeconds = 0
-                            // Reload task and intervals
                             currentTask = db.taskDao().getMasterTaskById(task.id) ?: task
                             intervals = db.taskDao().getIntervalsForTask(task.id).sortedBy { it.intervalNo }
                         } else {
-                            // Start
                             if (currentTask.status == 1) {
                                 intervals.firstOrNull()?.let { firstInterval ->
                                     db.taskDao().updateInterval(firstInterval.copy(status = 2))
@@ -1062,9 +907,7 @@ fun PomodoroPage(
                     }
                 },
                 modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.Gray
-                ),
+                colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
                 contentPadding = PaddingValues(16.dp)
             ) {
                 Text(if (isRunning) "Stop" else "Start", fontSize = 16.sp, color = Color.White)
@@ -1073,24 +916,11 @@ fun PomodoroPage(
             Button(
                 onClick = {
                     scope.launch {
-                        // Complete task
                         if (isRunning) {
                             updateTaskProgress(db, currentTask, intervals, elapsedMinutes)
                         }
-
-                        // Delete all intervals
-                        intervals.forEach { interval ->
-                            db.taskDao().deleteInterval(interval.id)
-                        }
-
-                        // Update master task
-                        db.taskDao().update(
-                            currentTask.copy(
-                                status = 3,
-                                noIntervals = 0
-                            )
-                        )
-
+                        intervals.forEach { interval -> db.taskDao().deleteInterval(interval.id) }
+                        db.taskDao().update(currentTask.copy(status = 3, noIntervals = 0))
                         onBack()
                     }
                 },
@@ -1111,18 +941,11 @@ fun PomodoroTimer(elapsedSeconds: Int, isRunning: Boolean) {
     val hours = totalMinutes / 60
     val minutes = totalMinutes % 60
     val seconds = elapsedSeconds % 60
-
     val minutesInHour = totalMinutes % 60
     val progress = (minutesInHour / 60f)
 
-    Box(
-        modifier = Modifier.size(200.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        // Background full circle
-        androidx.compose.foundation.Canvas(
-            modifier = Modifier.fillMaxSize()
-        ) {
+    Box(modifier = Modifier.size(200.dp), contentAlignment = Alignment.Center) {
+        androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize()) {
             drawArc(
                 color = Color.Gray,
                 startAngle = -90f,
@@ -1131,11 +954,7 @@ fun PomodoroTimer(elapsedSeconds: Int, isRunning: Boolean) {
                 style = androidx.compose.ui.graphics.drawscope.Stroke(width = 12.dp.toPx())
             )
         }
-
-        // Depleting overlay
-        androidx.compose.foundation.Canvas(
-            modifier = Modifier.fillMaxSize()
-        ) {
+        androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize()) {
             drawArc(
                 color = BackgroundColor,
                 startAngle = -90f,
@@ -1144,12 +963,8 @@ fun PomodoroTimer(elapsedSeconds: Int, isRunning: Boolean) {
                 style = androidx.compose.ui.graphics.drawscope.Stroke(width = 14.dp.toPx())
             )
         }
-
-        // Inner circle with time
         Box(
-            modifier = Modifier
-                .size(160.dp)
-                .clip(CircleShape)
+            modifier = Modifier.size(160.dp).clip(CircleShape)
                 .background(if (isRunning) PrimaryColor else Color.LightGray),
             contentAlignment = Alignment.Center
         ) {
@@ -1177,9 +992,7 @@ fun getCurrentIntervalData(
     totalActualDuration: Int,
     task: MasterTask
 ): IntervalData {
-    if (intervals.isEmpty()) {
-        return IntervalData(0, 0, 0)
-    }
+    if (intervals.isEmpty()) return IntervalData(0, 0, 0)
 
     var cumulativeDuration = 0
     var currentInterval = intervals.first()
@@ -1196,13 +1009,9 @@ fun getCurrentIntervalData(
     val intervalDuration = calculateIntervalDuration(currentInterval)
     val durationIntoInterval = totalActualDuration - cumulativeDuration
     val timeLeft = maxOf(0, intervalDuration - durationIntoInterval)
-
-    // Calculate overtime
     val overtime = if (currentInterval.intervalNo == task.noIntervals && task.predictedDuration < totalActualDuration) {
         totalActualDuration - task.predictedDuration
-    } else {
-        0
-    }
+    } else 0
 
     return IntervalData(
         currentIntervalNo = currentInterval.intervalNo,
@@ -1227,54 +1036,25 @@ suspend fun updateTaskProgress(
 ) {
     val newActualDuration = (task.actualDuration ?: 0) + elapsedMinutes
     val newTimeLeft = maxOf(0, task.predictedDuration - newActualDuration)
-    val overtime = if (newActualDuration > task.predictedDuration) {
-        newActualDuration - task.predictedDuration
-    } else {
-        0
-    }
+    val overtime = if (newActualDuration > task.predictedDuration) newActualDuration - task.predictedDuration else 0
 
-    // Update master task
-    db.taskDao().update(
-        task.copy(
-            actualDuration = newActualDuration,
-            timeLeft = newTimeLeft,
-            overTime = overtime
-        )
-    )
+    db.taskDao().update(task.copy(actualDuration = newActualDuration, timeLeft = newTimeLeft, overTime = overtime))
 
-    // Update intervals and delete completed ones
     var cumulativeDuration = 0
     for (interval in intervals.sortedBy { it.intervalNo }) {
         val intervalDuration = calculateIntervalDuration(interval)
 
         if (newActualDuration >= cumulativeDuration + intervalDuration) {
-            // This interval is complete
             if (interval.intervalNo < task.noIntervals) {
-                // Not last interval, delete it
                 db.taskDao().deleteInterval(interval.id)
             } else {
-                // Last interval, update with overtime
-                val intervalTimeLeft = 0
                 val intervalOvertime = newActualDuration - cumulativeDuration - intervalDuration
-                db.taskDao().updateInterval(
-                    interval.copy(
-                        status = 2,
-                        timeLeft = intervalTimeLeft,
-                        overTime = intervalOvertime
-                    )
-                )
+                db.taskDao().updateInterval(interval.copy(status = 2, timeLeft = 0, overTime = intervalOvertime))
             }
         } else {
-            // Current or future interval
             val durationIntoInterval = newActualDuration - cumulativeDuration
             val intervalTimeLeft = maxOf(0, intervalDuration - durationIntoInterval)
-            db.taskDao().updateInterval(
-                interval.copy(
-                    status = 2,
-                    timeLeft = intervalTimeLeft,
-                    overTime = 0
-                )
-            )
+            db.taskDao().updateInterval(interval.copy(status = 2, timeLeft = intervalTimeLeft, overTime = 0))
         }
 
         cumulativeDuration += intervalDuration
