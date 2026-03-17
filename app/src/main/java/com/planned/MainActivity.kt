@@ -56,10 +56,12 @@ TODO: [-] Scheduler schedules tasks before right now??????
 TODO: [-] Fix UI pages (category, event, deadline, reminder, task bucket)
 TODO: [-] Calendar to UI pages navigation
 TODO: [ ] On creation don't allow duplicate titles for events, categories
-TODO: [ ] refresh schedule button
-TODO: [ ] Confirmation dialogs for destructive operations (delete master objects, cascading deletions)
+TODO: [ ] refresh schedule button?
+TODO: [ ] Confirmation dialogs for destructive operations (delete master, cascading)
+TODO: [ ] Warning for insufficient bucket space
+TODO: [ ] Warning when tasks scheduled after deadline / impossible to meet deadline
 
-TODO: [ ] Kanban board?
+TODO: [/] Kanban board?
 TODO: [-] POMODORO have the option to control timer spread (not just an hour!)
 TODO: [ ] DB Sample stuff
 
@@ -70,6 +72,4 @@ TODO: [ ] Task info back to calendar doesn't scroll to that task, only to today
 TODO: [-] Task update form dropdown loop glitch
 TODO: [-] Cancel (dialogue) buttons do same as Save?
 TODO: [-] Task form update needed after Save for dependency option
-TODO: [ ] Warning for insufficient bucket space
-TODO: [ ] What to do when impossible to meet deadline given current schedule order?
  **/
