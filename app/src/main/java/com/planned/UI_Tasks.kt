@@ -184,7 +184,6 @@ fun TaskCategoryBox(
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.Top
         ) {
-            // Count indicator
             Box(
                 modifier = Modifier
                     .size(36.dp)
@@ -200,8 +199,6 @@ fun TaskCategoryBox(
                 )
             }
             Spacer(modifier = Modifier.height(16.dp))
-
-            // Title
             Text(
                 text = title,
                 fontSize = 18.sp,
@@ -335,7 +332,6 @@ fun ScheduledTasksList(
         categories = CategoryManager.getAll(db)
     }
 
-    // Group intervals by the master task's category
     val groupedByTask = intervals.groupBy { it.masterTaskId }
     val grouped = groupedByTask.entries
         .mapNotNull { (masterTaskId, taskIntervals) ->
@@ -486,7 +482,6 @@ fun TaskInfoPage(
         dependencyTask = currentTask.dependencyTaskId?.let { db.taskDao().getMasterTaskById(it) }
         intervals = db.taskDao().getIntervalsForTask(currentTask.id).sortedBy { it.intervalNo }
 
-        // Preload update form data in the background
         val categories = CategoryManager.getAll(db)
         val events = EventManager.getAll(db)
         val deadlines = DeadlineManager.getAll(db)
@@ -562,9 +557,7 @@ fun TaskInfoPage(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Column(
-            modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(scrollState)
-        ) {
+        Column(modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(scrollState)) {
             Box(modifier = Modifier.fillMaxWidth().padding(18.dp)) {
                 Text(text = currentTask.title, fontSize = 20.sp, fontWeight = FontWeight.Medium)
             }
@@ -828,12 +821,16 @@ fun PomodoroPage(
     onBack: () -> Unit
 ) {
     var elapsedSeconds by remember { mutableIntStateOf(0) }
+    var sessionSeconds by remember { mutableIntStateOf(0) }
     var isRunning by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
 
     var intervals by remember { mutableStateOf<List<TaskInterval>>(emptyList()) }
     var currentTask by remember { mutableStateOf(task) }
+
+    val breakEvery = SettingsManager.settings?.breakEvery ?: 30
+    val breakDuration = SettingsManager.settings?.breakDuration ?: 5
 
     LaunchedEffect(Unit) {
         intervals = db.taskDao().getIntervalsForTask(task.id).sortedBy { it.intervalNo }
@@ -844,22 +841,23 @@ fun PomodoroPage(
         while (isRunning) {
             delay(1000L)
             elapsedSeconds++
+            sessionSeconds++
         }
     }
 
-    val elapsedMinutes = elapsedSeconds / 60
+    val sessionMinutes = sessionSeconds / 60
 
     DisposableEffect(Unit) {
         onDispose {
             if (isRunning) {
                 kotlinx.coroutines.runBlocking {
-                    updateTaskProgress(db, currentTask, intervals, elapsedSeconds / 60)
+                    updateTaskProgress(db, currentTask, intervals, sessionSeconds / 60)
                 }
             }
         }
     }
 
-    val totalActualDuration = (currentTask.actualDuration ?: 0) + elapsedMinutes
+    val totalActualDuration = (currentTask.actualDuration ?: 0) + sessionMinutes
     val currentIntervalData = getCurrentIntervalData(intervals, totalActualDuration, currentTask)
 
     Column(modifier = Modifier.fillMaxSize().background(BackgroundColor).padding(16.dp)) {
@@ -894,7 +892,12 @@ fun PomodoroPage(
                 Spacer(modifier = Modifier.height(24.dp))
             }
 
-            PomodoroTimer(elapsedSeconds, isRunning)
+            PomodoroTimer(
+                elapsedSeconds = elapsedSeconds,
+                isRunning = isRunning,
+                breakEveryMinutes = breakEvery,
+                breakDurationMinutes = breakDuration
+            )
             Spacer(modifier = Modifier.height(24.dp))
 
             Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
@@ -929,8 +932,8 @@ fun PomodoroPage(
                     scope.launch {
                         if (isRunning) {
                             isRunning = false
-                            updateTaskProgress(db, currentTask, intervals, elapsedMinutes)
-                            elapsedSeconds = 0
+                            updateTaskProgress(db, currentTask, intervals, sessionMinutes)
+                            sessionSeconds = 0
                             currentTask = db.taskDao().getMasterTaskById(task.id) ?: task
                             intervals = db.taskDao().getIntervalsForTask(task.id).sortedBy { it.intervalNo }
                         } else {
@@ -949,14 +952,14 @@ fun PomodoroPage(
                 colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
                 contentPadding = PaddingValues(16.dp)
             ) {
-                Text(if (isRunning) "Stop" else "Start", fontSize = 16.sp, color = Color.White)
+                Text(if (isRunning) "Pause" else "Start", fontSize = 16.sp, color = Color.White)
             }
 
             Button(
                 onClick = {
                     scope.launch {
                         if (isRunning) {
-                            updateTaskProgress(db, currentTask, intervals, elapsedMinutes)
+                            updateTaskProgress(db, currentTask, intervals, sessionMinutes)
                         }
                         intervals.forEach { interval -> db.taskDao().deleteInterval(interval.id) }
                         db.taskDao().update(currentTask.copy(status = 3, noIntervals = 0))
@@ -975,15 +978,35 @@ fun PomodoroPage(
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun PomodoroTimer(elapsedSeconds: Int, isRunning: Boolean) {
+fun PomodoroTimer(
+    elapsedSeconds: Int,
+    isRunning: Boolean,
+    breakEveryMinutes: Int,
+    breakDurationMinutes: Int
+) {
     val totalMinutes = elapsedSeconds / 60
-    val hours = totalMinutes / 60
-    val minutes = totalMinutes % 60
     val seconds = elapsedSeconds % 60
-    val minutesInHour = totalMinutes % 60
-    val progress = (minutesInHour / 60f)
 
-    Box(modifier = Modifier.size(200.dp), contentAlignment = Alignment.Center) {
+    // Determine current phase
+    val cycleLength = breakEveryMinutes + breakDurationMinutes
+    val positionInCycle = totalMinutes % cycleLength
+    val isBreak = positionInCycle >= breakEveryMinutes
+
+    // Seconds elapsed within current phase
+    val phaseMinutes = if (isBreak) positionInCycle - breakEveryMinutes else positionInCycle
+    val phaseSeconds = phaseMinutes * 60 + seconds
+    val phaseDurationSeconds = if (isBreak) breakDurationMinutes * 60 else breakEveryMinutes * 60
+
+    // Progress sweeps full circle over the current phase duration
+    val progress = (phaseSeconds.toFloat() / phaseDurationSeconds.toFloat()).coerceIn(0f, 1f)
+
+    // Countdown display
+    val remainingSeconds = maxOf(0, phaseDurationSeconds - phaseSeconds)
+    val displayHours = remainingSeconds / 3600
+    val displayMinutes = (remainingSeconds % 3600) / 60
+    val displaySeconds = remainingSeconds % 60
+
+    Box(modifier = Modifier.size(280.dp), contentAlignment = Alignment.Center) {
         androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize()) {
             drawArc(
                 color = Color.Gray,
@@ -1003,16 +1026,25 @@ fun PomodoroTimer(elapsedSeconds: Int, isRunning: Boolean) {
             )
         }
         Box(
-            modifier = Modifier.size(160.dp).clip(CircleShape)
+            modifier = Modifier.size(230.dp).clip(CircleShape)
                 .background(if (isRunning) PrimaryColor else Color.LightGray),
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = String.format(Locale.US, "%02d:%02d:%02d", hours, minutes, seconds),
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White
-            )
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = if (isBreak) "Break" else "Task",
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = String.format(Locale.US, "%02d:%02d:%02d", displayHours, displayMinutes, displaySeconds),
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+            }
         }
     }
 }
@@ -1103,5 +1135,5 @@ suspend fun updateTaskProgress(
 fun formatDuration(minutes: Int): String {
     val hours = minutes / 60
     val mins = minutes % 60
-    return String.format(Locale.US, "%02d:%02d", hours, mins)
+    return if (hours > 0) "${hours}h ${mins}m" else "${mins}m"
 }
