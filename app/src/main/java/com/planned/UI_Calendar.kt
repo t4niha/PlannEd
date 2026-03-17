@@ -408,7 +408,10 @@ fun ReminderDeadlineIndicators(db: AppDatabase, date: LocalDate) {
                                 .padding(vertical = 4.dp)
                                 .background(Color(CardColor), RoundedCornerShape(8.dp))
                                 .clickable {
-                                    // TODO: open reminder details
+                                    masterReminder?.let {
+                                        com.planned.selectedReminderForInfo = it
+                                        com.planned.currentScreen = "ReminderInfo"
+                                    }
                                 }
                                 .padding(12.dp)
                         ) {
@@ -488,7 +491,8 @@ fun ReminderDeadlineIndicators(db: AppDatabase, date: LocalDate) {
                                 .padding(vertical = 4.dp)
                                 .background(Color(CardColor), RoundedCornerShape(8.dp))
                                 .clickable {
-                                    // TODO: open deadline details
+                                    com.planned.selectedDeadlineForInfo = deadline
+                                    com.planned.currentScreen = "DeadlineInfo"
                                 }
                                 .padding(12.dp)
                         ) {

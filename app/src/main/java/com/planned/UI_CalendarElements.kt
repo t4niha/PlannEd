@@ -188,6 +188,7 @@ fun RenderDayViewItems(
         // Render task buckets
         buckets.forEach { bucket ->
             RenderTaskBucketBlock(
+                db = db,
                 bucket = bucket,
                 hourHeight = hourHeight,
                 modifier = Modifier.padding(horizontal = (10 + ELEMENT_HORIZONTAL_PADDING).dp)
@@ -242,7 +243,8 @@ fun RenderEventBlock(
             .clip(RoundedCornerShape(ELEMENT_CORNER_RADIUS_DAY.dp))
             .background(event.color)
             .clickable {
-                // TODO: open event details
+                com.planned.selectedEventForInfo = event.master
+                com.planned.currentScreen = "EventInfo"
             }
             .padding(ELEMENT_TEXT_PADDING.dp)
     ) {
@@ -273,6 +275,7 @@ fun RenderEventBlock(
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun RenderTaskBucketBlock(
+    db: AppDatabase,
     bucket: TaskBucketBlock,
     hourHeight: Dp,
     modifier: Modifier = Modifier
@@ -289,6 +292,12 @@ fun RenderTaskBucketBlock(
             .clip(RoundedCornerShape(ELEMENT_CORNER_RADIUS_DAY.dp))
             .background(Color(CardColor))
             .clickable {
+                com.planned.selectedBucketForInfo = bucket.occurrence.let { occ ->
+                    kotlinx.coroutines.runBlocking {
+                        db.taskBucketDao().getMasterBucketById(occ.masterBucketId)
+                    }
+                }
+                com.planned.currentScreen = "BucketInfo"
             }
     )
 }
@@ -382,6 +391,7 @@ fun RenderWeekViewItems(
         // Render task buckets
         buckets.forEach { bucket ->
             RenderTaskBucketBlockWeek(
+                db = db,
                 bucket = bucket,
                 hourHeight = hourHeight
             )
@@ -424,7 +434,8 @@ fun RenderEventBlockWeek(
             .clip(RoundedCornerShape(ELEMENT_CORNER_RADIUS_WEEK.dp))
             .background(event.color)
             .clickable {
-                // TODO: open event details
+                com.planned.selectedEventForInfo = event.master
+                com.planned.currentScreen = "EventInfo"
             }
     )
 }
@@ -432,6 +443,7 @@ fun RenderEventBlockWeek(
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun RenderTaskBucketBlockWeek(
+    db: AppDatabase,
     bucket: TaskBucketBlock,
     hourHeight: Dp,
     modifier: Modifier = Modifier
@@ -448,7 +460,12 @@ fun RenderTaskBucketBlockWeek(
             .clip(RoundedCornerShape(ELEMENT_CORNER_RADIUS_WEEK.dp))
             .background(Color(CardColor))
             .clickable {
-                // TODO: open task bucket details
+                com.planned.selectedBucketForInfo = bucket.occurrence.let { occ ->
+                    runBlocking {
+                        db.taskBucketDao().getMasterBucketById(occ.masterBucketId)
+                    }
+                }
+                com.planned.currentScreen = "BucketInfo"
             }
     )
 }

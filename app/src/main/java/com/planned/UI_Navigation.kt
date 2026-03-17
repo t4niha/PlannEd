@@ -37,8 +37,25 @@ import androidx.compose.ui.graphics.graphicsLayer
 var currentScreen by mutableStateOf("Calendars")
 var currentCalendarView by mutableStateOf("Day")
 var calendarResetTrigger by mutableIntStateOf(0)
+
+// Task
 var selectedTaskForInfo by mutableStateOf<MasterTask?>(null)
 var navUpdateFormData by mutableStateOf<UpdateFormData?>(null)
+
+// Event
+var selectedEventForInfo by mutableStateOf<MasterEvent?>(null)
+var navEventUpdateFormData by mutableStateOf<EventUpdateFormData?>(null)
+
+// Reminder
+var selectedReminderForInfo by mutableStateOf<MasterReminder?>(null)
+var navReminderUpdateFormData by mutableStateOf<ReminderUpdateFormData?>(null)
+
+// Deadline
+var selectedDeadlineForInfo by mutableStateOf<Deadline?>(null)
+var navDeadlineUpdateFormData by mutableStateOf<DeadlineUpdateFormData?>(null)
+
+// Task Bucket
+var selectedBucketForInfo by mutableStateOf<MasterTaskBucket?>(null)
 
 /* APP NAVIGATION */
 @RequiresApi(Build.VERSION_CODES.O)
@@ -80,6 +97,8 @@ fun AppNavigation(db: AppDatabase) {
                         "Settings" -> Settings(db)
                         "Developer" -> Developer(db)
                         "Creation" -> Creation(db)
+
+                        // ── Task ──────────────────────────────────────────────────────────
                         "TaskInfo" -> selectedTaskForInfo?.let { task ->
                             TaskInfoPage(
                                 db = db,
@@ -114,6 +133,120 @@ fun AppNavigation(db: AppDatabase) {
                                 db = db,
                                 task = task,
                                 onBack = { currentScreen = "TaskInfo" }
+                            )
+                        }
+
+                        // ── Event ─────────────────────────────────────────────────────────
+                        "EventInfo" -> selectedEventForInfo?.let { event ->
+                            EventInfoPage(
+                                db = db,
+                                event = event,
+                                onBack = {
+                                    currentScreen = "Calendars"
+                                    selectedEventForInfo = null
+                                    navEventUpdateFormData = null
+                                },
+                                onUpdateDataReady = { data -> navEventUpdateFormData = data },
+                                onUpdate = { currentScreen = "EventUpdate" }
+                            )
+                        }
+                        "EventUpdate" -> selectedEventForInfo?.let { event ->
+                            navEventUpdateFormData?.let { formData ->
+                                EventUpdateForm(
+                                    db = db,
+                                    event = event,
+                                    preloadedData = formData,
+                                    onBack = { currentScreen = "EventInfo" },
+                                    onSaveSuccess = { updatedEvent ->
+                                        selectedEventForInfo = updatedEvent
+                                        navEventUpdateFormData = null
+                                        currentScreen = "EventInfo"
+                                    }
+                                )
+                            }
+                        }
+
+                        // ── Reminder ──────────────────────────────────────────────────────
+                        "ReminderInfo" -> selectedReminderForInfo?.let { reminder ->
+                            ReminderInfoView(
+                                db = db,
+                                reminder = reminder,
+                                onBack = {
+                                    currentScreen = "Calendars"
+                                    selectedReminderForInfo = null
+                                    navReminderUpdateFormData = null
+                                },
+                                onUpdateDataReady = { data -> navReminderUpdateFormData = data },
+                                onUpdate = { currentScreen = "ReminderUpdate" }
+                            )
+                        }
+                        "ReminderUpdate" -> selectedReminderForInfo?.let { reminder ->
+                            navReminderUpdateFormData?.let { formData ->
+                                ReminderUpdateView(
+                                    db = db,
+                                    reminder = reminder,
+                                    preloadedData = formData,
+                                    onBack = { currentScreen = "ReminderInfo" },
+                                    onSaveSuccess = { updatedReminder ->
+                                        selectedReminderForInfo = updatedReminder
+                                        navReminderUpdateFormData = null
+                                        currentScreen = "ReminderInfo"
+                                    }
+                                )
+                            }
+                        }
+
+                        // ── Deadline ──────────────────────────────────────────────────────
+                        "DeadlineInfo" -> selectedDeadlineForInfo?.let { deadline ->
+                            DeadlineInfoView(
+                                db = db,
+                                deadline = deadline,
+                                onBack = {
+                                    currentScreen = "Calendars"
+                                    selectedDeadlineForInfo = null
+                                    navDeadlineUpdateFormData = null
+                                },
+                                onUpdateDataReady = { data -> navDeadlineUpdateFormData = data },
+                                onUpdate = { currentScreen = "DeadlineUpdate" }
+                            )
+                        }
+                        "DeadlineUpdate" -> selectedDeadlineForInfo?.let { deadline ->
+                            navDeadlineUpdateFormData?.let { formData ->
+                                DeadlineUpdateView(
+                                    db = db,
+                                    deadline = deadline,
+                                    preloadedData = formData,
+                                    onBack = { currentScreen = "DeadlineInfo" },
+                                    onSaveSuccess = { updatedDeadline ->
+                                        selectedDeadlineForInfo = updatedDeadline
+                                        navDeadlineUpdateFormData = null
+                                        currentScreen = "DeadlineInfo"
+                                    }
+                                )
+                            }
+                        }
+
+                        // ── Task Bucket ───────────────────────────────────────────────────
+                        "BucketInfo" -> selectedBucketForInfo?.let { bucket ->
+                            TaskBucketInfoPage(
+                                db = db,
+                                bucket = bucket,
+                                onBack = {
+                                    currentScreen = "Calendars"
+                                    selectedBucketForInfo = null
+                                },
+                                onUpdate = { currentScreen = "BucketUpdate" }
+                            )
+                        }
+                        "BucketUpdate" -> selectedBucketForInfo?.let { bucket ->
+                            TaskBucketUpdateForm(
+                                db = db,
+                                bucket = bucket,
+                                onBack = { currentScreen = "BucketInfo" },
+                                onSaveSuccess = { updatedBucket ->
+                                    selectedBucketForInfo = updatedBucket
+                                    currentScreen = "BucketInfo"
+                                }
                             )
                         }
                     }
@@ -190,7 +323,7 @@ fun Header(
     }
 }
 
-/* NAVIGATION MENU */
+/* NAVIGATION DRAWER */
 @Composable
 fun NavigationDrawer(
     isDrawerOpen: Boolean,
