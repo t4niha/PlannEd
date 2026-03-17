@@ -41,6 +41,7 @@ var calendarResetTrigger by mutableIntStateOf(0)
 // Task
 var selectedTaskForInfo by mutableStateOf<MasterTask?>(null)
 var navUpdateFormData by mutableStateOf<UpdateFormData?>(null)
+var taskInfoReturnScreen by mutableStateOf("Calendars")
 
 // Event
 var selectedEventForInfo by mutableStateOf<MasterEvent?>(null)
@@ -107,7 +108,8 @@ fun AppNavigation(db: AppDatabase) {
                                 db = db,
                                 task = task,
                                 onBack = {
-                                    currentScreen = "Calendars"
+                                    currentScreen = taskInfoReturnScreen
+                                    taskInfoReturnScreen = "Calendars"
                                     selectedTaskForInfo = null
                                     navUpdateFormData = null
                                 },

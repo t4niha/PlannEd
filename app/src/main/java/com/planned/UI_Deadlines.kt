@@ -140,13 +140,13 @@ fun DeadlineItemView(
             when {
                 deadline.eventId != null -> {
                     val event = db.eventDao().getMasterEventById(deadline.eventId)
-                    event?.color?.let { Converters.toColor(it) } ?: Color(CardColor)
+                    event?.color?.let { Converters.toColor(it) } ?: Color.LightGray
                 }
                 deadline.categoryId != null -> {
                     val category = db.categoryDao().getCategoryById(deadline.categoryId)
-                    category?.color?.let { Converters.toColor(it) } ?: Color(CardColor)
+                    category?.color?.let { Converters.toColor(it) } ?: Color.LightGray
                 }
-                else -> Color(CardColor)
+                else -> Color.LightGray
             }
         }
     }
@@ -256,23 +256,71 @@ fun DeadlineInfoView(
                 InfoField("Time", currentDeadline.time.format(timeFormatter))
                 InfoField("Event", event?.title ?: "None")
                 InfoField("Category", category?.title ?: "None")
-                InfoField("Related Tasks", relatedTasks.size.toString())
             }
 
-            if (relatedTasks.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(18.dp))
-                Text("Tasks for this deadline:", fontSize = 16.sp, fontWeight = FontWeight.Medium, modifier = Modifier.padding(horizontal = 18.dp))
-                Spacer(modifier = Modifier.height(8.dp))
-                relatedTasks.forEach { task ->
+            Spacer(modifier = Modifier.height(18.dp))
+
+            // Related tasks section
+            Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp)) {
+                Text(
+                    text = "Related Tasks",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Gray,
+                    modifier = Modifier.padding(start = 4.dp, bottom = 8.dp)
+                )
+                if (relatedTasks.isEmpty()) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 18.dp, vertical = 4.dp)
-                            .clip(RoundedCornerShape(8.dp))
+                            .clip(RoundedCornerShape(12.dp))
                             .background(Color(CardColor))
                             .padding(12.dp)
                     ) {
-                        Text(text = task.title, fontSize = 14.sp)
+                        Text("None", fontSize = 16.sp)
+                    }
+                } else {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        relatedTasks.forEach { task ->
+                            val taskColor = remember(task) {
+                                kotlinx.coroutines.runBlocking {
+                                    when {
+                                        task.categoryId != null -> {
+                                            val cat = db.categoryDao().getCategoryById(task.categoryId)
+                                            cat?.color?.let { Converters.toColor(it) } ?: Color.LightGray
+                                        }
+                                        else -> Color.LightGray
+                                    }
+                                }
+                            }
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(Color(CardColor))
+                                    .clickable {
+                                        com.planned.selectedTaskForInfo = task
+                                        com.planned.taskInfoReturnScreen = "DeadlineInfo"
+                                        com.planned.currentScreen = "TaskInfo"
+                                    }
+                                    .padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(INNER_CIRCLE_SIZE)
+                                        .clip(CircleShape)
+                                        .background(taskColor)
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Text(
+                                    text = task.title,
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                        }
                     }
                 }
             }

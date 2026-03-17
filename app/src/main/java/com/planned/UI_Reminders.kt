@@ -138,9 +138,9 @@ fun ReminderItemView(
         reminderColor = when {
             reminder.categoryId != null -> {
                 val category = db.categoryDao().getCategoryById(reminder.categoryId)
-                category?.color?.let { Converters.toColor(it) } ?: Color.Gray
+                category?.color?.let { Converters.toColor(it) } ?: Color.LightGray
             }
-            else -> Color.Gray
+            else -> Color.LightGray
         }
     }
 
