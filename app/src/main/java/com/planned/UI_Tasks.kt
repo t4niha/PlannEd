@@ -706,6 +706,7 @@ fun TaskUpdateForm(
     var selectedDependencyTask by remember { mutableStateOf<Int?>(null) }
 
     var resetTrigger by remember { mutableIntStateOf(0) }
+    var dataLoaded by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         categories = CategoryManager.getAll(db)
@@ -730,6 +731,8 @@ fun TaskUpdateForm(
         selectedDependencyTask = task.dependencyTaskId?.let { depId ->
             dependencyTasks.indexOfFirst { it.id == depId }.takeIf { it >= 0 }
         }
+        delay(500)
+        dataLoaded = true
     }
 
     fun clearForm() {
@@ -782,12 +785,22 @@ fun TaskUpdateForm(
         }
         Spacer(modifier = Modifier.height(16.dp))
 
-        Column(
+        if (!dataLoaded) {
+            Box(
+                modifier = Modifier.weight(1f).fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(64.dp),
+                    color = PrimaryColor,
+                    strokeWidth = 6.dp
+                )
+            }
+        } else Column(
             modifier = Modifier
                 .weight(1f)
                 .verticalScroll(scrollState)
         ) {
-            // Use TaskForm with current values
             TaskForm(
                 db = db,
                 title = title,

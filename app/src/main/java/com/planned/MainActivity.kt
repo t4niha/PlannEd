@@ -51,23 +51,25 @@ class MainActivity : ComponentActivity() {
 }
 
 /**
- TODO: Fix UI pages (category, event, deadline, reminder, task bucket) - all/this (isException)
- TODO: On creation don't allow duplicate titles for events, categories
- TODO: refresh schedule button
- TODO: if task is completed in its allocated time but finished early, don't need to refresh schedule!?!??!
- TODO: Calendar to UI pages navigation
- TODO: notifications?
- TODO: Status indicators and overtime warnings for task elements on calendar
- TODO: Confirmation dialogs for destructive operations (delete master objects, cascading deletions)
- TODO: Kanban board?
- TODO: POMODORO have the option to control timer spread (not just an hour!)
- TODO: Task info back to calendar doesn't scroll to that task, only to today
- TODO: Task update form dropdown loop glitch
- TODO: Cancel (dialogue) buttons do same as Save
- TODO: Task form update needed after Save for dependency option
- TODO: UI Pages + isException logic
- TODO: Calendar to object pages
- TODO: Scheduling breakable tasks only partially when insufficient bucket space
- TODO: Warning for insufficient bucket space
- TODO: What to do when impossible to meet deadline given current schedule order?
+ TODO: [ ] Fix UI pages (category, event, deadline, reminder, task bucket) - all/this (isException)
+ TODO: [ ] Calendar to UI pages navigation
+ TODO: [ ] On creation don't allow duplicate titles for events, categories
+ TODO: [ ] refresh schedule button, should not reschedule on task completion!!!!
+ TODO: [ ] Confirmation dialogs for destructive operations (delete master objects, cascading deletions)
+
+ TODO: [ ] Kanban board?
+ TODO: [ ] POMODORO have the option to control timer spread (not just an hour!)
+
+ TODO: [ ] notifications?
+ TODO: [ ] Status indicators and overtime warnings for task elements on calendar?
+
+ TODO: [ ] Task info back to calendar doesn't scroll to that task, only to today
+ TODO: [-] Task update form dropdown loop glitch
+ TODO: [ ] Cancel (dialogue) buttons do same as Save?
+ TODO: [-] Task form update needed after Save for dependency option
+ TODO: [ ] UI Pages + isException logic
+ TODO: [ ] Calendar to object pages
+ TODO: [ ] Scheduling breakable tasks only partially when insufficient bucket space
+ TODO: [ ] Warning for insufficient bucket space
+ TODO: [ ] What to do when impossible to meet deadline given current schedule order?
 **/
