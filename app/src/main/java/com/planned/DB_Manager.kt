@@ -25,9 +25,9 @@ object SettingsManager {
                 id = 0,
                 startWeekOnMonday = false,
                 primaryColor = Converters.fromColor(Preset19),
-                showDeveloper = true,
+                showDeveloper = false,
                 breakDuration = 5,
-                breakEvery = 30
+                breakEvery = 25
             )
             db.settingsDao().insert(s)
         }

@@ -18,10 +18,10 @@ object AppDatabaseProvider {
     fun getDatabase(context: Context): AppDatabase {
         return INSTANCE ?: synchronized(this) {
             val instance = Room.databaseBuilder(
-                context.applicationContext,
-                AppDatabase::class.java,
-                "planned-db"
-            ).addMigrations(AppDatabase.MIGRATION_7_8, AppDatabase.MIGRATION_8_9, AppDatabase.MIGRATION_9_10).build()
+                        context.applicationContext,
+                        AppDatabase::class.java,
+                        "planned-db"
+                    ).fallbackToDestructiveMigration(false).build()
             INSTANCE = instance
             instance
         }
