@@ -1037,6 +1037,8 @@ fun durationPickerField(
     var durationHours by remember(key) { mutableIntStateOf(initialHours) }
     var durationMinutes by remember(key) { mutableIntStateOf(initialMinutes) }
     var showDurationPicker by remember(key) { mutableStateOf(false) }
+    var tempHours by remember { mutableIntStateOf(initialHours) }
+    var tempMinutes by remember { mutableIntStateOf(initialMinutes) }
 
     LaunchedEffect(key, initialHours, initialMinutes) {
         durationHours = initialHours
@@ -1056,7 +1058,11 @@ fun durationPickerField(
             Text(label, fontSize = 16.sp, fontWeight = FontWeight.Medium)
             Spacer(modifier = Modifier.width(16.dp))
             Button(
-                onClick = { showDurationPicker = true },
+                onClick = {
+                    tempHours = durationHours
+                    tempMinutes = durationMinutes
+                    showDurationPicker = true
+                },
                 colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
             ) {
                 Text("${durationHours}h ${durationMinutes}m")
@@ -1070,6 +1076,8 @@ fun durationPickerField(
                 confirmButton = {
                     TextButton(
                         onClick = {
+                            durationHours = tempHours
+                            durationMinutes = tempMinutes
                             showDurationPicker = false
                             onDurationChange?.invoke(durationHours, durationMinutes)
                         }
@@ -1098,16 +1106,14 @@ fun durationPickerField(
 
                             // Increment button
                             Button(
-                                onClick = {
-                                    durationHours++
-                                },
+                                onClick = { tempHours++ },
                                 colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
                             ) {
                                 Text("▲")
                             }
 
                             Text(
-                                durationHours.toString(),
+                                tempHours.toString(),
                                 fontSize = 24.sp,
                                 fontWeight = FontWeight.Bold,
                                 modifier = Modifier.padding(vertical = 8.dp)
@@ -1116,9 +1122,8 @@ fun durationPickerField(
                             // Decrement button
                             Button(
                                 onClick = {
-                                    // Prevent 0h 0m and negative hours
-                                    if (durationHours > 0 && !(durationHours == 1 && durationMinutes == 0)) {
-                                        durationHours--
+                                    if (tempHours > 0 && !(tempHours == 1 && tempMinutes == 0)) {
+                                        tempHours--
                                     }
                                 },
                                 colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
@@ -1137,10 +1142,9 @@ fun durationPickerField(
                             // Increment button
                             Button(
                                 onClick = {
-                                    val newMinutes = (durationMinutes + 5) % 60
-                                    // Prevent 0h 0m
-                                    if (!(durationHours == 0 && newMinutes == 0)) {
-                                        durationMinutes = newMinutes
+                                    val newMinutes = (tempMinutes + 5) % 60
+                                    if (!(tempHours == 0 && newMinutes == 0)) {
+                                        tempMinutes = newMinutes
                                     }
                                 },
                                 colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
@@ -1149,7 +1153,7 @@ fun durationPickerField(
                             }
 
                             Text(
-                                durationMinutes.toString(),
+                                tempMinutes.toString(),
                                 fontSize = 24.sp,
                                 fontWeight = FontWeight.Bold,
                                 modifier = Modifier.padding(vertical = 8.dp)
@@ -1158,10 +1162,9 @@ fun durationPickerField(
                             // Decrement button
                             Button(
                                 onClick = {
-                                    val newMinutes = if (durationMinutes - 5 < 0) 55 else durationMinutes - 5
-                                    // Prevent 0h 0m
-                                    if (!(durationHours == 0 && newMinutes == 0)) {
-                                        durationMinutes = newMinutes
+                                    val newMinutes = if (tempMinutes - 5 < 0) 55 else tempMinutes - 5
+                                    if (!(tempHours == 0 && newMinutes == 0)) {
+                                        tempMinutes = newMinutes
                                     }
                                 },
                                 colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
@@ -1862,9 +1865,15 @@ fun autoScheduleTaskPickerField(
                         Spacer(modifier = Modifier.width(16.dp))
 
                         var showDurationPicker by remember { mutableStateOf(false) }
+                        var tempHours by remember { mutableIntStateOf(durationHours) }
+                        var tempMinutes by remember { mutableIntStateOf(durationMinutes) }
 
                         Button(
-                            onClick = { showDurationPicker = true },
+                            onClick = {
+                                tempHours = durationHours
+                                tempMinutes = durationMinutes
+                                showDurationPicker = true
+                            },
                             colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
                         ) {
                             Text("${durationHours}h ${durationMinutes}m")
@@ -1875,6 +1884,8 @@ fun autoScheduleTaskPickerField(
                                 onDismissRequest = { showDurationPicker = false },
                                 confirmButton = {
                                     TextButton(onClick = {
+                                        durationHours = tempHours
+                                        durationMinutes = tempMinutes
                                         showDurationPicker = false
                                         onDurationChange?.invoke(durationHours, durationMinutes)
                                     }) {
@@ -1897,22 +1908,19 @@ fun autoScheduleTaskPickerField(
                                             Text("Hours", fontSize = 12.sp)
                                             Spacer(modifier = Modifier.height(8.dp))
                                             Button(
-                                                onClick = {
-                                                    durationHours++
-                                                },
+                                                onClick = { tempHours++ },
                                                 colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
                                             ) { Text("▲") }
                                             Text(
-                                                durationHours.toString(),
+                                                tempHours.toString(),
                                                 fontSize = 24.sp,
                                                 fontWeight = FontWeight.Bold,
                                                 modifier = Modifier.padding(vertical = 8.dp)
                                             )
                                             Button(
                                                 onClick = {
-                                                    // Prevent 0h 0m
-                                                    if (durationHours > 0 && !(durationHours == 1 && durationMinutes == 0)) {
-                                                        durationHours--
+                                                    if (tempHours > 0 && !(tempHours == 1 && tempMinutes == 0)) {
+                                                        tempHours--
                                                     }
                                                 },
                                                 colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
@@ -1926,24 +1934,24 @@ fun autoScheduleTaskPickerField(
                                             Spacer(modifier = Modifier.height(8.dp))
                                             Button(
                                                 onClick = {
-                                                    val newMinutes = (durationMinutes + 5) % 60
-                                                    if (!(durationHours == 0 && newMinutes == 0)) {
-                                                        durationMinutes = newMinutes
+                                                    val newMinutes = (tempMinutes + 5) % 60
+                                                    if (!(tempHours == 0 && newMinutes == 0)) {
+                                                        tempMinutes = newMinutes
                                                     }
                                                 },
                                                 colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
                                             ) { Text("▲") }
                                             Text(
-                                                durationMinutes.toString(),
+                                                tempMinutes.toString(),
                                                 fontSize = 24.sp,
                                                 fontWeight = FontWeight.Bold,
                                                 modifier = Modifier.padding(vertical = 8.dp)
                                             )
                                             Button(
                                                 onClick = {
-                                                    val newMinutes = if (durationMinutes - 5 < 0) 55 else durationMinutes - 5
-                                                    if (!(durationHours == 0 && newMinutes == 0)) {
-                                                        durationMinutes = newMinutes
+                                                    val newMinutes = if (tempMinutes - 5 < 0) 55 else tempMinutes - 5
+                                                    if (!(tempHours == 0 && newMinutes == 0)) {
+                                                        tempMinutes = newMinutes
                                                     }
                                                 },
                                                 colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
