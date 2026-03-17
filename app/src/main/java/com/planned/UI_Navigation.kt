@@ -54,6 +54,7 @@ var navReminderUpdateFormData by mutableStateOf<ReminderUpdateFormData?>(null)
 // Deadline
 var selectedDeadlineForInfo by mutableStateOf<Deadline?>(null)
 var navDeadlineUpdateFormData by mutableStateOf<DeadlineUpdateFormData?>(null)
+var deadlineInfoReturnScreen by mutableStateOf("Calendars")
 
 // Task Bucket
 var selectedBucketForInfo by mutableStateOf<MasterTaskBucket?>(null)
@@ -108,10 +109,11 @@ fun AppNavigation(db: AppDatabase) {
                                 db = db,
                                 task = task,
                                 onBack = {
-                                    currentScreen = taskInfoReturnScreen
+                                    val returnTo = taskInfoReturnScreen
                                     taskInfoReturnScreen = "Calendars"
-                                    selectedTaskForInfo = null
                                     navUpdateFormData = null
+                                    selectedTaskForInfo = null
+                                    currentScreen = returnTo
                                 },
                                 onUpdateDataReady = { data -> navUpdateFormData = data },
                                 onUpdate = { currentScreen = "TaskUpdate" },
@@ -239,9 +241,11 @@ fun AppNavigation(db: AppDatabase) {
                                 db = db,
                                 deadline = deadline,
                                 onBack = {
-                                    currentScreen = "Calendars"
-                                    selectedDeadlineForInfo = null
+                                    val returnTo = deadlineInfoReturnScreen
+                                    deadlineInfoReturnScreen = "Calendars"
                                     navDeadlineUpdateFormData = null
+                                    selectedDeadlineForInfo = null
+                                    currentScreen = returnTo
                                 },
                                 onUpdateDataReady = { data -> navDeadlineUpdateFormData = data },
                                 onUpdate = { currentScreen = "DeadlineUpdate" }

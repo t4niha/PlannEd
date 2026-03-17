@@ -58,7 +58,8 @@ fun Deadlines(db: AppDatabase) {
                     updateFormData = null
                 },
                 onUpdateDataReady = { data -> updateFormData = data },
-                onUpdate = { currentView = "update" }
+                onUpdate = { currentView = "update" },
+                deadlineReturnScreen = "Deadlines"
             )
         }
         "update" -> selectedDeadline?.let { deadline ->
@@ -189,7 +190,8 @@ fun DeadlineInfoView(
     deadline: Deadline,
     onBack: () -> Unit,
     onUpdateDataReady: (DeadlineUpdateFormData) -> Unit,
-    onUpdate: () -> Unit
+    onUpdate: () -> Unit,
+    deadlineReturnScreen: String = "Calendars"
 ) {
     val scope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
@@ -299,6 +301,8 @@ fun DeadlineInfoView(
                                     .clip(RoundedCornerShape(12.dp))
                                     .background(Color(CardColor))
                                     .clickable {
+                                        com.planned.selectedDeadlineForInfo = currentDeadline
+                                        com.planned.deadlineInfoReturnScreen = deadlineReturnScreen
                                         com.planned.selectedTaskForInfo = task
                                         com.planned.taskInfoReturnScreen = "DeadlineInfo"
                                         com.planned.currentScreen = "TaskInfo"
