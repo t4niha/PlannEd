@@ -23,12 +23,18 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 
+data class EventUpdateFormData(
+    val categories: List<Category>,
+    val selectedCategory: Int?
+)
+
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
 fun Events(db: AppDatabase) {
     var currentView by remember { mutableStateOf("list") }
     var selectedEvent by remember { mutableStateOf<MasterEvent?>(null) }
+    var updateFormData by remember { mutableStateOf<EventUpdateFormData?>(null) }
 
     when (currentView) {
         "list" -> EventsList(
@@ -45,20 +51,26 @@ fun Events(db: AppDatabase) {
                 onBack = {
                     currentView = "list"
                     selectedEvent = null
+                    updateFormData = null
                 },
+                onUpdateDataReady = { data -> updateFormData = data },
                 onUpdate = { currentView = "update" }
             )
         }
         "update" -> selectedEvent?.let { event ->
-            EventUpdateForm(
-                db = db,
-                event = event,
-                onBack = { currentView = "info" },
-                onSaveSuccess = { updatedEvent ->
-                    selectedEvent = updatedEvent
-                    currentView = "info"
-                }
-            )
+            updateFormData?.let { formData ->
+                EventUpdateForm(
+                    db = db,
+                    event = event,
+                    preloadedData = formData,
+                    onBack = { currentView = "info" },
+                    onSaveSuccess = { updatedEvent ->
+                        selectedEvent = updatedEvent
+                        updateFormData = null
+                        currentView = "info"
+                    }
+                )
+            }
         }
     }
 }
@@ -91,15 +103,8 @@ fun EventsList(
         )
 
         if (events.isEmpty()) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "No events",
-                    fontSize = 18.sp,
-                    color = Color.Gray
-                )
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(text = "No events", fontSize = 18.sp, color = Color.Gray)
             }
         } else {
             LazyColumn(
@@ -144,23 +149,11 @@ fun EventListItem(
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(
-            modifier = Modifier
-                .size(INNER_CIRCLE_SIZE)
-                .background(eventColor, CircleShape)
-        )
+        Box(modifier = Modifier.size(INNER_CIRCLE_SIZE).background(eventColor, CircleShape))
         Spacer(modifier = Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = event.title,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Medium
-            )
-            Text(
-                text = "${event.startTime} - ${event.endTime}",
-                fontSize = 14.sp,
-                color = Color.Gray
-            )
+            Text(text = event.title, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+            Text(text = "${event.startTime} - ${event.endTime}", fontSize = 14.sp, color = Color.Gray)
         }
     }
 }
@@ -171,23 +164,30 @@ fun EventInfoPage(
     db: AppDatabase,
     event: MasterEvent,
     onBack: () -> Unit,
+    onUpdateDataReady: (EventUpdateFormData) -> Unit,
     onUpdate: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
     var category by remember { mutableStateOf<Category?>(null) }
     var currentEvent by remember { mutableStateOf(event) }
+    var updateDataReady by remember { mutableStateOf(false) }
 
     LaunchedEffect(event.id) {
         currentEvent = db.eventDao().getMasterEventById(event.id) ?: event
         category = currentEvent.categoryId?.let { db.categoryDao().getCategoryById(it) }
+
+        // Preload update form data
+        val categories = CategoryManager.getAll(db)
+        val selectedCategory = currentEvent.categoryId?.let { catId ->
+            categories.indexOfFirst { it.id == catId }.takeIf { it >= 0 }
+        }
+        onUpdateDataReady(EventUpdateFormData(categories = categories, selectedCategory = selectedCategory))
+        updateDataReady = true
     }
 
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(BackgroundColor)
-            .padding(16.dp)
+        modifier = Modifier.fillMaxSize().background(BackgroundColor).padding(16.dp)
     ) {
         Box(
             modifier = Modifier
@@ -201,12 +201,7 @@ fun EventInfoPage(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
-                .verticalScroll(scrollState)
-        ) {
+        Column(modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(scrollState)) {
             Box(modifier = Modifier.fillMaxWidth().padding(18.dp)) {
                 Text(text = currentEvent.title, fontSize = 20.sp, fontWeight = FontWeight.Medium)
             }
@@ -218,10 +213,7 @@ fun EventInfoPage(
                 Spacer(modifier = Modifier.height(18.dp))
             }
 
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
+            Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 InfoField("Start Date", currentEvent.startDate.toString())
                 InfoField("End Date", currentEvent.endDate?.toString() ?: "N/A")
                 InfoField("Start Time", currentEvent.startTime.toString())
@@ -233,31 +225,19 @@ fun EventInfoPage(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Button(
-                onClick = {
-                    scope.launch {
-                        EventManager.delete(db, currentEvent.id)
-                        onBack()
-                    }
-                },
+                onClick = { scope.launch { EventManager.delete(db, currentEvent.id); onBack() } },
                 modifier = Modifier.weight(1f),
                 colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
                 contentPadding = PaddingValues(16.dp)
-            ) {
-                Text("Delete", fontSize = 16.sp, color = Color.White)
-            }
+            ) { Text("Delete", fontSize = 16.sp, color = Color.White) }
             Button(
-                onClick = onUpdate,
+                onClick = { if (updateDataReady) onUpdate() },
                 modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
+                colors = ButtonDefaults.buttonColors(containerColor = if (updateDataReady) PrimaryColor else Color.LightGray),
                 contentPadding = PaddingValues(16.dp)
-            ) {
-                Text("Update", fontSize = 16.sp, color = Color.White)
-            }
+            ) { Text("Update", fontSize = 16.sp, color = Color.White) }
         }
     }
 }
@@ -267,6 +247,7 @@ fun EventInfoPage(
 fun EventUpdateForm(
     db: AppDatabase,
     event: MasterEvent,
+    preloadedData: EventUpdateFormData,
     onBack: () -> Unit,
     onSaveSuccess: (MasterEvent) -> Unit
 ) {
@@ -284,22 +265,19 @@ fun EventUpdateForm(
     var selectedDaysOfWeek by remember { mutableStateOf(event.recurRule.daysOfWeek?.toSet() ?: setOf(7)) }
     var selectedDaysOfMonth by remember { mutableStateOf(event.recurRule.daysOfMonth?.toSet() ?: setOf(1)) }
 
-    var categories by remember { mutableStateOf<List<Category>>(emptyList()) }
-    var selectedCategory by remember { mutableStateOf<Int?>(null) }
+    val categories = preloadedData.categories
+    var selectedCategory by remember { mutableStateOf(preloadedData.selectedCategory) }
     var resetTrigger by remember { mutableIntStateOf(0) }
 
-    LaunchedEffect(Unit) {
-        categories = CategoryManager.getAll(db)
-        selectedCategory = event.categoryId?.let { catId ->
-            categories.indexOfFirst { it.id == catId }.takeIf { it >= 0 }
-        }
+    fun clearForm() {
+        title = event.title
+        notes = event.notes ?: ""
+        selectedCategory = preloadedData.selectedCategory
+        resetTrigger++
     }
 
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(BackgroundColor)
-            .padding(16.dp)
+        modifier = Modifier.fillMaxSize().background(BackgroundColor).padding(16.dp)
     ) {
         Box(
             modifier = Modifier
@@ -313,11 +291,7 @@ fun EventUpdateForm(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .verticalScroll(scrollState)
-        ) {
+        Column(modifier = Modifier.weight(1f).verticalScroll(scrollState)) {
             EventForm(
                 db = db,
                 title = title,
@@ -349,22 +323,13 @@ fun EventUpdateForm(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Button(
-                    onClick = {
-                        title = event.title
-                        notes = event.notes ?: ""
-                        resetTrigger++
-                    },
+                    onClick = { clearForm() },
                     colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
                     modifier = Modifier.weight(1f),
                     contentPadding = PaddingValues(16.dp)
-                ) {
-                    Text("Reset", fontSize = 16.sp)
-                }
+                ) { Text("Reset", fontSize = 16.sp) }
                 Spacer(modifier = Modifier.width(12.dp))
                 Button(
                     onClick = {
@@ -377,7 +342,6 @@ fun EventUpdateForm(
                                 RecurrenceFrequency.MONTHLY -> RecurrenceRule(daysOfMonth = selectedDaysOfMonth.toList())
                                 RecurrenceFrequency.YEARLY -> RecurrenceRule(monthAndDay = Pair(startDate.dayOfMonth, startDate.monthValue))
                             }
-
                             val updatedEvent = event.copy(
                                 title = title,
                                 notes = notes.ifBlank { null },
@@ -398,9 +362,7 @@ fun EventUpdateForm(
                     colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
                     modifier = Modifier.weight(1f),
                     contentPadding = PaddingValues(16.dp)
-                ) {
-                    Text("Save", fontSize = 16.sp)
-                }
+                ) { Text("Save", fontSize = 16.sp) }
             }
         }
     }

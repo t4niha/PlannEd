@@ -25,12 +25,20 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import java.time.format.DateTimeFormatter
 
+data class DeadlineUpdateFormData(
+    val categories: List<Category>,
+    val events: List<MasterEvent>,
+    val selectedCategory: Int?,
+    val selectedEvent: Int?
+)
+
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
 fun Deadlines(db: AppDatabase) {
     var currentView by remember { mutableStateOf("list") }
     var selectedDeadline by remember { mutableStateOf<Deadline?>(null) }
+    var updateFormData by remember { mutableStateOf<DeadlineUpdateFormData?>(null) }
 
     when (currentView) {
         "list" -> DeadlinesListView(
@@ -47,20 +55,26 @@ fun Deadlines(db: AppDatabase) {
                 onBack = {
                     currentView = "list"
                     selectedDeadline = null
+                    updateFormData = null
                 },
+                onUpdateDataReady = { data -> updateFormData = data },
                 onUpdate = { currentView = "update" }
             )
         }
         "update" -> selectedDeadline?.let { deadline ->
-            DeadlineUpdateView(
-                db = db,
-                deadline = deadline,
-                onBack = { currentView = "info" },
-                onSaveSuccess = { updatedDeadline ->
-                    selectedDeadline = updatedDeadline
-                    currentView = "info"
-                }
-            )
+            updateFormData?.let { formData ->
+                DeadlineUpdateView(
+                    db = db,
+                    deadline = deadline,
+                    preloadedData = formData,
+                    onBack = { currentView = "info" },
+                    onSaveSuccess = { updatedDeadline ->
+                        selectedDeadline = updatedDeadline
+                        updateFormData = null
+                        currentView = "info"
+                    }
+                )
+            }
         }
     }
 }
@@ -78,40 +92,18 @@ fun DeadlinesListView(
     }
 
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(BackgroundColor)
-            .padding(16.dp)
+        modifier = Modifier.fillMaxSize().background(BackgroundColor).padding(16.dp)
     ) {
-        Text(
-            "Deadlines",
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
+        Text("Deadlines", fontSize = 24.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 16.dp))
 
         if (deadlines.isEmpty()) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "No deadlines",
-                    fontSize = 18.sp,
-                    color = Color.Gray
-                )
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(text = "No deadlines", fontSize = 18.sp, color = Color.Gray)
             }
         } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
+            LazyColumn(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(deadlines) { deadline ->
-                    DeadlineItemView(
-                        db = db,
-                        deadline = deadline,
-                        onClick = { onDeadlineClick(deadline) }
-                    )
+                    DeadlineItemView(db = db, deadline = deadline, onClick = { onDeadlineClick(deadline) })
                 }
             }
         }
@@ -153,11 +145,7 @@ fun DeadlineItemView(
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(
-            modifier = Modifier
-                .size(INNER_CIRCLE_SIZE)
-                .background(deadlineColor, CircleShape)
-        )
+        Box(modifier = Modifier.size(INNER_CIRCLE_SIZE).background(deadlineColor, CircleShape))
         Spacer(modifier = Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
@@ -182,6 +170,7 @@ fun DeadlineInfoView(
     db: AppDatabase,
     deadline: Deadline,
     onBack: () -> Unit,
+    onUpdateDataReady: (DeadlineUpdateFormData) -> Unit,
     onUpdate: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
@@ -190,23 +179,36 @@ fun DeadlineInfoView(
     var event by remember { mutableStateOf<MasterEvent?>(null) }
     var currentDeadline by remember { mutableStateOf(deadline) }
     var relatedTasks by remember { mutableStateOf<List<MasterTask>>(emptyList()) }
+    var updateDataReady by remember { mutableStateOf(false) }
 
     LaunchedEffect(deadline.id) {
         currentDeadline = db.deadlineDao().getDeadlineById(deadline.id) ?: deadline
         category = currentDeadline.categoryId?.let { db.categoryDao().getCategoryById(it) }
         event = currentDeadline.eventId?.let { db.eventDao().getMasterEventById(it) }
         relatedTasks = db.taskDao().getAllMasterTasks().filter { it.deadlineId == deadline.id }
+
+        // Preload update form data
+        val categories = CategoryManager.getAll(db)
+        val events = EventManager.getAll(db)
+        val selectedCategory = currentDeadline.categoryId?.let { catId ->
+            categories.indexOfFirst { it.id == catId }.takeIf { it >= 0 }
+        }
+        val selectedEvent = currentDeadline.eventId?.let { evId ->
+            events.indexOfFirst { it.id == evId }.takeIf { it >= 0 }
+        }
+        onUpdateDataReady(DeadlineUpdateFormData(
+            categories = categories,
+            events = events,
+            selectedCategory = selectedCategory,
+            selectedEvent = selectedEvent
+        ))
+        updateDataReady = true
     }
 
     val dateFormatter = DateTimeFormatter.ofPattern("MMM dd, yyyy")
     val timeFormatter = DateTimeFormatter.ofPattern("h:mm a")
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(BackgroundColor)
-            .padding(16.dp)
-    ) {
+    Column(modifier = Modifier.fillMaxSize().background(BackgroundColor).padding(16.dp)) {
         Box(
             modifier = Modifier
                 .clip(RoundedCornerShape(8.dp))
@@ -219,12 +221,7 @@ fun DeadlineInfoView(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
-                .verticalScroll(scrollState)
-        ) {
+        Column(modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(scrollState)) {
             Box(modifier = Modifier.fillMaxWidth().padding(18.dp)) {
                 Text(text = currentDeadline.title, fontSize = 20.sp, fontWeight = FontWeight.Medium)
             }
@@ -236,10 +233,7 @@ fun DeadlineInfoView(
                 Spacer(modifier = Modifier.height(18.dp))
             }
 
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
+            Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 InfoField("Date", currentDeadline.date.format(dateFormatter))
                 InfoField("Time", currentDeadline.time.format(timeFormatter))
                 InfoField("Event", event?.title ?: "None")
@@ -249,12 +243,7 @@ fun DeadlineInfoView(
 
             if (relatedTasks.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(18.dp))
-                Text(
-                    "Tasks for this deadline:",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Medium,
-                    modifier = Modifier.padding(horizontal = 18.dp)
-                )
+                Text("Tasks for this deadline:", fontSize = 16.sp, fontWeight = FontWeight.Medium, modifier = Modifier.padding(horizontal = 18.dp))
                 Spacer(modifier = Modifier.height(8.dp))
                 relatedTasks.forEach { task ->
                     Box(
@@ -273,31 +262,19 @@ fun DeadlineInfoView(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Button(
-                onClick = {
-                    scope.launch {
-                        DeadlineManager.delete(db, currentDeadline.id)
-                        onBack()
-                    }
-                },
+                onClick = { scope.launch { DeadlineManager.delete(db, currentDeadline.id); onBack() } },
                 modifier = Modifier.weight(1f),
                 colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
                 contentPadding = PaddingValues(16.dp)
-            ) {
-                Text("Delete", fontSize = 16.sp, color = Color.White)
-            }
+            ) { Text("Delete", fontSize = 16.sp, color = Color.White) }
             Button(
-                onClick = onUpdate,
+                onClick = { if (updateDataReady) onUpdate() },
                 modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
+                colors = ButtonDefaults.buttonColors(containerColor = if (updateDataReady) PrimaryColor else Color.LightGray),
                 contentPadding = PaddingValues(16.dp)
-            ) {
-                Text("Update", fontSize = 16.sp, color = Color.White)
-            }
+            ) { Text("Update", fontSize = 16.sp, color = Color.White) }
         }
     }
 }
@@ -307,6 +284,7 @@ fun DeadlineInfoView(
 fun DeadlineUpdateView(
     db: AppDatabase,
     deadline: Deadline,
+    preloadedData: DeadlineUpdateFormData,
     onBack: () -> Unit,
     onSaveSuccess: (Deadline) -> Unit
 ) {
@@ -318,30 +296,17 @@ fun DeadlineUpdateView(
     var date by remember { mutableStateOf(deadline.date) }
     var time by remember { mutableStateOf(deadline.time) }
 
-    var categories by remember { mutableStateOf<List<Category>>(emptyList()) }
-    var events by remember { mutableStateOf<List<MasterEvent>>(emptyList()) }
-    var selectedCategory by remember { mutableStateOf<Int?>(null) }
-    var selectedEvent by remember { mutableStateOf<Int?>(null) }
-    var previousEvent by remember { mutableStateOf<Int?>(null) }
+    val categories = preloadedData.categories
+    val events = preloadedData.events
+    var selectedCategory by remember { mutableStateOf(preloadedData.selectedCategory) }
+    var selectedEvent by remember { mutableStateOf(preloadedData.selectedEvent) }
+    var previousEvent by remember { mutableStateOf(preloadedData.selectedEvent) }
     var resetTrigger by remember { mutableIntStateOf(0) }
-
-    LaunchedEffect(Unit) {
-        categories = CategoryManager.getAll(db)
-        events = EventManager.getAll(db)
-        selectedCategory = deadline.categoryId?.let { catId ->
-            categories.indexOfFirst { it.id == catId }.takeIf { it >= 0 }
-        }
-        selectedEvent = deadline.eventId?.let { evId ->
-            events.indexOfFirst { it.id == evId }.takeIf { it >= 0 }
-        }
-        previousEvent = selectedEvent
-    }
 
     // Lock category when event selected
     LaunchedEffect(selectedEvent, events.size) {
         val currentEventIndex = selectedEvent
         val previousEventIndex = previousEvent
-
         if (currentEventIndex != previousEventIndex) {
             if (currentEventIndex != null && events.isNotEmpty()) {
                 val event = events.getOrNull(currentEventIndex)
@@ -349,9 +314,7 @@ fun DeadlineUpdateView(
                     val eventCategoryId = event.categoryId
                     val categoryIndex = if (eventCategoryId != null) {
                         categories.indexOfFirst { it.id == eventCategoryId }
-                    } else {
-                        null
-                    }
+                    } else null
                     if (categoryIndex != null) {
                         selectedCategory = if (categoryIndex >= 0) categoryIndex else null
                     }
@@ -361,12 +324,7 @@ fun DeadlineUpdateView(
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(BackgroundColor)
-            .padding(16.dp)
-    ) {
+    Column(modifier = Modifier.fillMaxSize().background(BackgroundColor).padding(16.dp)) {
         Box(
             modifier = Modifier
                 .clip(RoundedCornerShape(8.dp))
@@ -379,11 +337,7 @@ fun DeadlineUpdateView(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .verticalScroll(scrollState)
-        ) {
+        Column(modifier = Modifier.weight(1f).verticalScroll(scrollState)) {
             val titleValue = textInputField("Title", title, resetTrigger)
             title = titleValue
             Spacer(modifier = Modifier.height(12.dp))
@@ -398,15 +352,9 @@ fun DeadlineUpdateView(
                 isOptional = false,
                 key = resetTrigger,
                 allowPastDates = false,
-                onDateValidated = { validated ->
-                    if (validated != date) {
-                        date = validated
-                    }
-                }
+                onDateValidated = { validated -> if (validated != date) date = validated }
             )!!
-            if (dateValue != date) {
-                date = dateValue
-            }
+            if (dateValue != date) date = dateValue
             Spacer(modifier = Modifier.height(12.dp))
 
             val timeValue = timePickerField(
@@ -435,51 +383,37 @@ fun DeadlineUpdateView(
                 key = resetTrigger,
                 locked = selectedEvent != null
             )
-            if (selectedEvent == null) {
-                selectedCategory = categoryValue
-            }
+            if (selectedEvent == null) selectedCategory = categoryValue
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Button(
                     onClick = {
                         title = deadline.title
                         notes = deadline.notes ?: ""
                         date = deadline.date
                         time = deadline.time
-                        selectedCategory = deadline.categoryId?.let { catId ->
-                            categories.indexOfFirst { it.id == catId }.takeIf { it >= 0 }
-                        }
-                        selectedEvent = deadline.eventId?.let { evId ->
-                            events.indexOfFirst { it.id == evId }.takeIf { it >= 0 }
-                        }
+                        selectedCategory = preloadedData.selectedCategory
+                        selectedEvent = preloadedData.selectedEvent
                         resetTrigger++
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
                     modifier = Modifier.weight(1f),
                     contentPadding = PaddingValues(16.dp)
-                ) {
-                    Text("Reset", fontSize = 16.sp)
-                }
+                ) { Text("Reset", fontSize = 16.sp) }
                 Spacer(modifier = Modifier.width(12.dp))
                 Button(
                     onClick = {
                         if (title.isBlank()) return@Button
                         scope.launch {
-                            val catId = selectedCategory?.let { categories.getOrNull(it)?.id }
-                            val evId = selectedEvent?.let { events.getOrNull(it)?.id }
-
                             val updatedDeadline = deadline.copy(
                                 title = title,
                                 notes = notes.ifBlank { null },
                                 date = date,
                                 time = time,
-                                categoryId = catId,
-                                eventId = evId
+                                categoryId = selectedCategory?.let { categories.getOrNull(it)?.id },
+                                eventId = selectedEvent?.let { events.getOrNull(it)?.id }
                             )
                             DeadlineManager.update(db, updatedDeadline)
                             val refreshedDeadline = db.deadlineDao().getDeadlineById(deadline.id) ?: updatedDeadline
@@ -489,9 +423,7 @@ fun DeadlineUpdateView(
                     colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
                     modifier = Modifier.weight(1f),
                     contentPadding = PaddingValues(16.dp)
-                ) {
-                    Text("Save", fontSize = 16.sp)
-                }
+                ) { Text("Save", fontSize = 16.sp) }
             }
         }
     }

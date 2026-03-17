@@ -23,11 +23,17 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import java.time.format.DateTimeFormatter
 
+data class ReminderUpdateFormData(
+    val categories: List<Category>,
+    val selectedCategory: Int?
+)
+
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun Reminders(db: AppDatabase) {
     var currentView by remember { mutableStateOf("list") }
     var selectedReminder by remember { mutableStateOf<MasterReminder?>(null) }
+    var updateFormData by remember { mutableStateOf<ReminderUpdateFormData?>(null) }
 
     when (currentView) {
         "list" -> RemindersListView(
@@ -44,20 +50,26 @@ fun Reminders(db: AppDatabase) {
                 onBack = {
                     currentView = "list"
                     selectedReminder = null
+                    updateFormData = null
                 },
+                onUpdateDataReady = { data -> updateFormData = data },
                 onUpdate = { currentView = "update" }
             )
         }
         "update" -> selectedReminder?.let { reminder ->
-            ReminderUpdateView(
-                db = db,
-                reminder = reminder,
-                onBack = { currentView = "info" },
-                onSaveSuccess = { updatedReminder ->
-                    selectedReminder = updatedReminder
-                    currentView = "info"
-                }
-            )
+            updateFormData?.let { formData ->
+                ReminderUpdateView(
+                    db = db,
+                    reminder = reminder,
+                    preloadedData = formData,
+                    onBack = { currentView = "info" },
+                    onSaveSuccess = { updatedReminder ->
+                        selectedReminder = updatedReminder
+                        updateFormData = null
+                        currentView = "info"
+                    }
+                )
+            }
         }
     }
 }
@@ -74,40 +86,17 @@ fun RemindersListView(
         reminders = ReminderManager.getAll(db).sortedBy { it.startDate }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(BackgroundColor)
-            .padding(16.dp)
-    ) {
-        Text(
-            "Reminders",
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
+    Column(modifier = Modifier.fillMaxSize().background(BackgroundColor).padding(16.dp)) {
+        Text("Reminders", fontSize = 24.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 16.dp))
 
         if (reminders.isEmpty()) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "No reminders",
-                    fontSize = 18.sp,
-                    color = Color.Gray
-                )
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(text = "No reminders", fontSize = 18.sp, color = Color.Gray)
             }
         } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
+            LazyColumn(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(reminders) { reminder ->
-                    ReminderItemView(
-                        reminder = reminder,
-                        onClick = { onReminderClick(reminder) }
-                    )
+                    ReminderItemView(reminder = reminder, onClick = { onReminderClick(reminder) })
                 }
             }
         }
@@ -133,11 +122,7 @@ fun ReminderItemView(
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(
-            modifier = Modifier
-                .size(INNER_CIRCLE_SIZE)
-                .background(reminderColor, CircleShape)
-        )
+        Box(modifier = Modifier.size(INNER_CIRCLE_SIZE).background(reminderColor, CircleShape))
         Spacer(modifier = Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
@@ -165,27 +150,32 @@ fun ReminderInfoView(
     db: AppDatabase,
     reminder: MasterReminder,
     onBack: () -> Unit,
+    onUpdateDataReady: (ReminderUpdateFormData) -> Unit,
     onUpdate: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
     var category by remember { mutableStateOf<Category?>(null) }
     var currentReminder by remember { mutableStateOf(reminder) }
+    var updateDataReady by remember { mutableStateOf(false) }
 
     LaunchedEffect(reminder.id) {
         currentReminder = db.reminderDao().getMasterReminderById(reminder.id) ?: reminder
         category = currentReminder.categoryId?.let { db.categoryDao().getCategoryById(it) }
+
+        // Preload update form data
+        val categories = CategoryManager.getAll(db)
+        val selectedCategory = currentReminder.categoryId?.let { catId ->
+            categories.indexOfFirst { it.id == catId }.takeIf { it >= 0 }
+        }
+        onUpdateDataReady(ReminderUpdateFormData(categories = categories, selectedCategory = selectedCategory))
+        updateDataReady = true
     }
 
     val timeFormatter = DateTimeFormatter.ofPattern("h:mm a")
     val dateFormatter = DateTimeFormatter.ofPattern("MMM dd, yyyy")
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(BackgroundColor)
-            .padding(16.dp)
-    ) {
+    Column(modifier = Modifier.fillMaxSize().background(BackgroundColor).padding(16.dp)) {
         Box(
             modifier = Modifier
                 .clip(RoundedCornerShape(8.dp))
@@ -198,12 +188,7 @@ fun ReminderInfoView(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
-                .verticalScroll(scrollState)
-        ) {
+        Column(modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(scrollState)) {
             Box(modifier = Modifier.fillMaxWidth().padding(18.dp)) {
                 Text(text = currentReminder.title, fontSize = 20.sp, fontWeight = FontWeight.Medium)
             }
@@ -215,36 +200,20 @@ fun ReminderInfoView(
                 Spacer(modifier = Modifier.height(18.dp))
             }
 
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 18.dp, vertical = 8.dp)
-            ) {
+            Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 8.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("Color: ", fontSize = 16.sp, color = Color.Gray)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Box(
-                        modifier = Modifier
-                            .size(24.dp)
-                            .clip(CircleShape)
-                            .background(Converters.toColor(currentReminder.color))
-                    )
+                    Box(modifier = Modifier.size(24.dp).clip(CircleShape).background(Converters.toColor(currentReminder.color)))
                 }
             }
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
+            Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 InfoField("Start Date", currentReminder.startDate.format(dateFormatter))
                 InfoField("End Date", currentReminder.endDate?.format(dateFormatter) ?: "N/A")
-                InfoField(
-                    "Time",
-                    if (currentReminder.allDay) "All Day"
-                    else currentReminder.time?.format(timeFormatter) ?: ""
-                )
+                InfoField("Time", if (currentReminder.allDay) "All Day" else currentReminder.time?.format(timeFormatter) ?: "")
                 InfoField("Recurrence", currentReminder.recurFreq.name)
 
                 when (currentReminder.recurFreq) {
@@ -253,14 +222,8 @@ fun ReminderInfoView(
                         if (daysOfWeek != null && daysOfWeek.isNotEmpty()) {
                             val dayNames = daysOfWeek.sorted().joinToString(", ") { dayNum ->
                                 when (dayNum) {
-                                    1 -> "Mon"
-                                    2 -> "Tue"
-                                    3 -> "Wed"
-                                    4 -> "Thu"
-                                    5 -> "Fri"
-                                    6 -> "Sat"
-                                    7 -> "Sun"
-                                    else -> ""
+                                    1 -> "Mon"; 2 -> "Tue"; 3 -> "Wed"; 4 -> "Thu"
+                                    5 -> "Fri"; 6 -> "Sat"; 7 -> "Sun"; else -> ""
                                 }
                             }
                             InfoField("Days", dayNames)
@@ -281,31 +244,19 @@ fun ReminderInfoView(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Button(
-                onClick = {
-                    scope.launch {
-                        ReminderManager.delete(db, currentReminder.id)
-                        onBack()
-                    }
-                },
+                onClick = { scope.launch { ReminderManager.delete(db, currentReminder.id); onBack() } },
                 modifier = Modifier.weight(1f),
                 colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
                 contentPadding = PaddingValues(16.dp)
-            ) {
-                Text("Delete", fontSize = 16.sp, color = Color.White)
-            }
+            ) { Text("Delete", fontSize = 16.sp, color = Color.White) }
             Button(
-                onClick = onUpdate,
+                onClick = { if (updateDataReady) onUpdate() },
                 modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
+                colors = ButtonDefaults.buttonColors(containerColor = if (updateDataReady) PrimaryColor else Color.LightGray),
                 contentPadding = PaddingValues(16.dp)
-            ) {
-                Text("Update", fontSize = 16.sp, color = Color.White)
-            }
+            ) { Text("Update", fontSize = 16.sp, color = Color.White) }
         }
     }
 }
@@ -315,6 +266,7 @@ fun ReminderInfoView(
 fun ReminderUpdateView(
     db: AppDatabase,
     reminder: MasterReminder,
+    preloadedData: ReminderUpdateFormData,
     onBack: () -> Unit,
     onSaveSuccess: (MasterReminder) -> Unit
 ) {
@@ -332,38 +284,23 @@ fun ReminderUpdateView(
     var selectedDaysOfWeek by remember { mutableStateOf(reminder.recurRule.daysOfWeek?.toSet() ?: setOf(7)) }
     var selectedDaysOfMonth by remember { mutableStateOf(reminder.recurRule.daysOfMonth?.toSet() ?: setOf(1)) }
 
-    var categories by remember { mutableStateOf<List<Category>>(emptyList()) }
-    var selectedCategory by remember { mutableStateOf<Int?>(null) }
-    var previousCategory by remember { mutableStateOf<Int?>(null) }
+    val categories = preloadedData.categories
+    var selectedCategory by remember { mutableStateOf(preloadedData.selectedCategory) }
+    var previousCategory by remember { mutableStateOf(preloadedData.selectedCategory) }
     var resetTrigger by remember { mutableIntStateOf(0) }
 
-    LaunchedEffect(Unit) {
-        categories = CategoryManager.getAll(db)
-        selectedCategory = reminder.categoryId?.let { catId ->
-            categories.indexOfFirst { it.id == catId }.takeIf { it >= 0 }
-        }
-        previousCategory = selectedCategory
-    }
-
+    // Lock color when category selected
     LaunchedEffect(selectedCategory) {
         val currentCatIndex = selectedCategory
         val previousCatIndex = previousCategory
-
         if (currentCatIndex != previousCatIndex && currentCatIndex != null && categories.isNotEmpty()) {
             val categoryColor = categories.getOrNull(currentCatIndex)?.color
-            if (categoryColor != null) {
-                color = Converters.toColor(categoryColor)
-            }
+            if (categoryColor != null) color = Converters.toColor(categoryColor)
         }
         previousCategory = currentCatIndex
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(BackgroundColor)
-            .padding(16.dp)
-    ) {
+    Column(modifier = Modifier.fillMaxSize().background(BackgroundColor).padding(16.dp)) {
         Box(
             modifier = Modifier
                 .clip(RoundedCornerShape(8.dp))
@@ -376,11 +313,7 @@ fun ReminderUpdateView(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .verticalScroll(scrollState)
-        ) {
+        Column(modifier = Modifier.weight(1f).verticalScroll(scrollState)) {
             ReminderForm(
                 db = db,
                 title = title,
@@ -394,10 +327,7 @@ fun ReminderUpdateView(
                 endDate = endDate,
                 isAllDay = isAllDay,
                 time = time,
-                onAllDayTimeChange = { allDay, timeVal ->
-                    isAllDay = allDay
-                    time = timeVal
-                },
+                onAllDayTimeChange = { allDay, timeVal -> isAllDay = allDay; time = timeVal },
                 recurrenceFreq = recurrenceFreq,
                 selectedDaysOfWeek = selectedDaysOfWeek,
                 selectedDaysOfMonth = selectedDaysOfMonth,
@@ -414,10 +344,7 @@ fun ReminderUpdateView(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Button(
                     onClick = {
                         title = reminder.title
@@ -430,17 +357,13 @@ fun ReminderUpdateView(
                         recurrenceFreq = reminder.recurFreq
                         selectedDaysOfWeek = reminder.recurRule.daysOfWeek?.toSet() ?: setOf(7)
                         selectedDaysOfMonth = reminder.recurRule.daysOfMonth?.toSet() ?: setOf(1)
-                        selectedCategory = reminder.categoryId?.let { catId ->
-                            categories.indexOfFirst { it.id == catId }.takeIf { it >= 0 }
-                        }
+                        selectedCategory = preloadedData.selectedCategory
                         resetTrigger++
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
                     modifier = Modifier.weight(1f),
                     contentPadding = PaddingValues(16.dp)
-                ) {
-                    Text("Reset", fontSize = 16.sp)
-                }
+                ) { Text("Reset", fontSize = 16.sp) }
                 Spacer(modifier = Modifier.width(12.dp))
                 Button(
                     onClick = {
@@ -453,9 +376,6 @@ fun ReminderUpdateView(
                                 RecurrenceFrequency.MONTHLY -> RecurrenceRule(daysOfMonth = selectedDaysOfMonth.toList())
                                 RecurrenceFrequency.YEARLY -> RecurrenceRule(monthAndDay = Pair(startDate.dayOfMonth, startDate.monthValue))
                             }
-
-                            val catId = selectedCategory?.let { categories.getOrNull(it)?.id }
-
                             val updatedReminder = reminder.copy(
                                 title = title,
                                 notes = notes.ifBlank { null },
@@ -466,7 +386,7 @@ fun ReminderUpdateView(
                                 allDay = isAllDay,
                                 recurFreq = recurrenceFreq,
                                 recurRule = recurRule,
-                                categoryId = catId
+                                categoryId = selectedCategory?.let { categories.getOrNull(it)?.id }
                             )
                             ReminderManager.update(db, updatedReminder)
                             val refreshedReminder = db.reminderDao().getMasterReminderById(reminder.id) ?: updatedReminder
@@ -476,9 +396,7 @@ fun ReminderUpdateView(
                     colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
                     modifier = Modifier.weight(1f),
                     contentPadding = PaddingValues(16.dp)
-                ) {
-                    Text("Save", fontSize = 16.sp)
-                }
+                ) { Text("Save", fontSize = 16.sp) }
             }
         }
     }

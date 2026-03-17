@@ -65,11 +65,10 @@ class MainActivity : ComponentActivity() {
 
  TODO: [ ] Task info back to calendar doesn't scroll to that task, only to today
  TODO: [-] Task update form dropdown loop glitch
- TODO: [ ] Cancel (dialogue) buttons do same as Save?
+ TODO: [-] Cancel (dialogue) buttons do same as Save?
  TODO: [-] Task form update needed after Save for dependency option
  TODO: [ ] UI Pages + isException logic
  TODO: [ ] Calendar to object pages
- TODO: [ ] Scheduling breakable tasks only partially when insufficient bucket space
  TODO: [ ] Warning for insufficient bucket space
  TODO: [ ] What to do when impossible to meet deadline given current schedule order?
 **/
