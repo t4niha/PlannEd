@@ -434,12 +434,16 @@ fun Developer(db: AppDatabase) {
                     "ID",
                     "Title",
                     "Notes",
-                    "Priority",
+                    "All Day",
                     "Breakable",
                     "No. Intervals",
                     "Start Date",
                     "Start Time",
                     "Duration",
+                    "Actual Duration",
+                    "Status",
+                    "Time Left",
+                    "Overtime",
                     "Category ID",
                     "Event ID",
                     "Deadline ID",
@@ -450,11 +454,16 @@ fun Developer(db: AppDatabase) {
                     t.id.toString(),
                     t.title,
                     t.notes ?: "",
+                    t.allDay?.toString() ?: "",
                     t.breakable?.toString() ?: "",
                     t.noIntervals.toString(),
                     t.startDate?.toString() ?: "",
                     t.startTime?.toString() ?: "",
                     t.predictedDuration.toString(),
+                    t.actualDuration?.toString() ?: "",
+                    t.status?.toString() ?: "",
+                    t.timeLeft?.toString() ?: "",
+                    t.overTime?.toString() ?: "",
                     t.categoryId?.toString() ?: "",
                     t.eventId?.toString() ?: "",
                     t.deadlineId?.toString() ?: "",
@@ -473,7 +482,9 @@ fun Developer(db: AppDatabase) {
                     "Occur Date",
                     "Start Time",
                     "End Time",
-                    "Status"
+                    "Status",
+                    "Time Left",
+                    "Overtime"
                 )
             ) { i ->
                 listOf(
@@ -484,7 +495,9 @@ fun Developer(db: AppDatabase) {
                     i.occurDate.toString(),
                     i.startTime.toString(),
                     i.endTime.toString(),
-                    i.status?.toString() ?: ""
+                    i.status?.toString() ?: "",
+                    i.timeLeft?.toString() ?: "",
+                    i.overTime?.toString() ?: ""
                 )
             }
 
@@ -495,7 +508,6 @@ fun Developer(db: AppDatabase) {
                     "ID",
                     "Title",
                     "Notes",
-                    "Color",
                     "Start Date",
                     "End Date",
                     "Time",
@@ -509,7 +521,6 @@ fun Developer(db: AppDatabase) {
                     r.id.toString(),
                     r.title,
                     r.notes ?: "",
-                    r.color,
                     r.startDate.toString(),
                     r.endDate?.toString() ?: "",
                     r.time?.toString() ?: "",

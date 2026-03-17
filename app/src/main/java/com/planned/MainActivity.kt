@@ -21,7 +21,7 @@ object AppDatabaseProvider {
                 context.applicationContext,
                 AppDatabase::class.java,
                 "planned-db"
-            ).addMigrations(AppDatabase.MIGRATION_7_8, AppDatabase.MIGRATION_8_9).build()
+            ).addMigrations(AppDatabase.MIGRATION_7_8, AppDatabase.MIGRATION_8_9, AppDatabase.MIGRATION_9_10).build()
             INSTANCE = instance
             instance
         }
@@ -61,6 +61,7 @@ TODO: [ ] Confirmation dialogs for destructive operations (delete master objects
 
 TODO: [ ] Kanban board?
 TODO: [-] POMODORO have the option to control timer spread (not just an hour!)
+TODO: [ ] DB Sample stuff
 
 TODO: [ ] notifications?
 TODO: [ ] Status indicators and overtime warnings for task elements on calendar?

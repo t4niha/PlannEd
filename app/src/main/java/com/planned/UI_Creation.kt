@@ -105,7 +105,6 @@ fun Creation(db: AppDatabase) {
     // Reminder
     var reminderTitle by remember { mutableStateOf("") }
     var reminderNotes by remember { mutableStateOf("") }
-    var reminderColor by remember { mutableStateOf(Preset1) }
     var reminderStartDate by remember { mutableStateOf(LocalDate.now().plusDays(1)) }
     var reminderEndDate by remember { mutableStateOf<LocalDate?>(null) }
     var reminderIsAllDay by remember { mutableStateOf(true) }
@@ -177,7 +176,6 @@ fun Creation(db: AppDatabase) {
         // Reminder
         reminderTitle = ""
         reminderNotes = ""
-        reminderColor = Preset1
         reminderStartDate = LocalDate.now().plusDays(1)
         reminderEndDate = null
         reminderIsAllDay = true
@@ -265,8 +263,6 @@ fun Creation(db: AppDatabase) {
                         onTitleChange = { reminderTitle = it },
                         notes = reminderNotes,
                         onNotesChange = { reminderNotes = it },
-                        color = reminderColor,
-                        onColorChange = { reminderColor = it },
                         startDate = reminderStartDate,
                         onStartDateChange = { reminderStartDate = it },
                         endDate = reminderEndDate,
@@ -473,7 +469,6 @@ fun Creation(db: AppDatabase) {
                                         db = db,
                                         title = reminderTitle,
                                         notes = reminderNotes.ifBlank { null },
-                                        color = reminderColor,
                                         startDate = reminderStartDate,
                                         endDate = reminderEndDate,
                                         time = if (reminderIsAllDay) null else reminderTime,

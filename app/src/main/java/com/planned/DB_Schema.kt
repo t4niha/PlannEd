@@ -253,7 +253,6 @@ data class MasterReminder(
 
     val title: String,
     val notes: String? = null,
-    val color: String,
 
     val startDate: LocalDate,
     val endDate: LocalDate? = null,
@@ -670,7 +669,7 @@ data class CategoryWithMasterReminders(
         AppSetting::class,
         EventATI::class, UserATI::class
     ],
-    version = 9
+    version = 10
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
@@ -720,6 +719,33 @@ abstract class AppDatabase : RoomDatabase() {
         val MIGRATION_8_9 = object : androidx.room.migration.Migration(8, 9) {
             override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE MasterTask ADD COLUMN allDay TEXT")
+            }
+        }
+
+        val MIGRATION_9_10 = object : androidx.room.migration.Migration(9, 10) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE MasterReminder_new (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        title TEXT NOT NULL,
+                        notes TEXT,
+                        startDate TEXT NOT NULL,
+                        endDate TEXT,
+                        time TEXT,
+                        allDay INTEGER NOT NULL,
+                        recurFreq TEXT NOT NULL,
+                        recurRule TEXT NOT NULL,
+                        categoryId INTEGER
+                    )
+                """.trimIndent())
+                db.execSQL("""
+                    INSERT INTO MasterReminder_new
+                    SELECT id, title, notes, startDate, endDate, time, allDay,
+                           recurFreq, recurRule, categoryId
+                    FROM MasterReminder
+                """.trimIndent())
+                db.execSQL("DROP TABLE MasterReminder")
+                db.execSQL("ALTER TABLE MasterReminder_new RENAME TO MasterReminder")
             }
         }
     }

@@ -141,7 +141,6 @@ fun runSample(db: AppDatabase) = runBlocking {
         db = db,
         title = "Warm up for soccer",
         notes = "Do stretches before practice",
-        color = Preset7,
         startDate = LocalDate.now(),
         endDate = null,
         time = LocalTime.of(14, 30),

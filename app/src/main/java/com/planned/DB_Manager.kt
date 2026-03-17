@@ -362,7 +362,6 @@ object ReminderManager {
         db: AppDatabase,
         title: String,
         notes: String?,
-        color: Color,
         startDate: LocalDate,
         endDate: LocalDate?,
         time: LocalTime?,
@@ -374,7 +373,6 @@ object ReminderManager {
         val reminder = MasterReminder(
             title = title,
             notes = notes,
-            color = Converters.fromColor(color),
             startDate = startDate,
             endDate = endDate,
             time = time,

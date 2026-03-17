@@ -508,7 +508,15 @@ fun ReminderDeadlineIndicators(db: AppDatabase, date: LocalDate) {
                             runBlocking { db.reminderDao().getAllMasterReminders().find { it.id == reminder.masterReminderId } }
                         }
                         val reminderColor = remember(masterReminder) {
-                            masterReminder?.color?.let { Converters.toColor(it) } ?: Color.LightGray
+                            runBlocking {
+                                when {
+                                    masterReminder?.categoryId != null -> {
+                                        val category = db.categoryDao().getAll().find { it.id == masterReminder.categoryId }
+                                        category?.color?.let { Converters.toColor(it) } ?: Color.LightGray
+                                    }
+                                    else -> Color.LightGray
+                                }
+                            }
                         }
                         Box(
                             modifier = Modifier

@@ -758,8 +758,6 @@ fun ReminderForm(
     onTitleChange: (String) -> Unit,
     notes: String,
     onNotesChange: (String) -> Unit,
-    color: Color,
-    onColorChange: (Color) -> Unit,
     startDate: LocalDate,
     onStartDateChange: (LocalDate) -> Unit,
     endDate: LocalDate?,
@@ -775,21 +773,9 @@ fun ReminderForm(
     resetTrigger: Int
 ) {
     var categories by remember { mutableStateOf<List<Category>>(emptyList()) }
-    var previousCategory by remember { mutableStateOf<Int?>(null) }
 
     LaunchedEffect(Unit) {
         categories = CategoryManager.getAll(db)
-    }
-
-    // Auto-update color when category changes
-    LaunchedEffect(selectedCategory) {
-        if (selectedCategory != previousCategory && selectedCategory != null && categories.isNotEmpty()) {
-            val categoryColor = categories.getOrNull(selectedCategory)?.color
-            if (categoryColor != null) {
-                onColorChange(Color(categoryColor.toColorInt()))
-            }
-        }
-        previousCategory = selectedCategory
     }
 
     Column {
@@ -854,13 +840,5 @@ fun ReminderForm(
             key = resetTrigger
         )
         onCategoryChange(categoryValue)
-        Spacer(modifier = Modifier.height(12.dp))
-
-        colorPickerField(
-            label = "Color",
-            initialColor = color,
-            key = resetTrigger,
-            onColorChange = onColorChange
-        )
     }
 }

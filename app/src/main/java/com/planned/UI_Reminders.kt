@@ -115,7 +115,7 @@ fun RemindersListView(
                         )
                     }
                     items(categoryReminders) { reminder ->
-                        ReminderItemView(reminder = reminder, onClick = { onReminderClick(reminder) })
+                        ReminderItemView(reminder = reminder, db = db, onClick = { onReminderClick(reminder) })
                     }
                 }
             }
@@ -127,11 +127,22 @@ fun RemindersListView(
 @Composable
 fun ReminderItemView(
     reminder: MasterReminder,
+    db: AppDatabase,
     onClick: () -> Unit
 ) {
-    val reminderColor = Converters.toColor(reminder.color)
+    var reminderColor by remember { mutableStateOf(Color.Gray) }
     val timeFormatter = java.time.format.DateTimeFormatter.ofPattern("h:mm a")
     val dateFormatter = java.time.format.DateTimeFormatter.ofPattern("MMMM d, yyyy")
+
+    LaunchedEffect(reminder.id) {
+        reminderColor = when {
+            reminder.categoryId != null -> {
+                val category = db.categoryDao().getCategoryById(reminder.categoryId)
+                category?.color?.let { Converters.toColor(it) } ?: Color.Gray
+            }
+            else -> Color.Gray
+        }
+    }
 
     Row(
         modifier = Modifier
@@ -220,14 +231,6 @@ fun ReminderInfoView(
                 Spacer(modifier = Modifier.height(18.dp))
             }
 
-            Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 8.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Color: ", fontSize = 16.sp, color = Color.Gray)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Box(modifier = Modifier.size(24.dp).clip(CircleShape).background(Converters.toColor(currentReminder.color)))
-                }
-            }
-
             Spacer(modifier = Modifier.height(10.dp))
 
             Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -282,7 +285,6 @@ fun ReminderUpdateView(
 
     var title by remember { mutableStateOf(reminder.title) }
     var notes by remember { mutableStateOf(reminder.notes ?: "") }
-    var color by remember { mutableStateOf(Converters.toColor(reminder.color)) }
     var startDate by remember { mutableStateOf(reminder.startDate) }
     var endDate by remember { mutableStateOf(reminder.endDate) }
     var isAllDay by remember { mutableStateOf(reminder.allDay) }
@@ -293,19 +295,7 @@ fun ReminderUpdateView(
 
     val categories = preloadedData.categories
     var selectedCategory by remember { mutableStateOf(preloadedData.selectedCategory) }
-    var previousCategory by remember { mutableStateOf(preloadedData.selectedCategory) }
     var resetTrigger by remember { mutableIntStateOf(0) }
-
-    // Lock color when category selected
-    LaunchedEffect(selectedCategory) {
-        val currentCatIndex = selectedCategory
-        val previousCatIndex = previousCategory
-        if (currentCatIndex != previousCatIndex && currentCatIndex != null && categories.isNotEmpty()) {
-            val categoryColor = categories.getOrNull(currentCatIndex)?.color
-            if (categoryColor != null) color = Converters.toColor(categoryColor)
-        }
-        previousCategory = currentCatIndex
-    }
 
     Column(modifier = Modifier.fillMaxSize().background(BackgroundColor).padding(16.dp)) {
         Box(
@@ -327,8 +317,6 @@ fun ReminderUpdateView(
                 onTitleChange = { title = it },
                 notes = notes,
                 onNotesChange = { notes = it },
-                color = color,
-                onColorChange = { color = it },
                 startDate = startDate,
                 onStartDateChange = { startDate = it },
                 endDate = endDate,
@@ -356,7 +344,6 @@ fun ReminderUpdateView(
                     onClick = {
                         title = reminder.title
                         notes = reminder.notes ?: ""
-                        color = Converters.toColor(reminder.color)
                         startDate = reminder.startDate
                         endDate = reminder.endDate
                         isAllDay = reminder.allDay
@@ -386,7 +373,6 @@ fun ReminderUpdateView(
                             val updatedReminder = reminder.copy(
                                 title = title,
                                 notes = notes.ifBlank { null },
-                                color = Converters.fromColor(color),
                                 startDate = startDate,
                                 endDate = endDate,
                                 time = if (isAllDay) null else time,
