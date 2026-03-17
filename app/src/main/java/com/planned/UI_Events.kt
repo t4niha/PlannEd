@@ -89,35 +89,35 @@ fun EventsList(
         categories = CategoryManager.getAll(db)
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(BackgroundColor)
-            .padding(16.dp)
-    ) {
-        Text(
-            "Events",
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
+    val grouped = events.groupBy { it.categoryId }
+    val sortedCategoryIds = categories.map { it.id as Int? }.filter { grouped.containsKey(it) } +
+            if (grouped.containsKey(null)) listOf(null) else emptyList()
+
+    Column(modifier = Modifier.fillMaxSize().background(BackgroundColor).padding(16.dp)) {
+        Text("Events", fontSize = 24.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 16.dp))
 
         if (events.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text(text = "No events", fontSize = 18.sp, color = Color.Gray)
             }
         } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(events) { event ->
-                    EventListItem(
-                        db = db,
-                        event = event,
-                        categories = categories,
-                        onClick = { onEventClick(event) }
-                    )
+            LazyColumn(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                sortedCategoryIds.forEach { catId ->
+                    val categoryName = if (catId == null) "No Category"
+                    else categories.find { it.id == catId }?.title ?: "No Category"
+                    val categoryEvents = grouped[catId] ?: emptyList()
+                    item {
+                        Text(
+                            text = categoryName,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Gray,
+                            modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 4.dp)
+                        )
+                    }
+                    items(categoryEvents) { event ->
+                        EventListItem(db = db, event = event, categories = categories, onClick = { onEventClick(event) })
+                    }
                 }
             }
         }

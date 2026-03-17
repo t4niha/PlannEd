@@ -86,14 +86,18 @@ fun DeadlinesListView(
     onDeadlineClick: (Deadline) -> Unit
 ) {
     var deadlines by remember { mutableStateOf<List<Deadline>>(emptyList()) }
+    var categories by remember { mutableStateOf<List<Category>>(emptyList()) }
 
     LaunchedEffect(Unit) {
         deadlines = DeadlineManager.getAll(db).sortedBy { it.date }
+        categories = CategoryManager.getAll(db)
     }
 
-    Column(
-        modifier = Modifier.fillMaxSize().background(BackgroundColor).padding(16.dp)
-    ) {
+    val grouped = deadlines.groupBy { it.categoryId }
+    val sortedCategoryIds = categories.map { it.id as Int? }.filter { grouped.containsKey(it) } +
+            if (grouped.containsKey(null)) listOf(null) else emptyList()
+
+    Column(modifier = Modifier.fillMaxSize().background(BackgroundColor).padding(16.dp)) {
         Text("Deadlines", fontSize = 24.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 16.dp))
 
         if (deadlines.isEmpty()) {
@@ -102,8 +106,22 @@ fun DeadlinesListView(
             }
         } else {
             LazyColumn(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(deadlines) { deadline ->
-                    DeadlineItemView(db = db, deadline = deadline, onClick = { onDeadlineClick(deadline) })
+                sortedCategoryIds.forEach { catId ->
+                    val categoryName = if (catId == null) "No Category"
+                    else categories.find { it.id == catId }?.title ?: "No Category"
+                    val categoryDeadlines = grouped[catId] ?: emptyList()
+                    item {
+                        Text(
+                            text = categoryName,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Gray,
+                            modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 4.dp)
+                        )
+                    }
+                    items(categoryDeadlines) { deadline ->
+                        DeadlineItemView(db = db, deadline = deadline, onClick = { onDeadlineClick(deadline) })
+                    }
                 }
             }
         }

@@ -81,10 +81,16 @@ fun RemindersListView(
     onReminderClick: (MasterReminder) -> Unit
 ) {
     var reminders by remember { mutableStateOf<List<MasterReminder>>(emptyList()) }
+    var categories by remember { mutableStateOf<List<Category>>(emptyList()) }
 
     LaunchedEffect(Unit) {
         reminders = ReminderManager.getAll(db).sortedBy { it.startDate }
+        categories = CategoryManager.getAll(db)
     }
+
+    val grouped = reminders.groupBy { it.categoryId }
+    val sortedCategoryIds = categories.map { it.id as Int? }.filter { grouped.containsKey(it) } +
+            if (grouped.containsKey(null)) listOf(null) else emptyList()
 
     Column(modifier = Modifier.fillMaxSize().background(BackgroundColor).padding(16.dp)) {
         Text("Reminders", fontSize = 24.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 16.dp))
@@ -95,8 +101,22 @@ fun RemindersListView(
             }
         } else {
             LazyColumn(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(reminders) { reminder ->
-                    ReminderItemView(reminder = reminder, onClick = { onReminderClick(reminder) })
+                sortedCategoryIds.forEach { catId ->
+                    val categoryName = if (catId == null) "No Category"
+                    else categories.find { it.id == catId }?.title ?: "No Category"
+                    val categoryReminders = grouped[catId] ?: emptyList()
+                    item {
+                        Text(
+                            text = categoryName,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Gray,
+                            modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 4.dp)
+                        )
+                    }
+                    items(categoryReminders) { reminder ->
+                        ReminderItemView(reminder = reminder, onClick = { onReminderClick(reminder) })
+                    }
                 }
             }
         }

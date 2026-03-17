@@ -220,18 +220,18 @@ fun UnscheduledTasksList(
     onTaskClick: (MasterTask) -> Unit
 ) {
     var tasks by remember { mutableStateOf<List<MasterTask>>(emptyList()) }
+    var categories by remember { mutableStateOf<List<Category>>(emptyList()) }
 
     LaunchedEffect(Unit) {
-        tasks = db.taskDao().getAllMasterTasks()
-            .filter { it.noIntervals == 0 && it.status != 3 }
+        tasks = db.taskDao().getAllMasterTasks().filter { it.noIntervals == 0 && it.status != 3 }
+        categories = CategoryManager.getAll(db)
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(BackgroundColor)
-    ) {
-        // Back button
+    val grouped = tasks.groupBy { it.categoryId }
+    val sortedCategoryIds = categories.map { it.id as Int? }.filter { grouped.containsKey(it) } +
+            if (grouped.containsKey(null)) listOf(null) else emptyList()
+
+    Column(modifier = Modifier.fillMaxSize().background(BackgroundColor)) {
         Box(
             modifier = Modifier
                 .padding(16.dp)
@@ -252,8 +252,22 @@ fun UnscheduledTasksList(
                 modifier = Modifier.weight(1f).fillMaxWidth().padding(12.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(tasks) { task ->
-                    UnscheduledTaskItem(db = db, task = task, onClick = { onTaskClick(task) })
+                sortedCategoryIds.forEach { catId ->
+                    val categoryName = if (catId == null) "No Category"
+                    else categories.find { it.id == catId }?.title ?: "No Category"
+                    val categoryTasks = grouped[catId] ?: emptyList()
+                    item {
+                        Text(
+                            text = categoryName,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Gray,
+                            modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 4.dp)
+                        )
+                    }
+                    items(categoryTasks) { task ->
+                        UnscheduledTaskItem(db = db, task = task, onClick = { onTaskClick(task) })
+                    }
                 }
             }
         }
@@ -312,12 +326,25 @@ fun ScheduledTasksList(
 ) {
     var intervals by remember { mutableStateOf<List<TaskInterval>>(emptyList()) }
     var masterTasks by remember { mutableStateOf<Map<Int, MasterTask>>(emptyMap()) }
+    var categories by remember { mutableStateOf<List<Category>>(emptyList()) }
 
     LaunchedEffect(Unit) {
         intervals = db.taskDao().getAllIntervals()
         val tasks = db.taskDao().getAllMasterTasks()
         masterTasks = tasks.associateBy { it.id }
+        categories = CategoryManager.getAll(db)
     }
+
+    // Group intervals by the master task's category
+    val groupedByTask = intervals.groupBy { it.masterTaskId }
+    val grouped = groupedByTask.entries
+        .mapNotNull { (masterTaskId, taskIntervals) ->
+            masterTasks[masterTaskId]?.let { it.categoryId to Pair(masterTaskId, taskIntervals) }
+        }
+        .groupBy({ it.first }, { it.second })
+
+    val sortedCategoryIds = categories.map { it.id as Int? }.filter { grouped.containsKey(it) } +
+            if (grouped.containsKey(null)) listOf(null) else emptyList()
 
     Column(modifier = Modifier.fillMaxSize().background(BackgroundColor)) {
         Box(
@@ -331,9 +358,7 @@ fun ScheduledTasksList(
             Text("Back", fontSize = 16.sp, color = Color.White)
         }
 
-        val groupedIntervals = intervals.groupBy { it.masterTaskId }
-
-        if (groupedIntervals.isEmpty()) {
+        if (groupedByTask.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text(text = "No scheduled tasks", fontSize = 18.sp, color = Color.Gray)
             }
@@ -342,15 +367,29 @@ fun ScheduledTasksList(
                 modifier = Modifier.weight(1f).fillMaxWidth().padding(12.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                groupedIntervals.forEach { (masterTaskId, taskIntervals) ->
+                sortedCategoryIds.forEach { catId ->
+                    val categoryName = if (catId == null) "No Category"
+                    else categories.find { it.id == catId }?.title ?: "No Category"
+                    val categoryEntries = grouped[catId] ?: emptyList()
                     item {
-                        masterTasks[masterTaskId]?.let { masterTask ->
-                            ScheduledTaskItem(
-                                db = db,
-                                masterTask = masterTask,
-                                intervals = taskIntervals,
-                                onClick = { onTaskClick(taskIntervals.first(), masterTask) }
-                            )
+                        Text(
+                            text = categoryName,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Gray,
+                            modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 4.dp)
+                        )
+                    }
+                    categoryEntries.forEach { (masterTaskId, taskIntervals) ->
+                        item {
+                            masterTasks[masterTaskId]?.let { masterTask ->
+                                ScheduledTaskItem(
+                                    db = db,
+                                    masterTask = masterTask,
+                                    intervals = taskIntervals,
+                                    onClick = { onTaskClick(taskIntervals.first(), masterTask) }
+                                )
+                            }
                         }
                     }
                 }
