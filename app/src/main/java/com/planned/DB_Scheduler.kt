@@ -180,8 +180,12 @@ private fun resolveDependencyChains(orderedTasks: MutableList<OrderedTask>) {
 /* Get all available time slots */
 @RequiresApi(Build.VERSION_CODES.O)
 private suspend fun getAvailableTimeSlots(db: AppDatabase): MutableList<AvailableTimeSlot> {
-    // Get all task bucket occurrences
+    // Get all task bucket occurrences - today and future only
+    val today = LocalDate.now()
+    val now = LocalTime.now()
+
     val bucketOccurrences = db.taskBucketDao().getAllBucketOccurrences()
+        .filter { it.occurDate >= today }
 
     // Get all manually scheduled task intervals
     val manualIntervals = db.taskDao().getAllIntervals()
@@ -190,11 +194,21 @@ private suspend fun getAvailableTimeSlots(db: AppDatabase): MutableList<Availabl
     val availableSlots = mutableListOf<AvailableTimeSlot>()
 
     for (bucket in bucketOccurrences) {
+        // For today, clip start time to now if needed
+        val effectiveStart = if (bucket.occurDate == today && bucket.startTime.isBefore(now)) {
+            now
+        } else {
+            bucket.startTime
+        }
+
+        // Skip if the clipped slot is already over
+        if (bucket.occurDate == today && !effectiveStart.isBefore(bucket.endTime)) continue
+
         // Start with the full bucket time range
         var currentSlots = mutableListOf(
             AvailableTimeSlot(
                 date = bucket.occurDate,
-                startTime = bucket.startTime,
+                startTime = effectiveStart,
                 endTime = bucket.endTime
             )
         )
