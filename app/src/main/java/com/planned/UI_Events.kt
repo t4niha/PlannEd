@@ -22,6 +22,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 
 data class EventUpdateFormData(
     val categories: List<Category>,
@@ -54,7 +55,8 @@ fun Events(db: AppDatabase) {
                     updateFormData = null
                 },
                 onUpdateDataReady = { data -> updateFormData = data },
-                onUpdate = { currentView = "update" }
+                onUpdate = { currentView = "update" },
+                eventReturnScreen = "Events"
             )
         }
         "update" -> selectedEvent?.let { event ->
@@ -176,12 +178,14 @@ fun EventInfoPage(
     event: MasterEvent,
     onBack: () -> Unit,
     onUpdateDataReady: (EventUpdateFormData) -> Unit,
-    onUpdate: () -> Unit
+    onUpdate: () -> Unit,
+    eventReturnScreen: String = "Calendars"
 ) {
     val scope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
     var category by remember { mutableStateOf<Category?>(null) }
     var currentEvent by remember { mutableStateOf(event) }
+    var relatedTasks by remember { mutableStateOf<List<MasterTask>>(emptyList()) }
     var updateDataReady by remember { mutableStateOf(false) }
     val dateFormatter = java.time.format.DateTimeFormatter.ofPattern("MMMM d, yyyy")
     val timeFormatter = java.time.format.DateTimeFormatter.ofPattern("h:mm a")
@@ -189,6 +193,7 @@ fun EventInfoPage(
     LaunchedEffect(event.id) {
         currentEvent = db.eventDao().getMasterEventById(event.id) ?: event
         category = currentEvent.categoryId?.let { db.categoryDao().getCategoryById(it) }
+        relatedTasks = db.taskDao().getAllMasterTasks().filter { it.eventId == event.id }
 
         // Preload update form data
         val categories = CategoryManager.getAll(db)
@@ -242,6 +247,75 @@ fun EventInfoPage(
                         }
                 )
                 InfoField("Category", category?.title ?: "None")
+            }
+
+            Spacer(modifier = Modifier.height(18.dp))
+
+            // Related tasks section
+            Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp)) {
+                Text(
+                    text = "Related Tasks",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Gray,
+                    modifier = Modifier.padding(start = 4.dp, bottom = 8.dp)
+                )
+                if (relatedTasks.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color(CardColor))
+                            .padding(12.dp)
+                    ) {
+                        Text("None", fontSize = 16.sp, color = Color.Gray)
+                    }
+                } else {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        relatedTasks.forEach { task ->
+                            val taskColor = remember(task) {
+                                runBlocking {
+                                    when {
+                                        task.categoryId != null -> {
+                                            val cat = db.categoryDao().getCategoryById(task.categoryId)
+                                            cat?.color?.let { Converters.toColor(it) } ?: Color.Gray
+                                        }
+                                        else -> Color.Gray
+                                    }
+                                }
+                            }
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(Color(CardColor))
+                                    .clickable {
+                                        com.planned.selectedEventForInfo = currentEvent
+                                        com.planned.eventInfoReturnScreen = eventReturnScreen
+                                        com.planned.selectedTaskForInfo = task
+                                        com.planned.taskInfoReturnScreen = "EventInfo"
+                                        com.planned.currentScreen = "TaskInfo"
+                                    }
+                                    .padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(INNER_CIRCLE_SIZE)
+                                        .clip(CircleShape)
+                                        .background(taskColor)
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Text(
+                                    text = task.title,
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                        }
+                    }
+                }
             }
         }
 

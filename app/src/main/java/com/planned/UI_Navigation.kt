@@ -46,6 +46,7 @@ var taskInfoReturnScreen by mutableStateOf("Calendars")
 // Event
 var selectedEventForInfo by mutableStateOf<MasterEvent?>(null)
 var navEventUpdateFormData by mutableStateOf<EventUpdateFormData?>(null)
+var eventInfoReturnScreen by mutableStateOf("Calendars")
 
 // Reminder
 var selectedReminderForInfo by mutableStateOf<MasterReminder?>(null)
@@ -181,9 +182,11 @@ fun AppNavigation(db: AppDatabase) {
                                 db = db,
                                 event = event,
                                 onBack = {
-                                    currentScreen = "Calendars"
-                                    selectedEventForInfo = null
+                                    val returnTo = eventInfoReturnScreen
+                                    eventInfoReturnScreen = "Calendars"
                                     navEventUpdateFormData = null
+                                    selectedEventForInfo = null
+                                    currentScreen = returnTo
                                 },
                                 onUpdateDataReady = { data -> navEventUpdateFormData = data },
                                 onUpdate = { currentScreen = "EventUpdate" }
