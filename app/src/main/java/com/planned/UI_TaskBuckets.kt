@@ -240,16 +240,13 @@ fun TaskBucketInfoPage(
                 Text(text = "Task Bucket", fontSize = 20.sp, fontWeight = FontWeight.Medium)
             }
 
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                InfoField("Start Date", currentBucket.startDate.format(dateFormatter))
-                InfoField("End Date", currentBucket.endDate?.format(dateFormatter) ?: "N/A")
-                InfoField("Start Time", currentBucket.startTime.format(timeFormatter))
-                InfoField("End Time", currentBucket.endTime.format(timeFormatter))
-                InfoField("Recurrence", formatBucketRecurrenceMultiline(currentBucket, SettingsManager.settings?.startWeekOnMonday ?: false))
-            }
+            InfoCard(listOf(
+                "Start Date" to currentBucket.startDate.format(dateFormatter),
+                "End Date" to (currentBucket.endDate?.format(dateFormatter) ?: "N/A"),
+                "Start Time" to currentBucket.startTime.format(timeFormatter),
+                "End Time" to currentBucket.endTime.format(timeFormatter),
+                "Recurrence" to formatBucketRecurrenceMultiline(currentBucket, SettingsManager.settings?.startWeekOnMonday ?: false)
+            ))
         }
 
         Spacer(modifier = Modifier.height(16.dp))

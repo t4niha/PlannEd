@@ -619,24 +619,21 @@ fun TaskInfoPage(
                 Spacer(modifier = Modifier.height(18.dp))
             }
 
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                val hours = currentTask.predictedDuration / 60
-                val minutes = currentTask.predictedDuration % 60
-                val durationText = when {
-                    hours > 0 && minutes > 0 -> "${hours}h ${minutes}m"
-                    hours > 0 -> "${hours}h"
-                    else -> "${minutes}m"
-                }
-                InfoField("Duration", durationText)
-                InfoField("Dependency Task", dependencyTask?.title ?: "None")
-                InfoField("Deadline", deadline?.title ?: "None")
-                InfoField("Event", event?.title ?: "None")
-                InfoField("Category", category?.title ?: "None")
-                InfoField("Breakable", if (currentTask.breakable == true) "Yes" else "No")
+            val hours = currentTask.predictedDuration / 60
+            val minutes = currentTask.predictedDuration % 60
+            val durationText = when {
+                hours > 0 && minutes > 0 -> "${hours}h ${minutes}m"
+                hours > 0 -> "${hours}h"
+                else -> "${minutes}m"
             }
+            InfoCard(listOf(
+                "Duration" to durationText,
+                "Dependency Task" to (dependencyTask?.title ?: "None"),
+                "Deadline" to (deadline?.title ?: "None"),
+                "Event" to (event?.title ?: "None"),
+                "Category" to (category?.title ?: "None"),
+                "Breakable" to (if (currentTask.breakable == true) "Yes" else "No")
+            ))
         }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -683,6 +680,26 @@ fun InfoField(label: String, value: String) {
         Text(text = label, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color.Gray)
         Spacer(modifier = Modifier.height(4.dp))
         Text(text = value, fontSize = 16.sp)
+    }
+}
+
+@Composable
+fun InfoCard(fields: List<Pair<String, String>>) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(CardColor), RoundedCornerShape(12.dp))
+    ) {
+        fields.forEachIndexed { index, (label, value) ->
+            Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
+                Text(text = label, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color.Gray)
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(text = value, fontSize = 16.sp)
+            }
+            if (index < fields.lastIndex) {
+                HorizontalDivider(thickness = 1.dp, color = Color.LightGray)
+            }
+        }
     }
 }
 
@@ -1256,15 +1273,12 @@ fun AllDayTaskInfoPage(
                 Spacer(modifier = Modifier.height(18.dp))
             }
 
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                InfoField("Date", currentTask.allDay?.format(dateFormatter) ?: "")
-                InfoField("Deadline", deadline?.title ?: "None")
-                InfoField("Event", event?.title ?: "None")
-                InfoField("Category", category?.title ?: "None")
-            }
+            InfoCard(listOf(
+                "Date" to (currentTask.allDay?.format(dateFormatter) ?: ""),
+                "Deadline" to (deadline?.title ?: "None"),
+                "Event" to (event?.title ?: "None"),
+                "Category" to (category?.title ?: "None")
+            ))
         }
 
         Spacer(modifier = Modifier.height(16.dp))

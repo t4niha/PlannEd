@@ -253,35 +253,25 @@ fun DeadlineInfoView(
                 Spacer(modifier = Modifier.height(18.dp))
             }
 
-            Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                InfoField("Date", currentDeadline.date.format(dateFormatter))
-                InfoField("Time", currentDeadline.time.format(timeFormatter))
-                InfoField("Event", event?.title ?: "None")
-                InfoField("Category", category?.title ?: "None")
-            }
+            InfoCard(listOf(
+                "Date" to currentDeadline.date.format(dateFormatter),
+                "Time" to currentDeadline.time.format(timeFormatter),
+                "Event" to (event?.title ?: "None"),
+                "Category" to (category?.title ?: "None")
+            ))
 
             Spacer(modifier = Modifier.height(18.dp))
 
             // Related tasks section
             Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp)) {
                 Text(
-                    text = "Related Tasks",
+                    text = if (relatedTasks.isEmpty()) "No Related Tasks" else "Related Tasks",
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.Gray,
                     modifier = Modifier.padding(start = 4.dp, bottom = 8.dp)
                 )
-                if (relatedTasks.isEmpty()) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(Color(CardColor))
-                            .padding(12.dp)
-                    ) {
-                        Text("None", fontSize = 16.sp)
-                    }
-                } else {
+                if (relatedTasks.isNotEmpty()) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         relatedTasks.forEach { task ->
                             val taskColor = remember(task) {

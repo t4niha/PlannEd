@@ -51,7 +51,7 @@ class MainActivity : ComponentActivity() {
 }
 
 /**
-TODO: [ ] Deadlines Info Page - Related Tasks
+TODO: [-] Deadlines/Events info pages -> Related Tasks
 TODO: [-] Scheduler schedules tasks before right now??????
 TODO: [-] Fix UI pages (category, event, deadline, reminder, task bucket)
 TODO: [-] Calendar to UI pages navigation

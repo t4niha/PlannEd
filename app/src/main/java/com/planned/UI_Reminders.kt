@@ -239,11 +239,11 @@ fun ReminderInfoView(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                InfoField("Start Date", currentReminder.startDate.format(dateFormatter))
-                InfoField("End Date", currentReminder.endDate?.format(dateFormatter) ?: "N/A")
-                InfoField("Time", if (currentReminder.allDay) "All Day" else currentReminder.time?.format(timeFormatter) ?: "")
-                InfoField("Recurrence", currentReminder.recurFreq.name.lowercase().replaceFirstChar { it.uppercase() } +
+            InfoCard(listOf(
+                "Start Date" to currentReminder.startDate.format(dateFormatter),
+                "End Date" to (currentReminder.endDate?.format(dateFormatter) ?: "N/A"),
+                "Time" to (if (currentReminder.allDay) "All Day" else currentReminder.time?.format(timeFormatter) ?: ""),
+                "Recurrence" to (currentReminder.recurFreq.name.lowercase().replaceFirstChar { it.uppercase() } +
                         when (currentReminder.recurFreq) {
                             RecurrenceFrequency.WEEKLY -> currentReminder.recurRule.daysOfWeek?.sorted()?.joinToString(", ") { d ->
                                 when (d) { 1 -> "Mo"; 2 -> "Tu"; 3 -> "We"; 4 -> "Th"; 5 -> "Fr"; 6 -> "Sa"; 7 -> "Su"; else -> "" }
@@ -251,11 +251,9 @@ fun ReminderInfoView(
                             RecurrenceFrequency.MONTHLY -> currentReminder.recurRule.daysOfMonth?.sorted()?.joinToString(", ")?.let { " ($it)" } ?: ""
                             RecurrenceFrequency.YEARLY -> currentReminder.recurRule.monthAndDay?.let { " (${java.time.Month.of(it.second).getDisplayName(java.time.format.TextStyle.FULL, java.util.Locale.getDefault())} ${it.first})" } ?: ""
                             else -> ""
-                        }
-                )
-
-                InfoField("Category", category?.title ?: "None")
-            }
+                        }),
+                "Category" to (category?.title ?: "None")
+            ))
         }
 
         Spacer(modifier = Modifier.height(16.dp))

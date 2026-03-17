@@ -231,12 +231,12 @@ fun EventInfoPage(
                 Spacer(modifier = Modifier.height(18.dp))
             }
 
-            Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                InfoField("Start Date", currentEvent.startDate.format(dateFormatter))
-                InfoField("End Date", currentEvent.endDate?.format(dateFormatter) ?: "N/A")
-                InfoField("Start Time", currentEvent.startTime.format(timeFormatter))
-                InfoField("End Time", currentEvent.endTime.format(timeFormatter))
-                InfoField("Recurrence", currentEvent.recurFreq.name.lowercase().replaceFirstChar { it.uppercase() } +
+            InfoCard(listOf(
+                "Start Date" to currentEvent.startDate.format(dateFormatter),
+                "End Date" to (currentEvent.endDate?.format(dateFormatter) ?: "N/A"),
+                "Start Time" to currentEvent.startTime.format(timeFormatter),
+                "End Time" to currentEvent.endTime.format(timeFormatter),
+                "Recurrence" to (currentEvent.recurFreq.name.lowercase().replaceFirstChar { it.uppercase() } +
                         when (currentEvent.recurFreq) {
                             RecurrenceFrequency.WEEKLY -> currentEvent.recurRule.daysOfWeek?.sorted()?.joinToString(", ") { d ->
                                 when (d) { 1 -> "Mo"; 2 -> "Tu"; 3 -> "We"; 4 -> "Th"; 5 -> "Fr"; 6 -> "Sa"; 7 -> "Su"; else -> "" }
@@ -244,33 +244,22 @@ fun EventInfoPage(
                             RecurrenceFrequency.MONTHLY -> currentEvent.recurRule.daysOfMonth?.sorted()?.joinToString(", ")?.let { " ($it)" } ?: ""
                             RecurrenceFrequency.YEARLY -> currentEvent.recurRule.monthAndDay?.let { " (${java.time.Month.of(it.second).getDisplayName(java.time.format.TextStyle.FULL, java.util.Locale.getDefault())} ${it.first})" } ?: ""
                             else -> ""
-                        }
-                )
-                InfoField("Category", category?.title ?: "None")
-            }
+                        }),
+                "Category" to (category?.title ?: "None")
+            ))
 
             Spacer(modifier = Modifier.height(18.dp))
 
             // Related tasks section
             Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp)) {
                 Text(
-                    text = "Related Tasks",
+                    text = if (relatedTasks.isEmpty()) "No Related Tasks" else "Related Tasks",
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.Gray,
                     modifier = Modifier.padding(start = 4.dp, bottom = 8.dp)
                 )
-                if (relatedTasks.isEmpty()) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(Color(CardColor))
-                            .padding(12.dp)
-                    ) {
-                        Text("None", fontSize = 16.sp, color = Color.Gray)
-                    }
-                } else {
+                if (relatedTasks.isNotEmpty()) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         relatedTasks.forEach { task ->
                             val taskColor = remember(task) {
