@@ -57,6 +57,9 @@ var navDeadlineUpdateFormData by mutableStateOf<DeadlineUpdateFormData?>(null)
 // Task Bucket
 var selectedBucketForInfo by mutableStateOf<MasterTaskBucket?>(null)
 
+// All-Day Task (reuses selectedTaskForInfo flow but separate screen keys)
+var selectedAllDayTaskForInfo by mutableStateOf<MasterTask?>(null)
+
 /* APP NAVIGATION */
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
@@ -133,6 +136,38 @@ fun AppNavigation(db: AppDatabase) {
                                 db = db,
                                 task = task,
                                 onBack = { currentScreen = "TaskInfo" }
+                            )
+                        }
+
+                        // ── All-Day Task ──────────────────────────────────────────────────
+                        "AllDayTaskInfo" -> selectedAllDayTaskForInfo?.let { task ->
+                            AllDayTaskInfoPage(
+                                db = db,
+                                task = task,
+                                onBack = {
+                                    currentScreen = "Calendars"
+                                    selectedAllDayTaskForInfo = null
+                                },
+                                onUpdate = { currentScreen = "AllDayTaskUpdate" },
+                                onPlay = { currentScreen = "AllDayTaskPomodoro" }
+                            )
+                        }
+                        "AllDayTaskUpdate" -> selectedAllDayTaskForInfo?.let { task ->
+                            AllDayTaskUpdateForm(
+                                db = db,
+                                task = task,
+                                onBack = { currentScreen = "AllDayTaskInfo" },
+                                onSaveSuccess = { updatedTask ->
+                                    selectedAllDayTaskForInfo = updatedTask
+                                    currentScreen = "AllDayTaskInfo"
+                                }
+                            )
+                        }
+                        "AllDayTaskPomodoro" -> selectedAllDayTaskForInfo?.let { task ->
+                            AllDayPomodoroPage(
+                                db = db,
+                                task = task,
+                                onBack = { currentScreen = "AllDayTaskInfo" }
                             )
                         }
 

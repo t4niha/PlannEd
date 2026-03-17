@@ -421,6 +421,10 @@ fun TaskForm(
     onTitleChange: (String) -> Unit,
     notes: String,
     onNotesChange: (String) -> Unit,
+    isAllDay: Boolean,
+    onAllDayChange: (Boolean) -> Unit,
+    allDayDate: java.time.LocalDate,
+    onAllDayDateChange: (java.time.LocalDate) -> Unit,
     isBreakable: Boolean,
     onBreakableChange: (Boolean) -> Unit,
     isAutoSchedule: Boolean,
@@ -462,6 +466,7 @@ fun TaskForm(
             it.status == 1 &&
                     it.startDate == null &&
                     it.startTime == null &&
+                    it.allDay == null &&
                     it.id != currentTaskId
         }
 
@@ -621,73 +626,90 @@ fun TaskForm(
         onNotesChange(notesValue)
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Duration picker
-        val (hours, minutes) = durationPickerField(
-            initialHours = durationHours,
-            initialMinutes = durationMinutes,
-            key = resetTrigger,
-            label = "Duration",
-            onDurationChange = { newHours, newMinutes ->
-                onDurationChange(newHours, newMinutes)
-            }
+        // All Day checkbox with date picker
+        val (allDayChecked, allDayDateValue) = allDayTaskPickerField(
+            initialAllDay = isAllDay,
+            initialDate = allDayDate,
+            key = resetTrigger
         )
-        if (hours != durationHours || minutes != durationMinutes) {
-            onDurationChange(hours, minutes)
-        }
+        onAllDayChange(allDayChecked)
+        onAllDayDateChange(allDayDateValue)
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Schedule picker with time validation
-        val (autoSchedule, date, time) = schedulePickerField(
-            initialAutoSchedule = isAutoSchedule,
-            initialDate = startDate,
-            initialTime = startTime,
-            durationHours = hours,
-            durationMinutes = minutes,
-            key = resetTrigger,
-            onTimeValidated = { validatedTime ->
-                if (validatedTime != startTime) {
-                    onScheduleChange(false, startDate, validatedTime)
+        // When NOT all-day: show duration, auto-schedule, breakable
+        if (!isAllDay) {
+            // Duration picker
+            val (hours, minutes) = durationPickerField(
+                initialHours = durationHours,
+                initialMinutes = durationMinutes,
+                key = resetTrigger,
+                label = "Duration",
+                onDurationChange = { newHours, newMinutes ->
+                    onDurationChange(newHours, newMinutes)
+                }
+            )
+            if (hours != durationHours || minutes != durationMinutes) {
+                onDurationChange(hours, minutes)
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Schedule picker with time validation
+            val (autoSchedule, date, time) = schedulePickerField(
+                initialAutoSchedule = isAutoSchedule,
+                initialDate = startDate,
+                initialTime = startTime,
+                durationHours = hours,
+                durationMinutes = minutes,
+                key = resetTrigger,
+                onTimeValidated = { validatedTime ->
+                    if (validatedTime != startTime) {
+                        onScheduleChange(false, startDate, validatedTime)
+                    }
+                }
+            )
+            onScheduleChange(autoSchedule, date, time)
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Breakable field with duration-based locking
+            val breakableValue = checkboxField(
+                label = "Breakable",
+                initialChecked = isBreakable,
+                key = resetTrigger,
+                locked = !isAutoSchedule || breakableLockedByDuration,
+                forceChecked = breakableLockedByDuration
+            )
+
+            if (isAutoSchedule && !breakableLockedByDuration) {
+                onBreakableChange(breakableValue)
+            } else if (!isAutoSchedule) {
+                onBreakableChange(false)
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Dependency Task dropdown locked if not auto-schedule
+            val dependencyTaskValue = dropdownField(
+                label = "Dependency Task",
+                items = dependencyTasks.map { it.title },
+                initialSelection = selectedDependencyTask,
+                key = resetTrigger,
+                locked = !isAutoSchedule
+            )
+            if (dependencyTaskValue != previousDependencyTask) {
+                previousDependencyTask = dependencyTaskValue
+                if (isAutoSchedule) {
+                    onDependencyTaskChange(dependencyTaskValue)
+                } else {
+                    onDependencyTaskChange(null)
                 }
             }
-        )
-        onScheduleChange(autoSchedule, date, time)
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // Breakable field with duration-based locking
-        val breakableValue = checkboxField(
-            label = "Breakable",
-            initialChecked = isBreakable,
-            key = resetTrigger,
-            locked = !isAutoSchedule || breakableLockedByDuration,
-            forceChecked = breakableLockedByDuration
-        )
-
-        if (isAutoSchedule && !breakableLockedByDuration) {
-            onBreakableChange(breakableValue)
-        } else if (!isAutoSchedule) {
-            onBreakableChange(false)
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // Dependency Task dropdown locked if not auto-schedule
-        val dependencyTaskValue = dropdownField(
-            label = "Dependency Task",
-            items = dependencyTasks.map { it.title },
-            initialSelection = selectedDependencyTask,
-            key = resetTrigger,
-            locked = !isAutoSchedule
-        )
-        if (dependencyTaskValue != previousDependencyTask) {
-            previousDependencyTask = dependencyTaskValue
-            if (isAutoSchedule) {
-                onDependencyTaskChange(dependencyTaskValue)
-            } else {
-                // Reset to None when locked
+            Spacer(modifier = Modifier.height(12.dp))
+        } else {
+            // All-day: lock dependency to None
+            if (selectedDependencyTask != null) {
                 onDependencyTaskChange(null)
             }
         }
-        Spacer(modifier = Modifier.height(12.dp))
 
         val deadlineValue = dropdownField(
             label = "Deadline",
@@ -708,7 +730,6 @@ fun TaskForm(
             key = resetTrigger,
             locked = selectedDeadline != null
         )
-        // Only allow user changes when not locked
         if (selectedDeadline == null && eventValue != selectedEvent) {
             onEventChange(eventValue)
         }
@@ -722,7 +743,6 @@ fun TaskForm(
             key = resetTrigger,
             locked = selectedEvent != null || selectedDeadline != null
         )
-        // Only allow user changes when not locked
         if (selectedEvent == null && selectedDeadline == null && categoryValue != selectedCategory) {
             onCategoryChange(categoryValue)
         }

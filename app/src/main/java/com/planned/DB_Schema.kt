@@ -185,6 +185,7 @@ data class MasterTask(
 
     val title: String,
     val notes: String? = null,
+    val allDay: LocalDate? = null,          // null = not all-day; date = all-day task for that date
     val breakable: Boolean? = false,        // can be checked true
     val noIntervals: Int,                   // back-end only, how many intervals, 1 if not breakable
 
@@ -669,7 +670,7 @@ data class CategoryWithMasterReminders(
         AppSetting::class,
         EventATI::class, UserATI::class
     ],
-    version = 8
+    version = 9
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
@@ -684,7 +685,6 @@ abstract class AppDatabase : RoomDatabase() {
     companion object {
         val MIGRATION_7_8 = object : androidx.room.migration.Migration(7, 8) {
             override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
-                // SQLite doesn't support DROP COLUMN directly, so recreate the table
                 db.execSQL("""
                     CREATE TABLE MasterTask_new (
                         id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -714,6 +714,12 @@ abstract class AppDatabase : RoomDatabase() {
                 """.trimIndent())
                 db.execSQL("DROP TABLE MasterTask")
                 db.execSQL("ALTER TABLE MasterTask_new RENAME TO MasterTask")
+            }
+        }
+
+        val MIGRATION_8_9 = object : androidx.room.migration.Migration(8, 9) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE MasterTask ADD COLUMN allDay TEXT")
             }
         }
     }

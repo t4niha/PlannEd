@@ -259,16 +259,17 @@ fun Calendars(db: AppDatabase) {
     }
 }
 
-/* REMINDER AND DEADLINE INDICATORS */
+/* REMINDER, DEADLINE, TO DO INDICATORS */
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun ReminderDeadlineIndicators(db: AppDatabase, date: LocalDate) {
     var reminders by remember { mutableStateOf<List<ReminderOccurrence>>(emptyList()) }
     var deadlines by remember { mutableStateOf<List<Deadline>>(emptyList()) }
+    var todos by remember { mutableStateOf<List<MasterTask>>(emptyList()) }
     var showReminders by remember { mutableStateOf(false) }
     var showDeadlines by remember { mutableStateOf(false) }
+    var showTodos by remember { mutableStateOf(false) }
 
-    // Load data when date changes
     LaunchedEffect(date) {
         reminders = db.reminderDao().getAllOccurrences()
             .filter { it.occurDate == date }
@@ -276,6 +277,9 @@ fun ReminderDeadlineIndicators(db: AppDatabase, date: LocalDate) {
         deadlines = db.deadlineDao().getAll()
             .filter { it.date == date }
             .sortedBy { it.time }
+        todos = db.taskDao().getAllMasterTasks()
+            .filter { it.allDay == date && it.status != 3 }
+            .sortedBy { it.title }
     }
 
     Column(
@@ -287,8 +291,45 @@ fun ReminderDeadlineIndicators(db: AppDatabase, date: LocalDate) {
         // Indicator row
         Row(
             modifier = Modifier.wrapContentWidth(),
-            horizontalArrangement = Arrangement.spacedBy(20.dp)
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
+            // To-Dos
+            Box(
+                modifier = Modifier
+                    .background(BackgroundColor, RoundedCornerShape(12.dp))
+                    .border(
+                        width = 2.dp,
+                        color = if (showTodos) PrimaryColor else Color.LightGray,
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null
+                    ) { showTodos = !showTodos }
+                    .padding(horizontal = 12.dp, vertical = 8.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(28.dp)
+                            .background(
+                                if (todos.isNotEmpty()) PrimaryColor else Color.LightGray,
+                                CircleShape
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = todos.size.toString(),
+                            color = Color.White,
+                            fontSize = 14.sp,
+                            fontWeight = if (todos.isNotEmpty()) FontWeight.Bold else FontWeight.Normal
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(text = "To Do", fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                }
+            }
+
             // Reminders
             Box(
                 modifier = Modifier
@@ -304,9 +345,7 @@ fun ReminderDeadlineIndicators(db: AppDatabase, date: LocalDate) {
                     ) { showReminders = !showReminders }
                     .padding(horizontal = 12.dp, vertical = 8.dp)
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         modifier = Modifier
                             .size(28.dp)
@@ -324,11 +363,7 @@ fun ReminderDeadlineIndicators(db: AppDatabase, date: LocalDate) {
                         )
                     }
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Reminders",
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium
-                    )
+                    Text(text = "Reminders", fontSize = 14.sp, fontWeight = FontWeight.Medium)
                 }
             }
 
@@ -347,9 +382,7 @@ fun ReminderDeadlineIndicators(db: AppDatabase, date: LocalDate) {
                     ) { showDeadlines = !showDeadlines }
                     .padding(horizontal = 12.dp, vertical = 8.dp)
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         modifier = Modifier
                             .size(28.dp)
@@ -367,11 +400,86 @@ fun ReminderDeadlineIndicators(db: AppDatabase, date: LocalDate) {
                         )
                     }
                     Spacer(modifier = Modifier.width(8.dp))
+                    Text(text = "Deadlines", fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                }
+            }
+        }
+
+        // Expanded To-Do list
+        AnimatedVisibility(
+            visible = showTodos,
+            enter = expandVertically() + fadeIn(),
+            exit = shrinkVertically() + fadeOut()
+        ) {
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+            ) {
+                if (todos.isEmpty()) {
                     Text(
-                        text = "Deadlines",
+                        text = "No all-day tasks for this day",
                         fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium
+                        color = Color.Gray,
+                        modifier = Modifier.padding(8.dp)
                     )
+                } else {
+                    todos.forEach { todo ->
+                        val todoColor = remember(todo) {
+                            runBlocking {
+                                when {
+                                    todo.eventId != null -> {
+                                        val event = db.eventDao().getAllMasterEvents().find { it.id == todo.eventId }
+                                        event?.color?.let { Converters.toColor(it) } ?: Color.LightGray
+                                    }
+                                    todo.categoryId != null -> {
+                                        val category = db.categoryDao().getAll().find { it.id == todo.categoryId }
+                                        category?.color?.let { Converters.toColor(it) } ?: Color.LightGray
+                                    }
+                                    else -> Color.LightGray
+                                }
+                            }
+                        }
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp)
+                                .background(Color(CardColor), RoundedCornerShape(8.dp))
+                                .clickable {
+                                    com.planned.selectedAllDayTaskForInfo = todo
+                                    com.planned.currentScreen = "AllDayTaskInfo"
+                                }
+                                .padding(12.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    modifier = Modifier.weight(1f),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(INNER_CIRCLE_SIZE)
+                                            .background(todoColor, CircleShape)
+                                    )
+                                    Spacer(modifier = Modifier.width(16.dp))
+                                    Text(
+                                        text = todo.title,
+                                        fontSize = 16.sp,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Text(
+                                    text = "All Day",
+                                    fontSize = 14.sp,
+                                    color = Color.Gray
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -459,7 +567,7 @@ fun ReminderDeadlineIndicators(db: AppDatabase, date: LocalDate) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = if (showReminders && reminders.isNotEmpty()) 0.dp else 8.dp)
+                    .padding(top = 8.dp)
             ) {
                 if (deadlines.isEmpty()) {
                     Text(
@@ -475,13 +583,13 @@ fun ReminderDeadlineIndicators(db: AppDatabase, date: LocalDate) {
                                 when {
                                     deadline.eventId != null -> {
                                         val event = db.eventDao().getAllMasterEvents().find { it.id == deadline.eventId }
-                                        event?.color?.let { Converters.toColor(it) } ?: Color(CardColor)
+                                        event?.color?.let { Converters.toColor(it) } ?: Color.LightGray
                                     }
                                     deadline.categoryId != null -> {
                                         val category = db.categoryDao().getAll().find { it.id == deadline.categoryId }
-                                        category?.color?.let { Converters.toColor(it) } ?: Color(CardColor)
+                                        category?.color?.let { Converters.toColor(it) } ?: Color.LightGray
                                     }
-                                    else -> Color(CardColor)
+                                    else -> Color.LightGray
                                 }
                             }
                         }

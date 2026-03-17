@@ -88,6 +88,8 @@ fun Creation(db: AppDatabase) {
     // Task
     var taskTitle by remember { mutableStateOf("") }
     var taskNotes by remember { mutableStateOf("") }
+    var taskIsAllDay by remember { mutableStateOf(false) }
+    var taskAllDayDate by remember { mutableStateOf(java.time.LocalDate.now().plusDays(1)) }
     var taskIsBreakable by remember { mutableStateOf(false) }
     var taskIsAutoSchedule by remember { mutableStateOf(true) }
     var taskStartDate by remember { mutableStateOf<LocalDate?>(null) }
@@ -158,6 +160,8 @@ fun Creation(db: AppDatabase) {
         // Task
         taskTitle = ""
         taskNotes = ""
+        taskIsAllDay = false
+        taskAllDayDate = java.time.LocalDate.now().plusDays(1)
         taskIsBreakable = false
         taskIsAutoSchedule = true
         taskStartDate = null
@@ -221,6 +225,10 @@ fun Creation(db: AppDatabase) {
                         onTitleChange = { taskTitle = it },
                         notes = taskNotes,
                         onNotesChange = { taskNotes = it },
+                        isAllDay = taskIsAllDay,
+                        onAllDayChange = { taskIsAllDay = it },
+                        allDayDate = taskAllDayDate,
+                        onAllDayDateChange = { taskAllDayDate = it },
                         isBreakable = taskIsBreakable,
                         onBreakableChange = { taskIsBreakable = it },
                         isAutoSchedule = taskIsAutoSchedule,
@@ -423,6 +431,7 @@ fun Creation(db: AppDatabase) {
                                         db = db,
                                         title = taskTitle,
                                         notes = taskNotes.ifBlank { null },
+                                        allDay = if (taskIsAllDay) taskAllDayDate else null,
                                         breakable = taskIsBreakable,
                                         startDate = taskStartDate,
                                         startTime = taskStartTime,
@@ -519,6 +528,7 @@ fun Creation(db: AppDatabase) {
                                             db = db,
                                             title = deadlineTitle,
                                             notes = deadlineNotes.ifBlank { null },
+                                            allDay = null,
                                             breakable = deadlineTaskIsBreakable,
                                             startDate = null,
                                             startTime = null,

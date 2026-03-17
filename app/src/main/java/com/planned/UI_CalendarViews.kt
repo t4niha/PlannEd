@@ -251,6 +251,50 @@ fun WeekView(
                                 }
                             )
                         }
+
+                        Spacer(modifier = Modifier.height(3.dp))
+
+                        // Indicators row
+                        val hasRemindersWeek = remember(day, showReminders) {
+                            runBlocking { hasRemindersForDate(db, day) }
+                        }
+                        val hasDeadlinesWeek = remember(day, showDeadlines) {
+                            runBlocking { hasDeadlinesForDate(db, day) }
+                        }
+                        val hasTasksWeek = remember(day, showTasks) {
+                            runBlocking { hasTasksForDate(db, day) }
+                        }
+
+                        val weekIndicatorColor = PrimaryColor
+
+                        Row(
+                            horizontalArrangement = Arrangement.Center,
+                            modifier = Modifier.height(5.dp)
+                        ) {
+                            if (hasRemindersWeek) {
+                                Canvas(modifier = Modifier.size(5.dp)) {
+                                    drawCircle(color = weekIndicatorColor)
+                                }
+                                if (hasDeadlinesWeek || hasTasksWeek) Spacer(modifier = Modifier.width(2.dp))
+                            }
+                            if (hasDeadlinesWeek) {
+                                Canvas(modifier = Modifier.size(5.dp)) {
+                                    val path = Path().apply {
+                                        moveTo(size.width / 2, 0f)
+                                        lineTo(size.width, size.height)
+                                        lineTo(0f, size.height)
+                                        close()
+                                    }
+                                    drawPath(path, color = weekIndicatorColor)
+                                }
+                                if (hasTasksWeek) Spacer(modifier = Modifier.width(2.dp))
+                            }
+                            if (hasTasksWeek) {
+                                Canvas(modifier = Modifier.size(5.dp)) {
+                                    drawRect(color = weekIndicatorColor)
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -522,13 +566,13 @@ fun MonthView(
                             when {
                                 masterTask?.eventId != null -> {
                                     val event = db.eventDao().getAllMasterEvents().find { it.id == masterTask.eventId }
-                                    event?.color?.let { Converters.toColor(it) } ?: Color(CardColor)
+                                    event?.color?.let { Converters.toColor(it) } ?: Color.LightGray
                                 }
                                 masterTask?.categoryId != null -> {
                                     val category = db.categoryDao().getAll().find { it.id == masterTask.categoryId }
-                                    category?.color?.let { Converters.toColor(it) } ?: Color(CardColor)
+                                    category?.color?.let { Converters.toColor(it) } ?: Color.LightGray
                                 }
-                                else -> Color(CardColor)
+                                else -> Color.LightGray
                             }
                         }
                     }

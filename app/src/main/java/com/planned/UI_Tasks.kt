@@ -52,7 +52,8 @@ fun Tasks(db: AppDatabase) {
         "main" -> TasksMainView(
             db = db,
             onUnscheduledClick = { currentView = "unscheduled" },
-            onScheduledClick = { currentView = "scheduled" }
+            onScheduledClick = { currentView = "scheduled" },
+            onAllDayClick = { currentView = "allday" }
         )
         "unscheduled" -> UnscheduledTasksList(
             db = db,
@@ -71,6 +72,14 @@ fun Tasks(db: AppDatabase) {
                 currentView = "info"
             }
         )
+        "allday" -> AllDayTasksList(
+            db = db,
+            onBack = { currentView = "main" },
+            onTaskClick = { task ->
+                selectedTask = task
+                currentView = "alldayinfo"
+            }
+        )
         "info" -> selectedTask?.let { task ->
             TaskInfoPage(
                 db = db,
@@ -84,6 +93,19 @@ fun Tasks(db: AppDatabase) {
                 onUpdateDataReady = { data -> updateFormData = data },
                 onUpdate = { currentView = "update" },
                 onPlay = { currentView = "pomodoro" }
+            )
+        }
+        "alldayinfo" -> selectedTask?.let { task ->
+            AllDayTaskInfoPage(
+                db = db,
+                task = task,
+                onBack = {
+                    currentView = "allday"
+                    selectedTask = null
+                    updateFormData = null
+                },
+                onUpdate = { currentView = "alldayupdate" },
+                onPlay = { currentView = "alldaypomodoro" }
             )
         }
         "update" -> selectedTask?.let { task ->
@@ -101,11 +123,29 @@ fun Tasks(db: AppDatabase) {
                 )
             }
         }
+        "alldayupdate" -> selectedTask?.let { task ->
+            AllDayTaskUpdateForm(
+                db = db,
+                task = task,
+                onBack = { currentView = "alldayinfo" },
+                onSaveSuccess = { updatedTask ->
+                    selectedTask = updatedTask
+                    currentView = "alldayinfo"
+                }
+            )
+        }
         "pomodoro" -> selectedTask?.let { task ->
             PomodoroPage(
                 db = db,
                 task = task,
                 onBack = { currentView = "info" }
+            )
+        }
+        "alldaypomodoro" -> selectedTask?.let { task ->
+            AllDayPomodoroPage(
+                db = db,
+                task = task,
+                onBack = { currentView = "alldayinfo" }
             )
         }
     }
@@ -117,7 +157,8 @@ fun Tasks(db: AppDatabase) {
 fun TasksMainView(
     db: AppDatabase,
     onUnscheduledClick: () -> Unit,
-    onScheduledClick: () -> Unit
+    onScheduledClick: () -> Unit,
+    onAllDayClick: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -142,6 +183,16 @@ fun TasksMainView(
                 onClick = onScheduledClick
             )
         }
+        Spacer(modifier = Modifier.height(12.dp))
+        Row(modifier = Modifier.fillMaxWidth()) {
+            TaskCategoryBox(
+                db = db,
+                title = "All-Day \nTasks",
+                modifier = Modifier.weight(1f),
+                onClick = onAllDayClick
+            )
+            Spacer(modifier = Modifier.weight(1f))
+        }
     }
 }
 
@@ -157,10 +208,11 @@ fun TaskCategoryBox(
 
     LaunchedEffect(Unit) {
         val tasks = db.taskDao().getAllMasterTasks().filter { it.status != 3 }
-        taskCount = if (title.contains("Unscheduled")) {
-            tasks.filter { it.noIntervals == 0 }.size
-        } else {
-            tasks.filter { it.noIntervals > 0 }.size
+        taskCount = when {
+            title.contains("Unscheduled") -> tasks.filter { it.noIntervals == 0 && it.allDay == null }.size
+            title.contains("Scheduled") -> tasks.filter { it.noIntervals > 0 && it.allDay == null }.size
+            title.contains("All-Day") -> tasks.filter { it.allDay != null }.size
+            else -> 0
         }
     }
 
@@ -212,7 +264,7 @@ fun UnscheduledTasksList(
     var categories by remember { mutableStateOf<List<Category>>(emptyList()) }
 
     LaunchedEffect(Unit) {
-        tasks = db.taskDao().getAllMasterTasks().filter { it.noIntervals == 0 && it.status != 3 }
+        tasks = db.taskDao().getAllMasterTasks().filter { it.noIntervals == 0 && it.status != 3 && it.allDay == null }
         categories = CategoryManager.getAll(db)
     }
 
@@ -466,7 +518,7 @@ fun TaskInfoPage(
         val events = EventManager.getAll(db)
         val deadlines = DeadlineManager.getAll(db)
         val dependencyTasks = TaskManager.getAll(db).filter {
-            it.status == 1 && it.startDate == null && it.startTime == null && it.id != currentTask.id
+            it.status == 1 && it.startDate == null && it.startTime == null && it.allDay == null && it.id != currentTask.id
         }
         val selectedCategory = currentTask.categoryId?.let { catId ->
             categories.indexOfFirst { it.id == catId }.takeIf { it >= 0 }
@@ -709,6 +761,10 @@ fun TaskUpdateForm(
                 onTitleChange = { title = it },
                 notes = notes,
                 onNotesChange = { notes = it },
+                isAllDay = false,
+                onAllDayChange = { },
+                allDayDate = java.time.LocalDate.now(),
+                onAllDayDateChange = { },
                 isBreakable = isBreakable,
                 onBreakableChange = { isBreakable = it },
                 isAutoSchedule = isAutoSchedule,
@@ -1018,6 +1074,561 @@ fun PomodoroTimer(
                     fontWeight = FontWeight.Bold,
                     color = Color.White
                 )
+            }
+        }
+    }
+}
+
+/* ALL-DAY TASKS LIST */
+@RequiresApi(Build.VERSION_CODES.O)
+@Composable
+fun AllDayTasksList(
+    db: AppDatabase,
+    onBack: () -> Unit,
+    onTaskClick: (MasterTask) -> Unit
+) {
+    var tasks by remember { mutableStateOf<List<MasterTask>>(emptyList()) }
+    var categories by remember { mutableStateOf<List<Category>>(emptyList()) }
+
+    LaunchedEffect(Unit) {
+        tasks = db.taskDao().getAllMasterTasks().filter { it.allDay != null && it.status != 3 }
+        categories = CategoryManager.getAll(db)
+    }
+
+    val grouped = tasks.groupBy { it.categoryId }
+    val sortedCategoryIds = categories.map { it.id as Int? }.filter { grouped.containsKey(it) } +
+            if (grouped.containsKey(null)) listOf(null) else emptyList()
+
+    Column(modifier = Modifier.fillMaxSize().background(BackgroundColor)) {
+        Box(
+            modifier = Modifier
+                .padding(16.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(PrimaryColor)
+                .clickable { onBack() }
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+        ) {
+            Text("Back", fontSize = 16.sp, color = Color.White)
+        }
+
+        if (tasks.isEmpty()) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(text = "No all-day tasks", fontSize = 18.sp, color = Color.Gray)
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.weight(1f).fillMaxWidth().padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                sortedCategoryIds.forEach { catId ->
+                    val categoryName = if (catId == null) "No Category"
+                    else categories.find { it.id == catId }?.title ?: "No Category"
+                    val categoryTasks = grouped[catId] ?: emptyList()
+                    item {
+                        Text(
+                            text = categoryName,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Gray,
+                            modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 4.dp)
+                        )
+                    }
+                    items(categoryTasks) { task ->
+                        AllDayTaskItem(db = db, task = task, onClick = { onTaskClick(task) })
+                    }
+                }
+            }
+        }
+    }
+}
+
+@RequiresApi(Build.VERSION_CODES.O)
+@Composable
+fun AllDayTaskItem(
+    db: AppDatabase,
+    task: MasterTask,
+    onClick: () -> Unit
+) {
+    var category by remember { mutableStateOf<Category?>(null) }
+    val dateFormatter = DateTimeFormatter.ofPattern("MMMM d, yyyy")
+
+    LaunchedEffect(task.categoryId) {
+        category = task.categoryId?.let { db.categoryDao().getCategoryById(it) }
+    }
+
+    val circleColor = category?.let { Converters.toColor(it.color) } ?: Color.LightGray
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color(CardColor))
+            .clickable { onClick() }
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(modifier = Modifier.size(INNER_CIRCLE_SIZE).clip(CircleShape).background(circleColor))
+        Spacer(modifier = Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(text = task.title, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+            Text(
+                text = task.allDay?.format(dateFormatter) ?: "",
+                fontSize = 14.sp,
+                color = Color.Gray
+            )
+        }
+    }
+}
+
+/* ALL-DAY TASK INFO PAGE */
+@RequiresApi(Build.VERSION_CODES.O)
+@Composable
+fun AllDayTaskInfoPage(
+    db: AppDatabase,
+    task: MasterTask,
+    onBack: () -> Unit,
+    onUpdate: () -> Unit,
+    onPlay: () -> Unit
+) {
+    val scope = rememberCoroutineScope()
+    val scrollState = rememberScrollState()
+    val dateFormatter = DateTimeFormatter.ofPattern("MMMM d, yyyy")
+
+    var currentTask by remember { mutableStateOf(task) }
+    var category by remember { mutableStateOf<Category?>(null) }
+    var event by remember { mutableStateOf<MasterEvent?>(null) }
+    var deadline by remember { mutableStateOf<Deadline?>(null) }
+
+    LaunchedEffect(task.id) {
+        currentTask = db.taskDao().getMasterTaskById(task.id) ?: task
+        category = currentTask.categoryId?.let { db.categoryDao().getCategoryById(it) }
+        event = currentTask.eventId?.let { db.eventDao().getMasterEventById(it) }
+        deadline = currentTask.deadlineId?.let { db.deadlineDao().getDeadlineById(it) }
+    }
+
+    Column(
+        modifier = Modifier.fillMaxSize().background(BackgroundColor).padding(16.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(PrimaryColor)
+                    .clickable { onBack() }
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            ) {
+                Text("Back", fontSize = 16.sp, color = Color.White)
+            }
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(PrimaryColor)
+                    .clickable { onPlay() },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.PlayArrow,
+                    contentDescription = "Start",
+                    tint = Color.White,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Column(modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(scrollState)) {
+            Box(modifier = Modifier.fillMaxWidth().padding(18.dp)) {
+                Text(text = currentTask.title, fontSize = 20.sp, fontWeight = FontWeight.Medium)
+            }
+
+            if (!currentTask.notes.isNullOrBlank()) {
+                Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                    Text(text = currentTask.notes!!, fontSize = 16.sp)
+                }
+                Spacer(modifier = Modifier.height(18.dp))
+            } else {
+                Spacer(modifier = Modifier.height(18.dp))
+            }
+
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                InfoField("Date", currentTask.allDay?.format(dateFormatter) ?: "")
+                InfoField("Deadline", deadline?.title ?: "None")
+                InfoField("Event", event?.title ?: "None")
+                InfoField("Category", category?.title ?: "None")
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Button(
+                onClick = {
+                    scope.launch {
+                        TaskManager.delete(db, currentTask.id)
+                        onBack()
+                    }
+                },
+                modifier = Modifier.weight(1f),
+                colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
+                contentPadding = PaddingValues(16.dp)
+            ) {
+                Text("Delete", fontSize = 16.sp, color = Color.White)
+            }
+            Button(
+                onClick = onUpdate,
+                modifier = Modifier.weight(1f),
+                colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
+                contentPadding = PaddingValues(16.dp)
+            ) {
+                Text("Update", fontSize = 16.sp, color = Color.White)
+            }
+        }
+    }
+}
+
+/* ALL-DAY TASK UPDATE FORM */
+@RequiresApi(Build.VERSION_CODES.O)
+@Composable
+fun AllDayTaskUpdateForm(
+    db: AppDatabase,
+    task: MasterTask,
+    onBack: () -> Unit,
+    onSaveSuccess: (MasterTask) -> Unit
+) {
+    val scope = rememberCoroutineScope()
+    val scrollState = rememberScrollState()
+
+    var title by remember { mutableStateOf(task.title) }
+    var notes by remember { mutableStateOf(task.notes ?: "") }
+    var allDayDate by remember { mutableStateOf(task.allDay ?: java.time.LocalDate.now()) }
+    var selectedCategory by remember { mutableStateOf<Int?>(null) }
+    var selectedEvent by remember { mutableStateOf<Int?>(null) }
+    var selectedDeadline by remember { mutableStateOf<Int?>(null) }
+    var categories by remember { mutableStateOf<List<Category>>(emptyList()) }
+    var events by remember { mutableStateOf<List<MasterEvent>>(emptyList()) }
+    var deadlines by remember { mutableStateOf<List<Deadline>>(emptyList()) }
+    var resetTrigger by remember { mutableIntStateOf(0) }
+
+    LaunchedEffect(Unit) {
+        categories = CategoryManager.getAll(db)
+        events = EventManager.getAll(db)
+        deadlines = DeadlineManager.getAll(db)
+        selectedCategory = task.categoryId?.let { catId -> categories.indexOfFirst { it.id == catId }.takeIf { it >= 0 } }
+        selectedEvent = task.eventId?.let { evId -> events.indexOfFirst { it.id == evId }.takeIf { it >= 0 } }
+        selectedDeadline = task.deadlineId?.let { dlId -> deadlines.indexOfFirst { it.id == dlId }.takeIf { it >= 0 } }
+    }
+
+    Column(
+        modifier = Modifier.fillMaxSize().background(BackgroundColor).padding(16.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(8.dp))
+                .background(PrimaryColor)
+                .clickable { onBack() }
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+        ) {
+            Text("Back", fontSize = 16.sp, color = Color.White)
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Column(modifier = Modifier.weight(1f).verticalScroll(scrollState)) {
+            AllDayTaskForm(
+                title = title,
+                onTitleChange = { title = it },
+                notes = notes,
+                onNotesChange = { notes = it },
+                allDayDate = allDayDate,
+                onAllDayDateChange = { allDayDate = it },
+                selectedCategory = selectedCategory,
+                onCategoryChange = { selectedCategory = it },
+                selectedEvent = selectedEvent,
+                onEventChange = { selectedEvent = it },
+                selectedDeadline = selectedDeadline,
+                onDeadlineChange = { selectedDeadline = it },
+                categories = categories,
+                events = events,
+                deadlines = deadlines,
+                resetTrigger = resetTrigger
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Button(
+                    onClick = {
+                        title = task.title
+                        notes = task.notes ?: ""
+                        allDayDate = task.allDay ?: java.time.LocalDate.now()
+                        resetTrigger++
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
+                    modifier = Modifier.weight(1f),
+                    contentPadding = PaddingValues(16.dp)
+                ) {
+                    Text("Reset", fontSize = 16.sp)
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Button(
+                    onClick = {
+                        if (title.isBlank()) return@Button
+                        scope.launch {
+                            val updatedTask = task.copy(
+                                title = title,
+                                notes = notes.ifBlank { null },
+                                allDay = allDayDate,
+                                categoryId = selectedCategory?.let { categories.getOrNull(it)?.id },
+                                eventId = selectedEvent?.let { events.getOrNull(it)?.id },
+                                deadlineId = selectedDeadline?.let { deadlines.getOrNull(it)?.id }
+                            )
+                            TaskManager.update(db, updatedTask)
+                            val refreshed = db.taskDao().getMasterTaskById(task.id) ?: updatedTask
+                            onSaveSuccess(refreshed)
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
+                    modifier = Modifier.weight(1f),
+                    contentPadding = PaddingValues(16.dp)
+                ) {
+                    Text("Save", fontSize = 16.sp)
+                }
+            }
+        }
+    }
+}
+
+/* ALL-DAY TASK FORM (inline, used by update form) */
+@RequiresApi(Build.VERSION_CODES.O)
+@Composable
+fun AllDayTaskForm(
+    title: String,
+    onTitleChange: (String) -> Unit,
+    notes: String,
+    onNotesChange: (String) -> Unit,
+    allDayDate: java.time.LocalDate,
+    onAllDayDateChange: (java.time.LocalDate) -> Unit,
+    selectedCategory: Int?,
+    onCategoryChange: (Int?) -> Unit,
+    selectedEvent: Int?,
+    onEventChange: (Int?) -> Unit,
+    selectedDeadline: Int?,
+    onDeadlineChange: (Int?) -> Unit,
+    categories: List<Category>,
+    events: List<MasterEvent>,
+    deadlines: List<Deadline>,
+    resetTrigger: Int
+) {
+    Column {
+        val titleValue = textInputField(label = "Title", initialValue = title, key = resetTrigger)
+        onTitleChange(titleValue)
+        Spacer(modifier = Modifier.height(12.dp))
+
+        val notesValue = notesInputField(label = "Notes", initialValue = notes, key = resetTrigger)
+        onNotesChange(notesValue)
+        Spacer(modifier = Modifier.height(12.dp))
+
+        val dateValue = datePickerField(
+            label = "Date",
+            initialDate = allDayDate,
+            key = resetTrigger
+        )
+        dateValue?.let { onAllDayDateChange(it) }
+        Spacer(modifier = Modifier.height(12.dp))
+
+        val deadlineValue = dropdownField(
+            label = "Deadline",
+            items = deadlines.map { it.title },
+            initialSelection = selectedDeadline,
+            key = resetTrigger
+        )
+        if (deadlineValue != selectedDeadline) onDeadlineChange(deadlineValue)
+        Spacer(modifier = Modifier.height(12.dp))
+
+        val eventValue = dropdownField(
+            label = "Event",
+            items = events.map { it.title },
+            initialSelection = selectedEvent,
+            key = resetTrigger,
+            locked = selectedDeadline != null
+        )
+        if (selectedDeadline == null && eventValue != selectedEvent) onEventChange(eventValue)
+        Spacer(modifier = Modifier.height(12.dp))
+
+        val categoryValue = dropdownField(
+            label = "Category",
+            items = categories.map { it.title },
+            initialSelection = selectedCategory,
+            key = resetTrigger,
+            locked = selectedEvent != null || selectedDeadline != null
+        )
+        if (selectedEvent == null && selectedDeadline == null && categoryValue != selectedCategory) onCategoryChange(categoryValue)
+    }
+}
+
+/* ALL-DAY POMODORO PAGE */
+@RequiresApi(Build.VERSION_CODES.O)
+@Composable
+fun AllDayPomodoroPage(
+    db: AppDatabase,
+    task: MasterTask,
+    onBack: () -> Unit
+) {
+    var elapsedSeconds by remember { mutableIntStateOf(0) }
+    var sessionSeconds by remember { mutableIntStateOf(0) }
+    var isRunning by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    val scrollState = rememberScrollState()
+    var currentTask by remember { mutableStateOf(task) }
+
+    val breakEvery = SettingsManager.settings?.breakEvery ?: 30
+    val breakDuration = SettingsManager.settings?.breakDuration ?: 5
+
+    LaunchedEffect(Unit) {
+        currentTask = db.taskDao().getMasterTaskById(task.id) ?: task
+        // restore elapsed from actualDuration
+        elapsedSeconds = (currentTask.actualDuration ?: 0) * 60
+    }
+
+    LaunchedEffect(isRunning) {
+        while (isRunning) {
+            delay(1000L)
+            elapsedSeconds++
+            sessionSeconds++
+        }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            if (isRunning) {
+                kotlinx.coroutines.runBlocking {
+                    val sessionMinutes = sessionSeconds / 60
+                    val newActualDuration = (currentTask.actualDuration ?: 0) + sessionMinutes
+                    db.taskDao().update(currentTask.copy(actualDuration = newActualDuration, status = 2))
+                }
+            }
+        }
+    }
+
+    val totalWorkedMinutes = elapsedSeconds / 60
+    val workedHours = totalWorkedMinutes / 60
+    val workedMins = totalWorkedMinutes % 60
+
+    Column(modifier = Modifier.fillMaxSize().background(BackgroundColor).padding(16.dp)) {
+        Row(modifier = Modifier.fillMaxWidth()) {
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(PrimaryColor)
+                    .clickable { onBack() }
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            ) {
+                Text("Back", fontSize = 16.sp, color = Color.White)
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Column(
+            modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(scrollState),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Box(modifier = Modifier.fillMaxWidth().padding(18.dp)) {
+                Text(text = currentTask.title, fontSize = 20.sp, fontWeight = FontWeight.Medium)
+            }
+
+            if (!currentTask.notes.isNullOrBlank()) {
+                Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                    Text(text = currentTask.notes!!, fontSize = 16.sp)
+                }
+                Spacer(modifier = Modifier.height(24.dp))
+            } else {
+                Spacer(modifier = Modifier.height(24.dp))
+            }
+
+            PomodoroTimer(
+                elapsedSeconds = elapsedSeconds,
+                isRunning = isRunning,
+                breakEveryMinutes = breakEvery,
+                breakDurationMinutes = breakDuration
+            )
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                Text(
+                    text = "Time Worked: ${if (workedHours > 0) "${workedHours}h " else ""}${workedMins}m",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color.Gray
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Button(
+                onClick = {
+                    scope.launch {
+                        if (isRunning) {
+                            isRunning = false
+                            val sessionMinutes = sessionSeconds / 60
+                            val newActualDuration = (currentTask.actualDuration ?: 0) + sessionMinutes
+                            db.taskDao().update(currentTask.copy(actualDuration = newActualDuration, status = 2))
+                            currentTask = db.taskDao().getMasterTaskById(task.id) ?: currentTask
+                            sessionSeconds = 0
+                        } else {
+                            if (currentTask.status == 1) {
+                                db.taskDao().update(currentTask.copy(status = 2))
+                                currentTask = currentTask.copy(status = 2)
+                            }
+                            isRunning = true
+                        }
+                    }
+                },
+                modifier = Modifier.weight(1f),
+                colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
+                contentPadding = PaddingValues(16.dp)
+            ) {
+                Text(if (isRunning) "Pause" else "Start", fontSize = 16.sp, color = Color.White)
+            }
+
+            Button(
+                onClick = {
+                    scope.launch {
+                        if (isRunning) {
+                            val sessionMinutes = sessionSeconds / 60
+                            val newActualDuration = (currentTask.actualDuration ?: 0) + sessionMinutes
+                            db.taskDao().update(currentTask.copy(actualDuration = newActualDuration, status = 3))
+                        } else {
+                            db.taskDao().update(currentTask.copy(status = 3))
+                        }
+                        onBack()
+                    }
+                },
+                modifier = Modifier.weight(1f),
+                colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
+                contentPadding = PaddingValues(16.dp)
+            ) {
+                Text("Complete", fontSize = 16.sp, color = Color.White)
             }
         }
     }

@@ -42,18 +42,6 @@ val Preset21 = Color(0xFF692B81)
 val Preset22 = Color(0xFF7A2E55)
 val Preset23 = Color(0xFF4D4D4D)
 val Preset24 = Color(0xFF000000)
-
-// Priority Presets
-val Preset25 = Color(0xFFE38080)
-val Preset26 = Color(0xFFE3A680)
-val Preset27 = Color(0xFFE3C580)
-val Preset28 = Color(0xFF92C97B)
-val Preset29 = Color(0xFF7ECEA2)
-val Preset31 = Color(0xFFD31414)
-val Preset32 = Color(0xFFD76E12)
-val Preset33 = Color(0xFFD39A14)
-val Preset34 = Color(0xFF5FC20F)
-val Preset35 = Color(0xFF0DC090)
 //</editor-fold>
 
 /* SHAPES */

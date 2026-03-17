@@ -1691,6 +1691,64 @@ fun dropdownField(
     return selectedIndex
 }
 
+/* ALL DAY TASK PICKER FIELD */
+@RequiresApi(Build.VERSION_CODES.O)
+@OptIn(ExperimentalAnimationApi::class)
+@Composable
+fun allDayTaskPickerField(
+    initialAllDay: Boolean = false,
+    initialDate: java.time.LocalDate = java.time.LocalDate.now().plusDays(1),
+    key: Int = 0
+): Pair<Boolean, java.time.LocalDate> {
+    var isAllDay by remember(key) { mutableStateOf(initialAllDay) }
+    var date by remember(key) { mutableStateOf(initialDate) }
+
+    LaunchedEffect(key, initialAllDay, initialDate) {
+        isAllDay = initialAllDay
+        date = initialDate
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(CardColor), RoundedCornerShape(12.dp))
+            .padding(16.dp)
+    ) {
+        Column {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Checkbox(
+                    checked = isAllDay,
+                    onCheckedChange = { isAllDay = it },
+                    colors = CheckboxDefaults.colors(checkedColor = PrimaryColor)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("All Day", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+            }
+
+            // When ALL DAY is checked: show date picker
+            AnimatedVisibility(
+                visible = isAllDay,
+                enter = fadeIn() + expandVertically(),
+                exit = fadeOut() + shrinkVertically()
+            ) {
+                Column(modifier = Modifier.padding(top = 12.dp)) {
+                    val dateValue = datePickerField(
+                        label = "Date",
+                        initialDate = date,
+                        key = key
+                    )
+                    dateValue?.let { date = it }
+                }
+            }
+        }
+    }
+
+    return Pair(isAllDay, date)
+}
+
 /* AUTO SCHEDULE TASK PICKER FIELD */
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalAnimationApi::class)

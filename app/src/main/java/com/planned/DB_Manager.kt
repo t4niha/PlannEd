@@ -300,6 +300,7 @@ object TaskManager {
         db: AppDatabase,
         title: String,
         notes: String?,
+        allDay: java.time.LocalDate?,
         breakable: Boolean,
         startDate: LocalDate?,
         startTime: LocalTime?,
@@ -312,6 +313,7 @@ object TaskManager {
         val task = MasterTask(
             title = title,
             notes = notes,
+            allDay = allDay,
             breakable = breakable,
             noIntervals = 0,
             startDate = startDate,

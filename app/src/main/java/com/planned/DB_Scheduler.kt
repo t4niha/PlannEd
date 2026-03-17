@@ -43,7 +43,7 @@ suspend fun generateTaskIntervals(db: AppDatabase) {
     }
     val allMasterTasks = db.taskDao()
         .getAllMasterTasks()
-        .filter { it.status != 3 }
+        .filter { it.status != 3 && it.allDay == null }
     allMasterTasks.forEach { task ->
         db.taskDao().update(task.copy(noIntervals = 0))
     }

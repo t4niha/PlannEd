@@ -515,5 +515,7 @@ suspend fun hasDeadlinesForDate(db: AppDatabase, date: LocalDate): Boolean {
 suspend fun hasTasksForDate(db: AppDatabase, date: LocalDate): Boolean {
     if (!showTasks) return false
     val intervals = db.taskDao().getAllIntervals().filter { it.occurDate == date }
-    return intervals.isNotEmpty()
+    if (intervals.isNotEmpty()) return true
+    val allDayTasks = db.taskDao().getAllMasterTasks().filter { it.allDay == date && it.status != 3 }
+    return allDayTasks.isNotEmpty()
 }
