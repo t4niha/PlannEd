@@ -71,7 +71,6 @@ fun Creation(db: AppDatabase) {
     var deadlineSelectedCategory by remember { mutableStateOf<Int?>(null) }
     var deadlineSelectedEvent by remember { mutableStateOf<Int?>(null) }
     var deadlineAutoScheduleTask by remember { mutableStateOf(false) }
-    var deadlineTaskPriority by remember { mutableIntStateOf(3) }
     var deadlineTaskDurationHours by remember { mutableIntStateOf(0) }
     var deadlineTaskDurationMinutes by remember { mutableIntStateOf(30) }
     var deadlineTaskIsBreakable by remember { mutableStateOf(false) }
@@ -89,7 +88,6 @@ fun Creation(db: AppDatabase) {
     // Task
     var taskTitle by remember { mutableStateOf("") }
     var taskNotes by remember { mutableStateOf("") }
-    var taskPriority by remember { mutableIntStateOf(3) }
     var taskIsBreakable by remember { mutableStateOf(false) }
     var taskIsAutoSchedule by remember { mutableStateOf(true) }
     var taskStartDate by remember { mutableStateOf<LocalDate?>(null) }
@@ -143,7 +141,6 @@ fun Creation(db: AppDatabase) {
         deadlineSelectedCategory = null
         deadlineSelectedEvent = null
         deadlineAutoScheduleTask = false
-        deadlineTaskPriority = 3
         deadlineTaskDurationHours = 0
         deadlineTaskDurationMinutes = 30
         deadlineTaskIsBreakable = false
@@ -161,7 +158,6 @@ fun Creation(db: AppDatabase) {
         // Task
         taskTitle = ""
         taskNotes = ""
-        taskPriority = 3
         taskIsBreakable = false
         taskIsAutoSchedule = true
         taskStartDate = null
@@ -225,8 +221,6 @@ fun Creation(db: AppDatabase) {
                         onTitleChange = { taskTitle = it },
                         notes = taskNotes,
                         onNotesChange = { taskNotes = it },
-                        priority = taskPriority,
-                        onPriorityChange = { taskPriority = it },
                         isBreakable = taskIsBreakable,
                         onBreakableChange = { taskIsBreakable = it },
                         isAutoSchedule = taskIsAutoSchedule,
@@ -305,8 +299,6 @@ fun Creation(db: AppDatabase) {
                         onEventChange = { deadlineSelectedEvent = it },
                         autoScheduleTask = deadlineAutoScheduleTask,
                         onAutoScheduleTaskChange = { deadlineAutoScheduleTask = it },
-                        taskPriority = deadlineTaskPriority,
-                        onTaskPriorityChange = { deadlineTaskPriority = it },
                         taskDurationHours = deadlineTaskDurationHours,
                         taskDurationMinutes = deadlineTaskDurationMinutes,
                         onTaskDurationChange = { hours, mins ->
@@ -431,7 +423,6 @@ fun Creation(db: AppDatabase) {
                                         db = db,
                                         title = taskTitle,
                                         notes = taskNotes.ifBlank { null },
-                                        priority = taskPriority,
                                         breakable = taskIsBreakable,
                                         startDate = taskStartDate,
                                         startTime = taskStartTime,
@@ -528,7 +519,6 @@ fun Creation(db: AppDatabase) {
                                             db = db,
                                             title = deadlineTitle,
                                             notes = deadlineNotes.ifBlank { null },
-                                            priority = deadlineTaskPriority,
                                             breakable = deadlineTaskIsBreakable,
                                             startDate = null,
                                             startTime = null,

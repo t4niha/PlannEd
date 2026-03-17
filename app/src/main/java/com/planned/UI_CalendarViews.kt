@@ -516,21 +516,8 @@ fun MonthView(
                 taskIntervals.forEach { interval ->
                     val masterTask = masterTasks.find { it.id == interval.masterTaskId }
 
-                    // Outer circle color
-                    val outerCircleColor: Color = remember(masterTask?.priority) {
-                        val priorityColors = listOf(
-                            Preset31, // 1
-                            Preset32, // 2
-                            Preset33, // 3
-                            Preset34, // 4
-                            Preset35  // 5
-                        )
-                        val priority = masterTask?.priority ?: 3
-                        priorityColors.getOrNull(priority - 1) ?: Preset27
-                    }
-
-                    // Inner circle color
-                    val innerCircleColor: Color = remember(masterTask) {
+                    // Circle color
+                    val circleColor: Color = remember(masterTask) {
                         runBlocking {
                             when {
                                 masterTask?.eventId != null -> {
@@ -568,21 +555,11 @@ fun MonthView(
                                 modifier = Modifier.weight(1f),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                // Double circle
                                 Box(
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(INNER_CIRCLE_SIZE + OUTER_CIRCLE_OFFSET * 2)
-                                            .background(outerCircleColor, CircleShape)
-                                    )
-                                    Box(
-                                        modifier = Modifier
-                                            .size(INNER_CIRCLE_SIZE)
-                                            .background(innerCircleColor, CircleShape)
-                                    )
-                                }
+                                    modifier = Modifier
+                                        .size(INNER_CIRCLE_SIZE)
+                                        .background(circleColor, CircleShape)
+                                )
                                 Spacer(modifier = Modifier.width(16.dp))
                                 Text(
                                     text = masterTask?.title ?: "Task",

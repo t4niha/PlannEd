@@ -958,73 +958,6 @@ fun recurrencePickerField(
     return Pair(Triple(recurrenceFreq, selectedDaysOfWeek, selectedDaysOfMonth), if (repeatForever) null else endDate)
 }
 
-/* PRIORITY PICKER FIELD */
-@Composable
-fun priorityPickerField(
-    label: String,
-    initialPriority: Int = 3,
-    key: Int = 0
-): Int {
-    var priority by remember(key) { mutableIntStateOf(initialPriority) }
-
-    LaunchedEffect(key, initialPriority) {
-        priority = initialPriority
-    }
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Color(CardColor), RoundedCornerShape(12.dp))
-            .padding(16.dp)
-    ) {
-        Column {
-            Text(label, fontSize = 16.sp, fontWeight = FontWeight.Medium)
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                val priorityColors = listOf(
-                    Preset25, // 1
-                    Preset26, // 2
-                    Preset27, // 3
-                    Preset28, // 4
-                    Preset29  // 5
-                )
-
-                (1..5).forEach { p ->
-                    val isSelected = priority == p
-                    Box(
-                        modifier = Modifier
-                            .size(50.dp)
-                            .then(
-                                if (isSelected) {
-                                    Modifier.border(3.dp, PrimaryColor, CircleShape)
-                                } else {
-                                    Modifier
-                                }
-                            )
-                            .clip(CircleShape)
-                            .background(priorityColors[p - 1])
-                            .clickable { priority = p },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            p.toString(),
-                            color = BackgroundColor,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                            fontSize = 18.sp
-                        )
-                    }
-                }
-            }
-        }
-    }
-
-    return priority
-}
-
 /* DURATION PICKER FIELD */
 @Composable
 fun durationPickerField(
@@ -1764,23 +1697,20 @@ fun dropdownField(
 @Composable
 fun autoScheduleTaskPickerField(
     initialAutoScheduleTask: Boolean = false,
-    initialPriority: Int = 3,
     initialDurationHours: Int = 0,
     initialDurationMinutes: Int = 30,
     initialBreakable: Boolean = false,
     breakableLockedByDuration: Boolean = false,
     key: Int = 0,
     onDurationChange: ((Int, Int) -> Unit)? = null
-): Tuple5<Boolean, Int, Int, Int, Boolean> {
+): Tuple4<Boolean, Int, Int, Boolean> {
     var autoScheduleTask by remember(key) { mutableStateOf(initialAutoScheduleTask) }
-    var priority by remember(key) { mutableIntStateOf(initialPriority) }
     var durationHours by remember(key) { mutableIntStateOf(initialDurationHours) }
     var durationMinutes by remember(key) { mutableIntStateOf(initialDurationMinutes) }
     var isBreakable by remember(key) { mutableStateOf(initialBreakable) }
 
-    LaunchedEffect(key, initialAutoScheduleTask, initialPriority, initialDurationHours, initialDurationMinutes, initialBreakable) {
+    LaunchedEffect(key, initialAutoScheduleTask, initialDurationHours, initialDurationMinutes, initialBreakable) {
         autoScheduleTask = initialAutoScheduleTask
-        priority = initialPriority
         durationHours = initialDurationHours
         durationMinutes = initialDurationMinutes
         isBreakable = initialBreakable
@@ -1815,47 +1745,6 @@ fun autoScheduleTaskPickerField(
                 exit = fadeOut() + shrinkVertically()
             ) {
                 Column(modifier = Modifier.padding(top = 12.dp)) {
-                    // Priority picker
-                    Text("Priority", fontSize = 16.sp, fontWeight = FontWeight.Medium)
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceEvenly
-                    ) {
-                        val priorityColors = listOf(
-                            Preset25, Preset26, Preset27, Preset28, Preset29
-                        )
-
-                        (1..5).forEach { p ->
-                            val isSelected = priority == p
-                            Box(
-                                modifier = Modifier
-                                    .size(50.dp)
-                                    .then(
-                                        if (isSelected) {
-                                            Modifier.border(3.dp, PrimaryColor, CircleShape)
-                                        } else {
-                                            Modifier
-                                        }
-                                    )
-                                    .clip(CircleShape)
-                                    .background(priorityColors[p - 1])
-                                    .clickable { priority = p },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    p.toString(),
-                                    color = BackgroundColor,
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                    fontSize = 18.sp
-                                )
-                            }
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(20.dp))
-
                     // Duration picker
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -1997,13 +1886,12 @@ fun autoScheduleTaskPickerField(
         }
     }
 
-    return Tuple5(autoScheduleTask, priority, durationHours, durationMinutes, isBreakable)
+    return Tuple4(autoScheduleTask, durationHours, durationMinutes, isBreakable)
 }
 
-data class Tuple5<A, B, C, D, E>(
+data class Tuple4<A, B, C, D>(
     val first: A,
     val second: B,
     val third: C,
-    val fourth: D,
-    val fifth: E
+    val fourth: D
 )

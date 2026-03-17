@@ -185,7 +185,6 @@ data class MasterTask(
 
     val title: String,
     val notes: String? = null,
-    val priority: Int,                      // levels 1-5
     val breakable: Boolean? = false,        // can be checked true
     val noIntervals: Int,                   // back-end only, how many intervals, 1 if not breakable
 
@@ -670,7 +669,7 @@ data class CategoryWithMasterReminders(
         AppSetting::class,
         EventATI::class, UserATI::class
     ],
-    version = 7
+    version = 8
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
@@ -681,5 +680,42 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun taskDao(): TaskDao
     abstract fun reminderDao(): ReminderDao
     abstract fun settingsDao(): SettingsDao
+
+    companion object {
+        val MIGRATION_7_8 = object : androidx.room.migration.Migration(7, 8) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                // SQLite doesn't support DROP COLUMN directly, so recreate the table
+                db.execSQL("""
+                    CREATE TABLE MasterTask_new (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        title TEXT NOT NULL,
+                        notes TEXT,
+                        breakable INTEGER,
+                        noIntervals INTEGER NOT NULL,
+                        startDate TEXT,
+                        startTime TEXT,
+                        predictedDuration INTEGER NOT NULL,
+                        actualDuration INTEGER,
+                        status INTEGER,
+                        timeLeft INTEGER,
+                        overTime INTEGER,
+                        dependencyTaskId INTEGER,
+                        eventId INTEGER,
+                        deadlineId INTEGER,
+                        categoryId INTEGER
+                    )
+                """.trimIndent())
+                db.execSQL("""
+                    INSERT INTO MasterTask_new
+                    SELECT id, title, notes, breakable, noIntervals, startDate, startTime,
+                           predictedDuration, actualDuration, status, timeLeft, overTime,
+                           dependencyTaskId, eventId, deadlineId, categoryId
+                    FROM MasterTask
+                """.trimIndent())
+                db.execSQL("DROP TABLE MasterTask")
+                db.execSQL("ALTER TABLE MasterTask_new RENAME TO MasterTask")
+            }
+        }
+    }
 }
 //</editor-fold>

@@ -21,7 +21,7 @@ object AppDatabaseProvider {
                 context.applicationContext,
                 AppDatabase::class.java,
                 "planned-db"
-            ).build()
+            ).addMigrations(AppDatabase.MIGRATION_7_8).build()
             INSTANCE = instance
             instance
         }
@@ -51,23 +51,24 @@ class MainActivity : ComponentActivity() {
 }
 
 /**
- TODO: [-] Fix UI pages (category, event, deadline, reminder, task bucket)
- TODO: [-] Calendar to UI pages navigation
- TODO: [ ] On creation don't allow duplicate titles for events, categories
- TODO: [ ] refresh schedule button
- TODO: [ ] Confirmation dialogs for destructive operations (delete master objects, cascading deletions)
+TODO: [ ] Fix UI pages (category, event, deadline, reminder, task bucket) - all/this (isException)
+TODO: [ ] Calendar to UI pages navigation
+TODO: [ ] On creation don't allow duplicate titles for events, categories
+TODO: [ ] refresh schedule button
+TODO: [ ] Confirmation dialogs for destructive operations (delete master objects, cascading deletions)
 
- TODO: [ ] Kanban board?
- TODO: [-] POMODORO have the option to control timer spread (not just an hour!)
+TODO: [ ] Kanban board?
+TODO: [-] POMODORO have the option to control timer spread (not just an hour!)
 
- TODO: [ ] notifications?
- TODO: [ ] Status indicators and overtime warnings for task elements on calendar?
+TODO: [ ] notifications?
+TODO: [ ] Status indicators and overtime warnings for task elements on calendar?
 
- TODO: [ ] Task info back to calendar doesn't scroll to that task, only to today
- TODO: [-] Task update form dropdown loop glitch
- TODO: [-] Cancel (dialogue) buttons do same as Save?
- TODO: [-] Task form update needed after Save for dependency option
- TODO: [ ] Calendar to object pages
- TODO: [ ] Warning for insufficient bucket space
- TODO: [ ] What to do when impossible to meet deadline given current schedule order?
-**/
+TODO: [ ] Task info back to calendar doesn't scroll to that task, only to today
+TODO: [-] Task update form dropdown loop glitch
+TODO: [-] Cancel (dialogue) buttons do same as Save?
+TODO: [-] Task form update needed after Save for dependency option
+TODO: [ ] UI Pages + isException logic
+TODO: [ ] Calendar to object pages
+TODO: [ ] Warning for insufficient bucket space
+TODO: [ ] What to do when impossible to meet deadline given current schedule order?
+ **/

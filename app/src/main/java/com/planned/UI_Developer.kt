@@ -450,7 +450,6 @@ fun Developer(db: AppDatabase) {
                     t.id.toString(),
                     t.title,
                     t.notes ?: "",
-                    t.priority.toString(),
                     t.breakable?.toString() ?: "",
                     t.noIntervals.toString(),
                     t.startDate?.toString() ?: "",

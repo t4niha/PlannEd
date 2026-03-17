@@ -28,14 +28,6 @@ import kotlinx.coroutines.launch
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-val priorityColors = listOf(
-    Preset31, // 1
-    Preset32, // 2
-    Preset33, // 3
-    Preset34, // 4
-    Preset35  // 5
-)
-
 data class UpdateFormData(
     val categories: List<Category>,
     val events: List<MasterEvent>,
@@ -285,7 +277,6 @@ fun UnscheduledTaskItem(
     }
 
     val innerColor = category?.let { Converters.toColor(it.color) } ?: Color.LightGray
-    val outerColor = priorityColors.getOrNull(task.priority - 1) ?: Color.Gray
 
     Row(
         modifier = Modifier
@@ -296,12 +287,7 @@ fun UnscheduledTaskItem(
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(
-            modifier = Modifier.size(30.dp).clip(CircleShape).background(outerColor),
-            contentAlignment = Alignment.Center
-        ) {
-            Box(modifier = Modifier.size(20.dp).clip(CircleShape).background(innerColor))
-        }
+        Box(modifier = Modifier.size(INNER_CIRCLE_SIZE).clip(CircleShape).background(innerColor))
         Spacer(modifier = Modifier.width(12.dp))
         Text(
             text = task.title,
@@ -409,7 +395,6 @@ fun ScheduledTaskItem(
     }
 
     val innerColor = category?.let { Converters.toColor(it.color) } ?: Color.LightGray
-    val outerColor = priorityColors.getOrNull(masterTask.priority - 1) ?: Color.Gray
 
     val dateFormatter = DateTimeFormatter.ofPattern("MMMM d, yyyy")
     val timeFormatter = DateTimeFormatter.ofPattern("h:mm a")
@@ -423,12 +408,7 @@ fun ScheduledTaskItem(
             .padding(12.dp)
     ) {
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier = Modifier.size(30.dp).clip(CircleShape).background(outerColor),
-                contentAlignment = Alignment.Center
-            ) {
-                Box(modifier = Modifier.size(20.dp).clip(CircleShape).background(innerColor))
-            }
+            Box(modifier = Modifier.size(INNER_CIRCLE_SIZE).clip(CircleShape).background(innerColor))
             Spacer(modifier = Modifier.width(12.dp))
             Text(
                 text = masterTask.title,
@@ -603,7 +583,6 @@ fun TaskInfoPage(
                 InfoField("Deadline", deadline?.title ?: "None")
                 InfoField("Event", event?.title ?: "None")
                 InfoField("Category", category?.title ?: "None")
-                InfoField("Priority", currentTask.priority.toString())
                 InfoField("Breakable", if (currentTask.breakable == true) "Yes" else "No")
             }
         }
@@ -670,7 +649,6 @@ fun TaskUpdateForm(
 
     var title by remember { mutableStateOf(task.title) }
     var notes by remember { mutableStateOf(task.notes ?: "") }
-    var priority by remember { mutableIntStateOf(task.priority) }
     var isBreakable by remember { mutableStateOf(task.breakable ?: false) }
     var isAutoSchedule by remember { mutableStateOf(task.startDate == null || task.startTime == null) }
     var startDate by remember { mutableStateOf(task.startDate) }
@@ -694,7 +672,6 @@ fun TaskUpdateForm(
     fun clearForm() {
         title = task.title
         notes = task.notes ?: ""
-        priority = task.priority
         isBreakable = task.breakable ?: false
         isAutoSchedule = task.startDate == null || task.startTime == null
         startDate = task.startDate
@@ -732,8 +709,6 @@ fun TaskUpdateForm(
                 onTitleChange = { title = it },
                 notes = notes,
                 onNotesChange = { notes = it },
-                priority = priority,
-                onPriorityChange = { priority = it },
                 isBreakable = isBreakable,
                 onBreakableChange = { isBreakable = it },
                 isAutoSchedule = isAutoSchedule,
@@ -787,7 +762,6 @@ fun TaskUpdateForm(
                             val updatedTask = task.copy(
                                 title = title,
                                 notes = notes.ifBlank { null },
-                                priority = priority,
                                 breakable = isBreakable,
                                 predictedDuration = durationInMinutes,
                                 startDate = if (isAutoSchedule) null else startDate,

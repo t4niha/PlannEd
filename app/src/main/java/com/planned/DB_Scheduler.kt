@@ -8,11 +8,10 @@ import java.time.LocalTime
 /**
 Ordering Factors:
 0) Dependency
-1) Priority (1-5)
-2) Urgency (Deadline)
-3) Category Score (ATI - TODO)
-4) Event Score (ATI - TODO)
-5) Date Created (Task ID)
+1) Urgency (Deadline)
+2) Category Score (ATI - TODO)
+3) Event Score (ATI - TODO)
+4) Date Created (Task ID)
  **/
 
 /* Available time slots for task scheduling */
@@ -119,7 +118,6 @@ private suspend fun orderAutoScheduledTasks(db: AppDatabase, autoTasks: List<Mas
 
         Triple(task, urgency, Triple(categoryScore, eventScore, task.id))
     }.sortedWith(compareBy(
-        { it.first.priority },
         { it.second ?: Int.MAX_VALUE },
         { it.third.first },
         { it.third.second },

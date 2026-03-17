@@ -300,7 +300,6 @@ object TaskManager {
         db: AppDatabase,
         title: String,
         notes: String?,
-        priority: Int,
         breakable: Boolean,
         startDate: LocalDate?,
         startTime: LocalTime?,
@@ -313,7 +312,6 @@ object TaskManager {
         val task = MasterTask(
             title = title,
             notes = notes,
-            priority = priority,
             breakable = breakable,
             noIntervals = 0,
             startDate = startDate,

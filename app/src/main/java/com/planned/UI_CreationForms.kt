@@ -203,8 +203,6 @@ fun DeadlineForm(
     onEventChange: (Int?) -> Unit,
     autoScheduleTask: Boolean,
     onAutoScheduleTaskChange: (Boolean) -> Unit,
-    taskPriority: Int,
-    onTaskPriorityChange: (Int) -> Unit,
     taskDurationHours: Int,
     taskDurationMinutes: Int,
     onTaskDurationChange: (Int, Int) -> Unit,
@@ -302,9 +300,8 @@ fun DeadlineForm(
         Spacer(modifier = Modifier.height(12.dp))
 
         // Auto schedule task checkbox with expandable fields
-        val (autoSchedule, priority, durationHours, durationMinutes, breakable) = autoScheduleTaskPickerField(
+        val (autoSchedule, durationHours, durationMinutes, breakable) = autoScheduleTaskPickerField(
             initialAutoScheduleTask = autoScheduleTask,
-            initialPriority = taskPriority,
             initialDurationHours = taskDurationHours,
             initialDurationMinutes = taskDurationMinutes,
             initialBreakable = taskIsBreakable,
@@ -315,7 +312,6 @@ fun DeadlineForm(
             }
         )
         onAutoScheduleTaskChange(autoSchedule)
-        onTaskPriorityChange(priority)
         onTaskDurationChange(durationHours, durationMinutes)
 
         // Only update breakable if not locked by duration
@@ -425,8 +421,6 @@ fun TaskForm(
     onTitleChange: (String) -> Unit,
     notes: String,
     onNotesChange: (String) -> Unit,
-    priority: Int,
-    onPriorityChange: (Int) -> Unit,
     isBreakable: Boolean,
     onBreakableChange: (Boolean) -> Unit,
     isAutoSchedule: Boolean,
@@ -466,9 +460,9 @@ fun TaskForm(
         // Get tasks that can be dependencies
         dependencyTasks = TaskManager.getAll(db).filter {
             it.status == 1 &&
-            it.startDate == null &&
-            it.startTime == null &&
-            it.id != currentTaskId
+                    it.startDate == null &&
+                    it.startTime == null &&
+                    it.id != currentTaskId
         }
 
         // Get max bucket duration
@@ -625,14 +619,6 @@ fun TaskForm(
             key = resetTrigger
         )
         onNotesChange(notesValue)
-        Spacer(modifier = Modifier.height(12.dp))
-
-        val priorityValue = priorityPickerField(
-            label = "Priority",
-            initialPriority = priority,
-            key = resetTrigger
-        )
-        onPriorityChange(priorityValue)
         Spacer(modifier = Modifier.height(12.dp))
 
         // Duration picker
