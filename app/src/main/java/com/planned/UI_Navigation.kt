@@ -35,7 +35,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.ui.graphics.graphicsLayer
 
 var currentScreen by mutableStateOf("Calendars")
-var currentCalendarView by mutableStateOf("Day")
+var currentCalendarView by mutableStateOf("Month")
 var calendarResetTrigger by mutableIntStateOf(0)
 
 // Task
@@ -322,7 +322,7 @@ fun Header(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     SingleChoiceSegmentedButtonRow(modifier = Modifier.weight(1.8f)) {
-                        val options = listOf("Day", "Week", "Month")
+                        val options = listOf("Month", "Week", "Day")
                         options.forEachIndexed { index, view ->
                             SegmentedButton(
                                 selected = currentView == view && currentScreen == "Calendars",
