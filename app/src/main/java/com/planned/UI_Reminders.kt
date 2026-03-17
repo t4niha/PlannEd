@@ -164,10 +164,16 @@ fun ReminderItemView(
                 overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
             )
             Text(
-                text = if (reminder.allDay)
-                    "${reminder.startDate.format(dateFormatter)}, All Day"
-                else
-                    "${reminder.time?.format(timeFormatter) ?: ""}, ${reminder.startDate.format(dateFormatter)}",
+                text = buildString {
+                    append(if (reminder.allDay) "All Day" else reminder.time?.format(timeFormatter) ?: "")
+                    append(", ")
+                    append(
+                        if (reminder.recurFreq != RecurrenceFrequency.NONE)
+                            reminder.recurFreq.name.lowercase().replaceFirstChar { it.uppercase() }
+                        else
+                            reminder.startDate.format(dateFormatter)
+                    )
+                },
                 fontSize = 14.sp,
                 color = Color.Gray
             )
@@ -241,9 +247,9 @@ fun ReminderInfoView(
                         when (currentReminder.recurFreq) {
                             RecurrenceFrequency.WEEKLY -> currentReminder.recurRule.daysOfWeek?.sorted()?.joinToString(", ") { d ->
                                 when (d) { 1 -> "Mo"; 2 -> "Tu"; 3 -> "We"; 4 -> "Th"; 5 -> "Fr"; 6 -> "Sa"; 7 -> "Su"; else -> "" }
-                            }?.let { "\n$it" } ?: ""
-                            RecurrenceFrequency.MONTHLY -> currentReminder.recurRule.daysOfMonth?.sorted()?.joinToString(", ")?.let { "\n$it" } ?: ""
-                            RecurrenceFrequency.YEARLY -> currentReminder.recurRule.monthAndDay?.let { "\n${it.second}/${it.first}" } ?: ""
+                            }?.let { " ($it)" } ?: ""
+                            RecurrenceFrequency.MONTHLY -> currentReminder.recurRule.daysOfMonth?.sorted()?.joinToString(", ")?.let { " ($it)" } ?: ""
+                            RecurrenceFrequency.YEARLY -> currentReminder.recurRule.monthAndDay?.let { " (${java.time.Month.of(it.second).getDisplayName(java.time.format.TextStyle.FULL, java.util.Locale.getDefault())} ${it.first})" } ?: ""
                             else -> ""
                         }
                 )

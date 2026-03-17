@@ -44,6 +44,7 @@ fun formatBucketRecurrence(bucket: MasterTaskBucket, startWeekOnMonday: Boolean)
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 fun formatBucketRecurrenceMultiline(bucket: MasterTaskBucket, startWeekOnMonday: Boolean): String {
     return when (bucket.recurFreq) {
         RecurrenceFrequency.NONE -> "No Recurrence"
@@ -61,7 +62,9 @@ fun formatBucketRecurrenceMultiline(bucket: MasterTaskBucket, startWeekOnMonday:
             val days = bucket.recurRule.daysOfMonth?.sorted()?.joinToString(", ") ?: ""
             "Monthly\n$days"
         }
-        RecurrenceFrequency.YEARLY -> "Yearly"
+        RecurrenceFrequency.YEARLY -> bucket.recurRule.monthAndDay?.let {
+            "Yearly (${java.time.Month.of(it.second).getDisplayName(java.time.format.TextStyle.FULL, java.util.Locale.getDefault())} ${it.first})"
+        } ?: "Yearly"
     }
 }
 

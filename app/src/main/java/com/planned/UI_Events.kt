@@ -240,9 +240,9 @@ fun EventInfoPage(
                         when (currentEvent.recurFreq) {
                             RecurrenceFrequency.WEEKLY -> currentEvent.recurRule.daysOfWeek?.sorted()?.joinToString(", ") { d ->
                                 when (d) { 1 -> "Mo"; 2 -> "Tu"; 3 -> "We"; 4 -> "Th"; 5 -> "Fr"; 6 -> "Sa"; 7 -> "Su"; else -> "" }
-                            }?.let { "\n$it" } ?: ""
-                            RecurrenceFrequency.MONTHLY -> currentEvent.recurRule.daysOfMonth?.sorted()?.joinToString(", ")?.let { "\n$it" } ?: ""
-                            RecurrenceFrequency.YEARLY -> currentEvent.recurRule.monthAndDay?.let { "\n${it.second}/${it.first}" } ?: ""
+                            }?.let { " ($it)" } ?: ""
+                            RecurrenceFrequency.MONTHLY -> currentEvent.recurRule.daysOfMonth?.sorted()?.joinToString(", ")?.let { " ($it)" } ?: ""
+                            RecurrenceFrequency.YEARLY -> currentEvent.recurRule.monthAndDay?.let { " (${java.time.Month.of(it.second).getDisplayName(java.time.format.TextStyle.FULL, java.util.Locale.getDefault())} ${it.first})" } ?: ""
                             else -> ""
                         }
                 )
