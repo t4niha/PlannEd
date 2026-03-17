@@ -223,7 +223,7 @@ fun DeadlineInfoView(
         updateDataReady = true
     }
 
-    val dateFormatter = DateTimeFormatter.ofPattern("MMM dd, yyyy")
+    val dateFormatter = DateTimeFormatter.ofPattern("MMMM d, yyyy")
     val timeFormatter = DateTimeFormatter.ofPattern("h:mm a")
 
     Column(modifier = Modifier.fillMaxSize().background(BackgroundColor).padding(16.dp)) {

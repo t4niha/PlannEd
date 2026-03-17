@@ -183,6 +183,8 @@ fun EventInfoPage(
     var category by remember { mutableStateOf<Category?>(null) }
     var currentEvent by remember { mutableStateOf(event) }
     var updateDataReady by remember { mutableStateOf(false) }
+    val dateFormatter = java.time.format.DateTimeFormatter.ofPattern("MMMM d, yyyy")
+    val timeFormatter = java.time.format.DateTimeFormatter.ofPattern("h:mm a")
 
     LaunchedEffect(event.id) {
         currentEvent = db.eventDao().getMasterEventById(event.id) ?: event
@@ -225,10 +227,10 @@ fun EventInfoPage(
             }
 
             Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                InfoField("Start Date", currentEvent.startDate.toString())
-                InfoField("End Date", currentEvent.endDate?.toString() ?: "N/A")
-                InfoField("Start Time", currentEvent.startTime.toString())
-                InfoField("End Time", currentEvent.endTime.toString())
+                InfoField("Start Date", currentEvent.startDate.format(dateFormatter))
+                InfoField("End Date", currentEvent.endDate?.format(dateFormatter) ?: "N/A")
+                InfoField("Start Time", currentEvent.startTime.format(timeFormatter))
+                InfoField("End Time", currentEvent.endTime.format(timeFormatter))
                 InfoField("Recurrence", currentEvent.recurFreq.name.lowercase().replaceFirstChar { it.uppercase() } +
                         when (currentEvent.recurFreq) {
                             RecurrenceFrequency.WEEKLY -> currentEvent.recurRule.daysOfWeek?.sorted()?.joinToString(", ") { d ->

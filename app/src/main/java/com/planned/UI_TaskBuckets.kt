@@ -202,6 +202,8 @@ fun TaskBucketInfoPage(
     val scope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
     var currentBucket by remember { mutableStateOf(bucket) }
+    val dateFormatter = java.time.format.DateTimeFormatter.ofPattern("MMMM d, yyyy")
+    val timeFormatter = java.time.format.DateTimeFormatter.ofPattern("h:mm a")
 
     LaunchedEffect(bucket.id) {
         currentBucket = db.taskBucketDao().getMasterBucketById(bucket.id) ?: bucket
@@ -239,10 +241,10 @@ fun TaskBucketInfoPage(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                InfoField("Start Date", currentBucket.startDate.toString())
-                InfoField("End Date", currentBucket.endDate?.toString() ?: "N/A")
-                InfoField("Start Time", java.time.format.DateTimeFormatter.ofPattern("h:mm a").let { currentBucket.startTime.format(it) })
-                InfoField("End Time", java.time.format.DateTimeFormatter.ofPattern("h:mm a").let { currentBucket.endTime.format(it) })
+                InfoField("Start Date", currentBucket.startDate.format(dateFormatter))
+                InfoField("End Date", currentBucket.endDate?.format(dateFormatter) ?: "N/A")
+                InfoField("Start Time", currentBucket.startTime.format(timeFormatter))
+                InfoField("End Time", currentBucket.endTime.format(timeFormatter))
                 InfoField("Recurrence", formatBucketRecurrenceMultiline(currentBucket, SettingsManager.settings?.startWeekOnMonday ?: false))
             }
         }

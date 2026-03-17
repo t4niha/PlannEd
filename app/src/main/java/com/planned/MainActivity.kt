@@ -51,8 +51,8 @@ class MainActivity : ComponentActivity() {
 }
 
 /**
- TODO: [ ] Fix UI pages (category, event, deadline, reminder, task bucket) - all/this (isException)
- TODO: [ ] Calendar to UI pages navigation
+ TODO: [-] Fix UI pages (category, event, deadline, reminder, task bucket) - all/this (isException)
+ TODO: [-] Calendar to UI pages navigation
  TODO: [ ] On creation don't allow duplicate titles for events, categories
  TODO: [ ] refresh schedule button
  TODO: [ ] Confirmation dialogs for destructive operations (delete master objects, cascading deletions)
