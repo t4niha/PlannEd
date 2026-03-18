@@ -1735,12 +1735,61 @@ fun allDayTaskPickerField(
                 exit = fadeOut() + shrinkVertically()
             ) {
                 Column(modifier = Modifier.padding(top = 12.dp)) {
-                    val dateValue = datePickerField(
-                        label = "Date",
-                        initialDate = date,
-                        key = key
-                    )
-                    dateValue?.let { date = it }
+                    var showDatePicker by remember { mutableStateOf(false) }
+                    val dateFormatter = java.time.format.DateTimeFormatter.ofPattern("MMM d, yyyy")
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Date", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Button(
+                            onClick = { showDatePicker = true },
+                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
+                        ) {
+                            Text(date.format(dateFormatter))
+                        }
+                    }
+
+                    if (showDatePicker) {
+                        val datePickerState = rememberDatePickerState(
+                            initialSelectedDateMillis = date.toEpochDay() * 86400000L
+                        )
+                        DatePickerDialog(
+                            onDismissRequest = { showDatePicker = false },
+                            confirmButton = {
+                                TextButton(onClick = {
+                                    datePickerState.selectedDateMillis?.let {
+                                        date = java.time.LocalDate.ofEpochDay(it / 86400000L)
+                                    }
+                                    showDatePicker = false
+                                }) {
+                                    Text("OK", color = Color.Black, fontSize = 16.sp)
+                                }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = { showDatePicker = false }) {
+                                    Text("Cancel", color = Color.Black, fontSize = 16.sp)
+                                }
+                            },
+                            colors = DatePickerDefaults.colors(containerColor = BackgroundColor)
+                        ) {
+                            DatePicker(
+                                state = datePickerState,
+                                showModeToggle = false,
+                                title = null,
+                                headline = null,
+                                colors = DatePickerDefaults.colors(
+                                    containerColor = BackgroundColor,
+                                    selectedDayContainerColor = PrimaryColor,
+                                    todayDateBorderColor = PrimaryColor,
+                                    todayContentColor = PrimaryColor,
+                                    selectedYearContainerColor = PrimaryColor
+                                )
+                            )
+                        }
+                    }
                 }
             }
         }
