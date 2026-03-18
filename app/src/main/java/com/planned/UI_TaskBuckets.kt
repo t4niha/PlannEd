@@ -308,6 +308,7 @@ fun TaskBucketInfoPage(
                             showDeleteDialog = false
                             scope.launch {
                                 db.taskBucketDao().deleteOccurrence(occurrence.id)
+                                onTaskChanged(db)
                                 onBack()
                             }
                         }) { Text("Delete This", color = Color.Gray) }

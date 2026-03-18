@@ -351,6 +351,9 @@ object TaskManager {
         onTaskDeleted(db, taskId)
 
         db.taskDao().deleteMasterTask(taskId)
+
+        // Reschedule remaining tasks into freed slots
+        onTaskChanged(db)
     }
 }
 
