@@ -599,8 +599,6 @@ fun TaskInfoPage(
                     Text(text = currentTask.notes!!, fontSize = 16.sp)
                 }
                 Spacer(modifier = Modifier.height(18.dp))
-            } else {
-                Spacer(modifier = Modifier.height(18.dp))
             }
 
             if (intervals.isNotEmpty()) {

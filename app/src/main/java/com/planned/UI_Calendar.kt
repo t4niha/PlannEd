@@ -526,6 +526,7 @@ fun ReminderDeadlineIndicators(db: AppDatabase, date: LocalDate) {
                                 .clickable {
                                     masterReminder?.let {
                                         com.planned.selectedReminderForInfo = it
+                                        com.planned.selectedReminderOccurrenceForInfo = reminder
                                         com.planned.currentScreen = "ReminderInfo"
                                     }
                                 }

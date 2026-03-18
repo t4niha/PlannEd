@@ -18,10 +18,10 @@ object AppDatabaseProvider {
     fun getDatabase(context: Context): AppDatabase {
         return INSTANCE ?: synchronized(this) {
             val instance = Room.databaseBuilder(
-                        context.applicationContext,
-                        AppDatabase::class.java,
-                        "planned-db"
-                    ).fallbackToDestructiveMigration(false).build()
+                context.applicationContext,
+                AppDatabase::class.java,
+                "planned-db"
+            ).fallbackToDestructiveMigration(false).build()
             INSTANCE = instance
             instance
         }
@@ -40,7 +40,7 @@ class MainActivity : ComponentActivity() {
             // Load settings and regenerate occurrences
             LaunchedEffect(Unit) {
                 SettingsManager.load(db)
-                regenerateAllOccurrences(db)
+                trimAndExtendOccurrences(db)
             }
             // Home page
             PlanEdTheme {

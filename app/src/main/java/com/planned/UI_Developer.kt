@@ -188,6 +188,7 @@ fun Developer(db: AppDatabase) {
                     onClick = {
                         CoroutineScope(Dispatchers.IO).launch {
                             runSample(db)
+                            trimAndExtendOccurrences(db)
                             refreshData()
                         }
                     },
@@ -350,8 +351,7 @@ fun Developer(db: AppDatabase) {
                     "Notes",
                     "Occur Date",
                     "Start Time",
-                    "End Time",
-                    "Is Exception"
+                    "End Time"
                 )
             ) { o ->
                 listOf(
@@ -360,8 +360,7 @@ fun Developer(db: AppDatabase) {
                     o.notes ?: "",
                     o.occurDate.toString(),
                     o.startTime.toString(),
-                    o.endTime.toString(),
-                    o.isException.toString()
+                    o.endTime.toString()
                 )
             }
 
@@ -540,8 +539,7 @@ fun Developer(db: AppDatabase) {
                     "Notes",
                     "Occur Date",
                     "Time",
-                    "All Day",
-                    "Is Exception"
+                    "All Day"
                 )
             ) { o ->
                 listOf(
@@ -550,8 +548,7 @@ fun Developer(db: AppDatabase) {
                     o.notes ?: "",
                     o.occurDate.toString(),
                     o.time?.toString() ?: "",
-                    o.allDay.toString(),
-                    o.isException.toString()
+                    o.allDay.toString()
                 )
             }
 

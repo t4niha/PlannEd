@@ -45,11 +45,13 @@ var taskInfoReturnScreen by mutableStateOf("Calendars")
 
 // Event
 var selectedEventForInfo by mutableStateOf<MasterEvent?>(null)
+var selectedEventOccurrenceForInfo by mutableStateOf<EventOccurrence?>(null)
 var navEventUpdateFormData by mutableStateOf<EventUpdateFormData?>(null)
 var eventInfoReturnScreen by mutableStateOf("Calendars")
 
 // Reminder
 var selectedReminderForInfo by mutableStateOf<MasterReminder?>(null)
+var selectedReminderOccurrenceForInfo by mutableStateOf<ReminderOccurrence?>(null)
 var navReminderUpdateFormData by mutableStateOf<ReminderUpdateFormData?>(null)
 
 // Deadline
@@ -59,6 +61,7 @@ var deadlineInfoReturnScreen by mutableStateOf("Calendars")
 
 // Task Bucket
 var selectedBucketForInfo by mutableStateOf<MasterTaskBucket?>(null)
+var selectedBucketOccurrenceForInfo by mutableStateOf<TaskBucketOccurrence?>(null)
 
 // All-Day Task (reuses selectedTaskForInfo flow but separate screen keys)
 var selectedAllDayTaskForInfo by mutableStateOf<MasterTask?>(null)
@@ -181,11 +184,13 @@ fun AppNavigation(db: AppDatabase) {
                             EventInfoPage(
                                 db = db,
                                 event = event,
+                                occurrence = selectedEventOccurrenceForInfo,
                                 onBack = {
                                     val returnTo = eventInfoReturnScreen
                                     eventInfoReturnScreen = "Calendars"
                                     navEventUpdateFormData = null
                                     selectedEventForInfo = null
+                                    selectedEventOccurrenceForInfo = null
                                     currentScreen = returnTo
                                 },
                                 onUpdateDataReady = { data -> navEventUpdateFormData = data },
@@ -213,9 +218,11 @@ fun AppNavigation(db: AppDatabase) {
                             ReminderInfoView(
                                 db = db,
                                 reminder = reminder,
+                                occurrence = selectedReminderOccurrenceForInfo,
                                 onBack = {
                                     currentScreen = "Calendars"
                                     selectedReminderForInfo = null
+                                    selectedReminderOccurrenceForInfo = null
                                     navReminderUpdateFormData = null
                                 },
                                 onUpdateDataReady = { data -> navReminderUpdateFormData = data },
@@ -275,9 +282,11 @@ fun AppNavigation(db: AppDatabase) {
                             TaskBucketInfoPage(
                                 db = db,
                                 bucket = bucket,
+                                occurrence = selectedBucketOccurrenceForInfo,
                                 onBack = {
                                     currentScreen = "Calendars"
                                     selectedBucketForInfo = null
+                                    selectedBucketOccurrenceForInfo = null
                                 },
                                 onUpdate = { currentScreen = "BucketUpdate" }
                             )

@@ -49,6 +49,7 @@ fun Events(db: AppDatabase) {
             EventInfoPage(
                 db = db,
                 event = event,
+                occurrence = null,
                 onBack = {
                     currentView = "list"
                     selectedEvent = null
@@ -176,6 +177,7 @@ fun EventListItem(
 fun EventInfoPage(
     db: AppDatabase,
     event: MasterEvent,
+    occurrence: EventOccurrence? = null,
     onBack: () -> Unit,
     onUpdateDataReady: (EventUpdateFormData) -> Unit,
     onUpdate: () -> Unit,
@@ -187,6 +189,7 @@ fun EventInfoPage(
     var currentEvent by remember { mutableStateOf(event) }
     var relatedTasks by remember { mutableStateOf<List<MasterTask>>(emptyList()) }
     var updateDataReady by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
     val dateFormatter = java.time.format.DateTimeFormatter.ofPattern("MMMM d, yyyy")
     val timeFormatter = java.time.format.DateTimeFormatter.ofPattern("h:mm a")
 
@@ -227,6 +230,20 @@ fun EventInfoPage(
             if (!currentEvent.notes.isNullOrBlank()) {
                 Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
                     Text(text = currentEvent.notes!!, fontSize = 16.sp)
+                }
+                Spacer(modifier = Modifier.height(18.dp))
+            }
+
+            if (occurrence != null) {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = "${occurrence.startTime.format(timeFormatter)} - ${occurrence.endTime.format(timeFormatter)}, ${occurrence.occurDate.format(dateFormatter)}",
+                        fontSize = 16.sp,
+                        color = Color.Gray
+                    )
                 }
                 Spacer(modifier = Modifier.height(18.dp))
             }
@@ -312,7 +329,7 @@ fun EventInfoPage(
 
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Button(
-                onClick = { scope.launch { EventManager.delete(db, currentEvent.id); onBack() } },
+                onClick = { showDeleteDialog = true },
                 modifier = Modifier.weight(1f),
                 colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
                 contentPadding = PaddingValues(16.dp)
@@ -323,6 +340,46 @@ fun EventInfoPage(
                 colors = ButtonDefaults.buttonColors(containerColor = if (updateDataReady) PrimaryColor else Color.LightGray),
                 contentPadding = PaddingValues(16.dp)
             ) { Text("Update", fontSize = 16.sp, color = Color.White) }
+        }
+
+        if (showDeleteDialog) {
+            AlertDialog(
+                onDismissRequest = { showDeleteDialog = false },
+                title = { Text("Delete Event") },
+                text = {
+                    Text(
+                        if (occurrence != null && currentEvent.recurFreq != RecurrenceFrequency.NONE)
+                            "Delete just this occurrence or all occurrences of this event?"
+                        else
+                            "Delete this event?"
+                    )
+                },
+                confirmButton = {
+                    if (occurrence != null && currentEvent.recurFreq != RecurrenceFrequency.NONE) {
+                        TextButton(onClick = {
+                            showDeleteDialog = false
+                            scope.launch {
+                                db.eventDao().deleteOccurrence(occurrence.id)
+                                onBack()
+                            }
+                        }) { Text("Delete This", color = Color.Gray) }
+                    }
+                },
+                dismissButton = {
+                    Row {
+                        TextButton(onClick = { showDeleteDialog = false }) {
+                            Text("Cancel", color = Color.Gray)
+                        }
+                        TextButton(onClick = {
+                            showDeleteDialog = false
+                            scope.launch {
+                                EventManager.delete(db, currentEvent.id)
+                                onBack()
+                            }
+                        }) { Text("Delete All", color = Color.Red) }
+                    }
+                }
+            )
         }
     }
 }

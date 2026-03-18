@@ -70,9 +70,7 @@ data class EventOccurrence(
 
     val occurDate: LocalDate,
     val startTime: LocalTime,
-    val endTime: LocalTime,
-
-    val isException: Boolean = false      //  back-end access only, if individually changed
+    val endTime: LocalTime
 )
 //</editor-fold>
 
@@ -285,9 +283,7 @@ data class ReminderOccurrence(
 
     val occurDate: LocalDate,
     val time: LocalTime? = null,
-    val allDay: Boolean,
-
-    val isException: Boolean = false
+    val allDay: Boolean
 )
 //</editor-fold>
 
@@ -669,7 +665,7 @@ data class CategoryWithMasterReminders(
         AppSetting::class,
         EventATI::class, UserATI::class
     ],
-    version = 10
+    version = 12
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {

@@ -244,6 +244,7 @@ fun RenderEventBlock(
             .background(event.color)
             .clickable {
                 com.planned.selectedEventForInfo = event.master
+                com.planned.selectedEventOccurrenceForInfo = event.occurrence
                 com.planned.currentScreen = "EventInfo"
             }
             .padding(ELEMENT_TEXT_PADDING.dp)
@@ -292,10 +293,10 @@ fun RenderTaskBucketBlock(
             .clip(RoundedCornerShape(ELEMENT_CORNER_RADIUS_DAY.dp))
             .background(Color(CardColor))
             .clickable {
-                com.planned.selectedBucketForInfo = bucket.occurrence.let { occ ->
-                    kotlinx.coroutines.runBlocking {
-                        db.taskBucketDao().getMasterBucketById(occ.masterBucketId)
-                    }
+                val occ = bucket.occurrence
+                com.planned.selectedBucketOccurrenceForInfo = occ
+                com.planned.selectedBucketForInfo = kotlinx.coroutines.runBlocking {
+                    db.taskBucketDao().getMasterBucketById(occ.masterBucketId)
                 }
                 com.planned.currentScreen = "BucketInfo"
             }
@@ -435,6 +436,7 @@ fun RenderEventBlockWeek(
             .background(event.color)
             .clickable {
                 com.planned.selectedEventForInfo = event.master
+                com.planned.selectedEventOccurrenceForInfo = event.occurrence
                 com.planned.currentScreen = "EventInfo"
             }
     )
@@ -460,10 +462,10 @@ fun RenderTaskBucketBlockWeek(
             .clip(RoundedCornerShape(ELEMENT_CORNER_RADIUS_WEEK.dp))
             .background(Color(CardColor))
             .clickable {
-                com.planned.selectedBucketForInfo = bucket.occurrence.let { occ ->
-                    runBlocking {
-                        db.taskBucketDao().getMasterBucketById(occ.masterBucketId)
-                    }
+                val occ = bucket.occurrence
+                com.planned.selectedBucketOccurrenceForInfo = occ
+                com.planned.selectedBucketForInfo = runBlocking {
+                    db.taskBucketDao().getMasterBucketById(occ.masterBucketId)
                 }
                 com.planned.currentScreen = "BucketInfo"
             }

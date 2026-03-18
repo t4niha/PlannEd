@@ -232,7 +232,101 @@ fun generateReminderOccurrences(master: MasterReminder): List<ReminderOccurrence
     return occurrences
 }
 
-/* Regenerate all occurrences */
+/* Trim past occurrences outside the window and extend future ones not yet generated */
+@RequiresApi(Build.VERSION_CODES.O)
+suspend fun trimAndExtendOccurrences(db: AppDatabase) {
+    val today = LocalDate.now()
+    val startLimit = today.minusMonths(generationMonths.toLong())
+    val endLimit = today.plusMonths(generationMonths.toLong())
+
+    // --- Trim occurrences outside the window ---
+
+    db.eventDao().getAllOccurrences()
+        .filter { it.occurDate.isBefore(startLimit) || it.occurDate.isAfter(endLimit) }
+        .forEach { db.eventDao().deleteOccurrence(it.id) }
+
+    db.reminderDao().getAllOccurrences()
+        .filter { it.occurDate.isBefore(startLimit) || it.occurDate.isAfter(endLimit) }
+        .forEach { db.reminderDao().deleteOccurrence(it.id) }
+
+    db.taskBucketDao().getAllBucketOccurrences()
+        .filter { it.occurDate.isBefore(startLimit) || it.occurDate.isAfter(endLimit) }
+        .forEach { db.taskBucketDao().deleteOccurrence(it.id) }
+
+    db.taskDao().getAllIntervals()
+        .filter { it.occurDate.isBefore(startLimit) || it.occurDate.isAfter(endLimit) }
+        .forEach { db.taskDao().deleteInterval(it.id) }
+
+    // --- Extend: generate only dates not yet covered ---
+
+    // Events
+    val allEventOccurrences = db.eventDao().getAllOccurrences()
+    db.eventDao().getAllMasterEvents().forEach { event ->
+        val existingDates = allEventOccurrences
+            .filter { it.masterEventId == event.id }
+            .map { it.occurDate }
+            .toSet()
+
+        val maxExisting = existingDates.maxOrNull()
+        val generateFrom = if (maxExisting != null) maxExisting.plusDays(1) else startLimit
+
+        if (!generateFrom.isAfter(endLimit)) {
+            val extendedMaster = event.copy(startDate = maxOfDate(event.startDate, generateFrom))
+            val newOccurrences = generateEventOccurrences(extendedMaster)
+                .filter { it.occurDate !in existingDates }
+            newOccurrences.forEach { db.eventDao().insertOccurrence(it) }
+        }
+    }
+
+    // Reminders
+    val allReminderOccurrences = db.reminderDao().getAllOccurrences()
+    db.reminderDao().getAllMasterReminders().forEach { reminder ->
+        val existingDates = allReminderOccurrences
+            .filter { it.masterReminderId == reminder.id }
+            .map { it.occurDate }
+            .toSet()
+
+        val maxExisting = existingDates.maxOrNull()
+        val generateFrom = if (maxExisting != null) maxExisting.plusDays(1) else startLimit
+
+        if (!generateFrom.isAfter(endLimit)) {
+            val extendedReminder = reminder.copy(startDate = maxOfDate(reminder.startDate, generateFrom))
+            val newOccurrences = generateReminderOccurrences(extendedReminder)
+                .filter { it.occurDate !in existingDates }
+            newOccurrences.forEach { db.reminderDao().insertOccurrence(it) }
+        }
+    }
+
+    // Task Buckets
+    val allBucketOccurrences = db.taskBucketDao().getAllBucketOccurrences()
+    db.taskBucketDao().getAllMasterBuckets().forEach { bucket ->
+        val existingDates = allBucketOccurrences
+            .filter { it.masterBucketId == bucket.id }
+            .map { it.occurDate }
+            .toSet()
+
+        val maxExisting = existingDates.maxOrNull()
+        val generateFrom = if (maxExisting != null) maxExisting.plusDays(1) else startLimit
+
+        if (!generateFrom.isAfter(endLimit)) {
+            val extendedBucket = bucket.copy(startDate = maxOfDate(bucket.startDate, generateFrom))
+            val newOccurrences = generateTaskBucketOccurrences(extendedBucket, db)
+                .filter { it.occurDate !in existingDates }
+            newOccurrences.forEach { db.taskBucketDao().insertOccurrence(it) }
+        }
+    }
+
+    // Task intervals: only regenerate if there are none (scheduler handles the rest on create/update)
+    if (db.taskDao().getAllIntervals().isEmpty()) {
+        generateTaskIntervals(db)
+    }
+}
+
+/* Helper: return the later of two LocalDates */
+@RequiresApi(Build.VERSION_CODES.O)
+private fun maxOfDate(a: LocalDate, b: LocalDate): LocalDate = if (a.isAfter(b)) a else b
+
+/* Regenerate all occurrences (kept for manual full-reset use e.g. Developer page) */
 @RequiresApi(Build.VERSION_CODES.O)
 suspend fun regenerateAllOccurrences(db: AppDatabase) {
     val today = LocalDate.now()

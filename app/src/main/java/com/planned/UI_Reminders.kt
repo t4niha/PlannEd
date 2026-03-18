@@ -47,6 +47,7 @@ fun Reminders(db: AppDatabase) {
             ReminderInfoView(
                 db = db,
                 reminder = reminder,
+                occurrence = null,
                 onBack = {
                     currentView = "list"
                     selectedReminder = null
@@ -186,6 +187,7 @@ fun ReminderItemView(
 fun ReminderInfoView(
     db: AppDatabase,
     reminder: MasterReminder,
+    occurrence: ReminderOccurrence? = null,
     onBack: () -> Unit,
     onUpdateDataReady: (ReminderUpdateFormData) -> Unit,
     onUpdate: () -> Unit
@@ -195,6 +197,7 @@ fun ReminderInfoView(
     var category by remember { mutableStateOf<Category?>(null) }
     var currentReminder by remember { mutableStateOf(reminder) }
     var updateDataReady by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(reminder.id) {
         currentReminder = db.reminderDao().getMasterReminderById(reminder.id) ?: reminder
@@ -237,6 +240,21 @@ fun ReminderInfoView(
                 Spacer(modifier = Modifier.height(18.dp))
             }
 
+            if (occurrence != null) {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = if (occurrence.allDay) "All Day, ${occurrence.occurDate.format(dateFormatter)}"
+                        else "${occurrence.time?.format(timeFormatter) ?: ""}, ${occurrence.occurDate.format(dateFormatter)}",
+                        fontSize = 16.sp,
+                        color = Color.Gray
+                    )
+                }
+                Spacer(modifier = Modifier.height(18.dp))
+            }
+
             Spacer(modifier = Modifier.height(10.dp))
 
             InfoCard(listOf(
@@ -260,7 +278,7 @@ fun ReminderInfoView(
 
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Button(
-                onClick = { scope.launch { ReminderManager.delete(db, currentReminder.id); onBack() } },
+                onClick = { showDeleteDialog = true },
                 modifier = Modifier.weight(1f),
                 colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
                 contentPadding = PaddingValues(16.dp)
@@ -271,6 +289,46 @@ fun ReminderInfoView(
                 colors = ButtonDefaults.buttonColors(containerColor = if (updateDataReady) PrimaryColor else Color.LightGray),
                 contentPadding = PaddingValues(16.dp)
             ) { Text("Update", fontSize = 16.sp, color = Color.White) }
+        }
+
+        if (showDeleteDialog) {
+            AlertDialog(
+                onDismissRequest = { showDeleteDialog = false },
+                title = { Text("Delete Reminder") },
+                text = {
+                    Text(
+                        if (occurrence != null && currentReminder.recurFreq != RecurrenceFrequency.NONE)
+                            "Delete just this occurrence or all occurrences of this reminder?"
+                        else
+                            "Delete this reminder?"
+                    )
+                },
+                confirmButton = {
+                    if (occurrence != null && currentReminder.recurFreq != RecurrenceFrequency.NONE) {
+                        TextButton(onClick = {
+                            showDeleteDialog = false
+                            scope.launch {
+                                db.reminderDao().deleteOccurrence(occurrence.id)
+                                onBack()
+                            }
+                        }) { Text("Delete This", color = Color.Gray) }
+                    }
+                },
+                dismissButton = {
+                    Row {
+                        TextButton(onClick = { showDeleteDialog = false }) {
+                            Text("Cancel", color = Color.Gray)
+                        }
+                        TextButton(onClick = {
+                            showDeleteDialog = false
+                            scope.launch {
+                                ReminderManager.delete(db, currentReminder.id)
+                                onBack()
+                            }
+                        }) { Text("Delete All", color = Color.Red) }
+                    }
+                }
+            )
         }
     }
 }

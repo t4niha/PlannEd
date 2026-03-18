@@ -87,6 +87,7 @@ fun TaskBuckets(db: AppDatabase) {
             TaskBucketInfoPage(
                 db = db,
                 bucket = bucket,
+                occurrence = null,
                 onBack = {
                     currentView = "list"
                     selectedBucket = null
@@ -199,12 +200,14 @@ fun TaskBucketListItem(
 fun TaskBucketInfoPage(
     db: AppDatabase,
     bucket: MasterTaskBucket,
+    occurrence: TaskBucketOccurrence? = null,
     onBack: () -> Unit,
     onUpdate: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
     var currentBucket by remember { mutableStateOf(bucket) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
     val dateFormatter = java.time.format.DateTimeFormatter.ofPattern("MMMM d, yyyy")
     val timeFormatter = java.time.format.DateTimeFormatter.ofPattern("h:mm a")
 
@@ -240,6 +243,20 @@ fun TaskBucketInfoPage(
                 Text(text = "Task Bucket", fontSize = 20.sp, fontWeight = FontWeight.Medium)
             }
 
+            if (occurrence != null) {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = "${occurrence.startTime.format(timeFormatter)} - ${occurrence.endTime.format(timeFormatter)}, ${occurrence.occurDate.format(dateFormatter)}",
+                        fontSize = 16.sp,
+                        color = Color.Gray
+                    )
+                }
+                Spacer(modifier = Modifier.height(18.dp))
+            }
+
             InfoCard(listOf(
                 "Start Date" to currentBucket.startDate.format(dateFormatter),
                 "End Date" to (currentBucket.endDate?.format(dateFormatter) ?: "N/A"),
@@ -256,12 +273,7 @@ fun TaskBucketInfoPage(
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Button(
-                onClick = {
-                    scope.launch {
-                        TaskBucketManager.delete(db, currentBucket.id)
-                        onBack()
-                    }
-                },
+                onClick = { showDeleteDialog = true },
                 modifier = Modifier.weight(1f),
                 colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
                 contentPadding = PaddingValues(16.dp)
@@ -276,6 +288,46 @@ fun TaskBucketInfoPage(
             ) {
                 Text("Update", fontSize = 16.sp, color = Color.White)
             }
+        }
+
+        if (showDeleteDialog) {
+            AlertDialog(
+                onDismissRequest = { showDeleteDialog = false },
+                title = { Text("Delete Task Bucket") },
+                text = {
+                    Text(
+                        if (occurrence != null && currentBucket.recurFreq != RecurrenceFrequency.NONE)
+                            "Delete just this occurrence or all occurrences of this task bucket?"
+                        else
+                            "Delete this task bucket?"
+                    )
+                },
+                confirmButton = {
+                    if (occurrence != null && currentBucket.recurFreq != RecurrenceFrequency.NONE) {
+                        TextButton(onClick = {
+                            showDeleteDialog = false
+                            scope.launch {
+                                db.taskBucketDao().deleteOccurrence(occurrence.id)
+                                onBack()
+                            }
+                        }) { Text("Delete This", color = Color.Gray) }
+                    }
+                },
+                dismissButton = {
+                    Row {
+                        TextButton(onClick = { showDeleteDialog = false }) {
+                            Text("Cancel", color = Color.Gray)
+                        }
+                        TextButton(onClick = {
+                            showDeleteDialog = false
+                            scope.launch {
+                                TaskBucketManager.delete(db, currentBucket.id)
+                                onBack()
+                            }
+                        }) { Text("Delete All", color = Color.Red) }
+                    }
+                }
+            )
         }
     }
 }
