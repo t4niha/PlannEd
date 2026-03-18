@@ -148,201 +148,6 @@ suspend fun checkEventOverlapWithEvents(
     return OverlapInfo(hasOverlap = false)
 }
 
-/* Check if a new Event would overlap with existing Task Buckets */
-@RequiresApi(Build.VERSION_CODES.O)
-suspend fun checkEventOverlapWithBuckets(
-    db: AppDatabase,
-    startDate: LocalDate,
-    endDate: LocalDate?,
-    startTime: LocalTime,
-    endTime: LocalTime,
-    recurFreq: RecurrenceFrequency,
-    recurRule: RecurrenceRule
-): OverlapInfo {
-    val today = LocalDate.now()
-
-    // Calculate end limit for checking
-    val endLimit = endDate?.let {
-        if (it.isBefore(today.plusMonths(generationMonths.toLong()))) it
-        else today.plusMonths(generationMonths.toLong())
-    } ?: today.plusMonths(generationMonths.toLong())
-
-    var current = if (startDate.isBefore(today)) today else startDate
-
-    // Check each date where the event would occur
-    while (!current.isAfter(endLimit)) {
-        val matchesRule = when (recurFreq) {
-            RecurrenceFrequency.NONE -> current == startDate
-            RecurrenceFrequency.DAILY -> true
-            RecurrenceFrequency.WEEKLY -> recurRule.daysOfWeek?.contains(current.dayOfWeek.value) ?: true
-            RecurrenceFrequency.MONTHLY -> recurRule.daysOfMonth?.contains(current.dayOfMonth) ?: true
-            RecurrenceFrequency.YEARLY -> recurRule.monthAndDay?.let {
-                it.first == current.dayOfMonth && it.second == current.monthValue
-            } ?: true
-        }
-
-        if (matchesRule) {
-            // Get all task bucket occurrences on this date
-            val bucketsOnDate = db.taskBucketDao().getOccurrencesByDate(current)
-
-            // Check for time overlap with any bucket
-            for (bucket in bucketsOnDate) {
-                if (doTimeRangesOverlap(startTime, endTime, bucket.startTime, bucket.endTime)) {
-                    return OverlapInfo(
-                        hasOverlap = true,
-                        conflictType = "Task Bucket",
-                        conflictDate = current,
-                        conflictStartTime = bucket.startTime,
-                        conflictEndTime = bucket.endTime
-                    )
-                }
-            }
-        }
-
-        // Increment current date
-        current = when (recurFreq) {
-            RecurrenceFrequency.NONE,
-            RecurrenceFrequency.DAILY,
-            RecurrenceFrequency.WEEKLY,
-            RecurrenceFrequency.MONTHLY -> current.plusDays(1)
-            RecurrenceFrequency.YEARLY -> current.plusYears(1)
-        }
-    }
-
-    return OverlapInfo(hasOverlap = false)
-}
-
-/* Check if a new Task Bucket would overlap with existing Task Buckets */
-@RequiresApi(Build.VERSION_CODES.O)
-suspend fun checkBucketOverlapWithBuckets(
-    db: AppDatabase,
-    startDate: LocalDate,
-    endDate: LocalDate?,
-    startTime: LocalTime,
-    endTime: LocalTime,
-    recurFreq: RecurrenceFrequency,
-    recurRule: RecurrenceRule
-): OverlapInfo {
-    val today = LocalDate.now()
-
-    // Calculate end limit for checking
-    val endLimit = endDate?.let {
-        if (it.isBefore(today.plusMonths(generationMonths.toLong()))) it
-        else today.plusMonths(generationMonths.toLong())
-    } ?: today.plusMonths(generationMonths.toLong())
-
-    var current = if (startDate.isBefore(today)) today else startDate
-
-    // Check each date where the bucket would occur
-    while (!current.isAfter(endLimit)) {
-        val matchesRule = when (recurFreq) {
-            RecurrenceFrequency.NONE -> current == startDate
-            RecurrenceFrequency.DAILY -> true
-            RecurrenceFrequency.WEEKLY -> recurRule.daysOfWeek?.contains(current.dayOfWeek.value) ?: true
-            RecurrenceFrequency.MONTHLY -> recurRule.daysOfMonth?.contains(current.dayOfMonth) ?: true
-            RecurrenceFrequency.YEARLY -> recurRule.monthAndDay?.let {
-                it.first == current.dayOfMonth && it.second == current.monthValue
-            } ?: true
-        }
-
-        if (matchesRule) {
-            // Get all task bucket occurrences on this date
-            val bucketsOnDate = db.taskBucketDao().getOccurrencesByDate(current)
-
-            // Check for time overlap with any bucket
-            for (bucket in bucketsOnDate) {
-                if (doTimeRangesOverlap(startTime, endTime, bucket.startTime, bucket.endTime)) {
-                    return OverlapInfo(
-                        hasOverlap = true,
-                        conflictType = "Task Bucket",
-                        conflictDate = current,
-                        conflictStartTime = bucket.startTime,
-                        conflictEndTime = bucket.endTime
-                    )
-                }
-            }
-        }
-
-        // Increment current date
-        current = when (recurFreq) {
-            RecurrenceFrequency.NONE,
-            RecurrenceFrequency.DAILY,
-            RecurrenceFrequency.WEEKLY,
-            RecurrenceFrequency.MONTHLY -> current.plusDays(1)
-            RecurrenceFrequency.YEARLY -> current.plusYears(1)
-        }
-    }
-
-    return OverlapInfo(hasOverlap = false)
-}
-
-/* Check if a new Task Bucket would overlap with existing Events */
-@RequiresApi(Build.VERSION_CODES.O)
-suspend fun checkBucketOverlapWithEvents(
-    db: AppDatabase,
-    startDate: LocalDate,
-    endDate: LocalDate?,
-    startTime: LocalTime,
-    endTime: LocalTime,
-    recurFreq: RecurrenceFrequency,
-    recurRule: RecurrenceRule
-): OverlapInfo {
-    val today = LocalDate.now()
-
-    // Calculate end limit for checking
-    val endLimit = endDate?.let {
-        if (it.isBefore(today.plusMonths(generationMonths.toLong()))) it
-        else today.plusMonths(generationMonths.toLong())
-    } ?: today.plusMonths(generationMonths.toLong())
-
-    var current = if (startDate.isBefore(today)) today else startDate
-
-    // Get all event occurrences
-    val allEventOccurrences = db.eventDao().getAllOccurrences()
-
-    // Check each date where the bucket would occur
-    while (!current.isAfter(endLimit)) {
-        val matchesRule = when (recurFreq) {
-            RecurrenceFrequency.NONE -> current == startDate
-            RecurrenceFrequency.DAILY -> true
-            RecurrenceFrequency.WEEKLY -> recurRule.daysOfWeek?.contains(current.dayOfWeek.value) ?: true
-            RecurrenceFrequency.MONTHLY -> recurRule.daysOfMonth?.contains(current.dayOfMonth) ?: true
-            RecurrenceFrequency.YEARLY -> recurRule.monthAndDay?.let {
-                it.first == current.dayOfMonth && it.second == current.monthValue
-            } ?: true
-        }
-
-        if (matchesRule) {
-            // Filter events that occur on this date
-            val eventsOnDate = allEventOccurrences.filter { it.occurDate == current }
-
-            // Check for time overlap with any event
-            for (event in eventsOnDate) {
-                if (doTimeRangesOverlap(startTime, endTime, event.startTime, event.endTime)) {
-                    return OverlapInfo(
-                        hasOverlap = true,
-                        conflictType = "Event",
-                        conflictDate = current,
-                        conflictStartTime = event.startTime,
-                        conflictEndTime = event.endTime
-                    )
-                }
-            }
-        }
-
-        // Increment current date
-        current = when (recurFreq) {
-            RecurrenceFrequency.NONE,
-            RecurrenceFrequency.DAILY,
-            RecurrenceFrequency.WEEKLY,
-            RecurrenceFrequency.MONTHLY -> current.plusDays(1)
-            RecurrenceFrequency.YEARLY -> current.plusYears(1)
-        }
-    }
-
-    return OverlapInfo(hasOverlap = false)
-}
-
 /* Format overlap info */
 @RequiresApi(Build.VERSION_CODES.O)
 fun formatOverlapMessage(overlapInfo: OverlapInfo): String {
@@ -370,6 +175,57 @@ suspend fun getMaxBucketDurationMinutes(db: AppDatabase): Int? {
         val startMinutes = occurrence.startTime.hour * 60 + occurrence.startTime.minute
         val endMinutes = occurrence.endTime.hour * 60 + occurrence.endTime.minute
         endMinutes - startMinutes
+    }
+}
+
+/* Carve an event occurrence's time out of any bucket occurrences on the same date */
+@RequiresApi(Build.VERSION_CODES.O)
+suspend fun carveEventFromBucketsOnDate(
+    db: AppDatabase,
+    occurDate: LocalDate,
+    eventStartTime: LocalTime,
+    eventEndTime: LocalTime
+) {
+    val bucketsOnDate = db.taskBucketDao().getOccurrencesByDate(occurDate)
+
+    for (bucket in bucketsOnDate) {
+        if (!doTimeRangesOverlap(eventStartTime, eventEndTime, bucket.startTime, bucket.endTime)) continue
+
+        // Event completely covers bucket — delete it
+        if (!eventStartTime.isAfter(bucket.startTime) && !eventEndTime.isBefore(bucket.endTime)) {
+            db.taskBucketDao().deleteOccurrence(bucket.id)
+            continue
+        }
+
+        // Event overlaps start of bucket — trim start
+        if (!eventStartTime.isAfter(bucket.startTime) && eventEndTime.isBefore(bucket.endTime)) {
+            db.taskBucketDao().updateBucketOccurrence(
+                bucket.copy(startTime = eventEndTime, isException = true)
+            )
+            continue
+        }
+
+        // Event overlaps end of bucket — trim end
+        if (eventStartTime.isAfter(bucket.startTime) && !eventEndTime.isBefore(bucket.endTime)) {
+            db.taskBucketDao().updateBucketOccurrence(
+                bucket.copy(endTime = eventStartTime, isException = true)
+            )
+            continue
+        }
+
+        // Event is in the middle of bucket — split into two
+        db.taskBucketDao().updateBucketOccurrence(
+            bucket.copy(endTime = eventStartTime, isException = true)
+        )
+        db.taskBucketDao().insertOccurrence(
+            TaskBucketOccurrence(
+                masterBucketId = bucket.masterBucketId,
+                occurDate = occurDate,
+                startTime = eventEndTime,
+                endTime = bucket.endTime,
+                isException = true
+            )
+        )
     }
 }
 

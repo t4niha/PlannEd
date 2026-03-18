@@ -582,26 +582,6 @@ fun Creation(db: AppDatabase) {
                                         return@launch
                                     }
 
-                                    // Check for overlap with Task Buckets
-                                    val bucketOverlapInfo = checkEventOverlapWithBuckets(
-                                        db = db,
-                                        startDate = eventStartDate,
-                                        endDate = eventEndDate,
-                                        startTime = eventStartTime,
-                                        endTime = eventEndTime,
-                                        recurFreq = eventRecurrenceFreq,
-                                        recurRule = recurRule
-                                    )
-
-                                    if (bucketOverlapInfo.hasOverlap) {
-                                        overlapMessage = formatOverlapMessage(bucketOverlapInfo)
-                                        showOverlapNotification = true
-                                        scrollState.animateScrollTo(0)
-                                        delay(2000)
-                                        showOverlapNotification = false
-                                        return@launch
-                                    }
-
                                     // No overlap, proceed with save
                                     val categories = CategoryManager.getAll(db)
 
@@ -634,47 +614,6 @@ fun Creation(db: AppDatabase) {
                                         RecurrenceFrequency.YEARLY -> RecurrenceRule(monthAndDay = Pair(bucketStartDate.dayOfMonth, bucketStartDate.monthValue))
                                     }
 
-                                    // Check for overlap with other Task Buckets
-                                    val bucketOverlapInfo = checkBucketOverlapWithBuckets(
-                                        db = db,
-                                        startDate = bucketStartDate,
-                                        endDate = bucketEndDate,
-                                        startTime = bucketStartTime,
-                                        endTime = bucketEndTime,
-                                        recurFreq = bucketRecurrenceFreq,
-                                        recurRule = recurRule
-                                    )
-
-                                    if (bucketOverlapInfo.hasOverlap) {
-                                        overlapMessage = formatOverlapMessage(bucketOverlapInfo)
-                                        showOverlapNotification = true
-                                        scrollState.animateScrollTo(0)
-                                        delay(2000)
-                                        showOverlapNotification = false
-                                        return@launch
-                                    }
-
-                                    // Check for overlap with Events
-                                    val eventOverlapInfo = checkBucketOverlapWithEvents(
-                                        db = db,
-                                        startDate = bucketStartDate,
-                                        endDate = bucketEndDate,
-                                        startTime = bucketStartTime,
-                                        endTime = bucketEndTime,
-                                        recurFreq = bucketRecurrenceFreq,
-                                        recurRule = recurRule
-                                    )
-
-                                    if (eventOverlapInfo.hasOverlap) {
-                                        overlapMessage = formatOverlapMessage(eventOverlapInfo)
-                                        showOverlapNotification = true
-                                        scrollState.animateScrollTo(0)
-                                        delay(2000)
-                                        showOverlapNotification = false
-                                        return@launch
-                                    }
-
-                                    // No overlap, proceed with save
                                     TaskBucketManager.insert(
                                         db = db,
                                         startDate = bucketStartDate,

@@ -132,10 +132,14 @@ object EventManager {
         // Generate occurrences
         val occurrences = generateEventOccurrences(insertedEvent)
 
-        // Insert generated occurrences
+        // Insert generated occurrences and carve buckets
         occurrences.forEach { occurrence ->
             db.eventDao().insertOccurrence(occurrence)
+            carveEventFromBucketsOnDate(db, occurrence.occurDate, occurrence.startTime, occurrence.endTime)
         }
+
+        // Reschedule tasks into updated bucket slots
+        onTaskChanged(db)
     }
 
     // Get all master events
@@ -153,11 +157,15 @@ object EventManager {
             .filter { it.masterEventId == event.id }
         oldOccurrences.forEach { db.eventDao().deleteOccurrence(it.id) }
 
-        // Regenerate occurrences
+        // Regenerate occurrences and carve buckets
         val occurrences = generateEventOccurrences(event)
         occurrences.forEach { occurrence ->
             db.eventDao().insertOccurrence(occurrence)
+            carveEventFromBucketsOnDate(db, occurrence.occurDate, occurrence.startTime, occurrence.endTime)
         }
+
+        // Reschedule tasks into updated bucket slots
+        onTaskChanged(db)
     }
 
     // Delete master event and cascade null-setting
