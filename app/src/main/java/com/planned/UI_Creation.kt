@@ -94,8 +94,8 @@ fun Creation(db: AppDatabase) {
     var taskIsAutoSchedule by remember { mutableStateOf(true) }
     var taskStartDate by remember { mutableStateOf<LocalDate?>(null) }
     var taskStartTime by remember { mutableStateOf<LocalTime?>(null) }
-    var taskDurationHours by remember { mutableIntStateOf(0) }
-    var taskDurationMinutes by remember { mutableIntStateOf(30) }
+    var taskDurationHours by remember { mutableIntStateOf(1) }
+    var taskDurationMinutes by remember { mutableIntStateOf(0) }
     var taskSelectedCategory by remember { mutableStateOf<Int?>(null) }
     var taskSelectedEvent by remember { mutableStateOf<Int?>(null) }
     var taskSelectedDeadline by remember { mutableStateOf<Int?>(null) }
@@ -165,8 +165,8 @@ fun Creation(db: AppDatabase) {
         taskIsAutoSchedule = true
         taskStartDate = null
         taskStartTime = null
-        taskDurationHours = 0
-        taskDurationMinutes = 30
+        taskDurationHours = 1
+        taskDurationMinutes = 0
         taskSelectedCategory = null
         taskSelectedEvent = null
         taskSelectedDeadline = null
