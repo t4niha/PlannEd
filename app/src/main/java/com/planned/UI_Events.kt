@@ -345,38 +345,49 @@ fun EventInfoPage(
         if (showDeleteDialog) {
             AlertDialog(
                 onDismissRequest = { showDeleteDialog = false },
-                title = { Text("Delete Event") },
-                text = {
-                    Text(
-                        if (occurrence != null && currentEvent.recurFreq != RecurrenceFrequency.NONE)
-                            "Delete just this occurrence or all occurrences of this event?"
-                        else
-                            "Delete this event?"
-                    )
-                },
-                confirmButton = {
-                    if (occurrence != null && currentEvent.recurFreq != RecurrenceFrequency.NONE) {
-                        TextButton(onClick = {
-                            showDeleteDialog = false
-                            scope.launch {
-                                db.eventDao().deleteOccurrence(occurrence.id)
-                                onBack()
-                            }
-                        }) { Text("Delete This", color = Color.Gray) }
-                    }
-                },
+                containerColor = BackgroundColor,
+                title = null,
+                text = { Text("Delete this event?", fontSize = 16.sp) },
+                confirmButton = {},
                 dismissButton = {
-                    Row {
-                        TextButton(onClick = { showDeleteDialog = false }) {
-                            Text("Cancel", color = Color.Gray)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Button(
+                            onClick = { showDeleteDialog = false },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
+                            contentPadding = PaddingValues(12.dp)
+                        ) { Text("Cancel", fontSize = 12.sp, color = Color.White) }
+
+                        if (occurrence != null && currentEvent.recurFreq != RecurrenceFrequency.NONE) {
+                            Button(
+                                onClick = {
+                                    showDeleteDialog = false
+                                    scope.launch {
+                                        db.eventDao().deleteOccurrence(occurrence.id)
+                                        onBack()
+                                    }
+                                },
+                                modifier = Modifier.weight(1f),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
+                                contentPadding = PaddingValues(12.dp)
+                            ) { Text("Delete This", fontSize = 12.sp, color = Color.White) }
                         }
-                        TextButton(onClick = {
-                            showDeleteDialog = false
-                            scope.launch {
-                                EventManager.delete(db, currentEvent.id)
-                                onBack()
-                            }
-                        }) { Text("Delete All", color = Color.Red) }
+
+                        Button(
+                            onClick = {
+                                showDeleteDialog = false
+                                scope.launch {
+                                    EventManager.delete(db, currentEvent.id)
+                                    onBack()
+                                }
+                            },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
+                            contentPadding = PaddingValues(12.dp)
+                        ) { Text(if (currentEvent.recurFreq != RecurrenceFrequency.NONE) "Delete All" else "Delete", fontSize = 12.sp, color = Color.White) }
                     }
                 }
             )

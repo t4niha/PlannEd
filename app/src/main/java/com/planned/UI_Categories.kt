@@ -157,6 +157,7 @@ fun CategoryInfoPage(
     val scope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
     var currentCategory by remember { mutableStateOf(category) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
     var eventCount by remember { mutableIntStateOf(0) }
     var deadlineCount by remember { mutableIntStateOf(0) }
     var taskCount by remember { mutableIntStateOf(0) }
@@ -251,12 +252,7 @@ fun CategoryInfoPage(
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Button(
-                onClick = {
-                    scope.launch {
-                        CategoryManager.delete(db, currentCategory.id)
-                        onBack()
-                    }
-                },
+                onClick = { showDeleteDialog = true },
                 modifier = Modifier.weight(1f),
                 colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
                 contentPadding = PaddingValues(16.dp)
@@ -271,6 +267,41 @@ fun CategoryInfoPage(
             ) {
                 Text("Update", fontSize = 16.sp, color = Color.White)
             }
+        }
+
+        if (showDeleteDialog) {
+            AlertDialog(
+                onDismissRequest = { showDeleteDialog = false },
+                containerColor = BackgroundColor,
+                title = null,
+                text = { Text("Delete this category?", fontSize = 16.sp) },
+                confirmButton = {},
+                dismissButton = {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Button(
+                            onClick = { showDeleteDialog = false },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
+                            contentPadding = PaddingValues(12.dp)
+                        ) { Text("Cancel", fontSize = 12.sp, color = Color.White) }
+                        Button(
+                            onClick = {
+                                showDeleteDialog = false
+                                scope.launch {
+                                    CategoryManager.delete(db, currentCategory.id)
+                                    onBack()
+                                }
+                            },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
+                            contentPadding = PaddingValues(12.dp)
+                        ) { Text("Delete", fontSize = 12.sp, color = Color.White) }
+                    }
+                }
+            )
         }
     }
 }

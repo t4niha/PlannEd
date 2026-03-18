@@ -293,39 +293,50 @@ fun TaskBucketInfoPage(
         if (showDeleteDialog) {
             AlertDialog(
                 onDismissRequest = { showDeleteDialog = false },
-                title = { Text("Delete Task Bucket") },
-                text = {
-                    Text(
-                        if (occurrence != null && currentBucket.recurFreq != RecurrenceFrequency.NONE)
-                            "Delete just this occurrence or all occurrences of this task bucket?"
-                        else
-                            "Delete this task bucket?"
-                    )
-                },
-                confirmButton = {
-                    if (occurrence != null && currentBucket.recurFreq != RecurrenceFrequency.NONE) {
-                        TextButton(onClick = {
-                            showDeleteDialog = false
-                            scope.launch {
-                                db.taskBucketDao().deleteOccurrence(occurrence.id)
-                                onTaskChanged(db)
-                                onBack()
-                            }
-                        }) { Text("Delete This", color = Color.Gray) }
-                    }
-                },
+                containerColor = BackgroundColor,
+                title = null,
+                text = { Text("Delete this task bucket?", fontSize = 16.sp) },
+                confirmButton = {},
                 dismissButton = {
-                    Row {
-                        TextButton(onClick = { showDeleteDialog = false }) {
-                            Text("Cancel", color = Color.Gray)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Button(
+                            onClick = { showDeleteDialog = false },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
+                            contentPadding = PaddingValues(12.dp)
+                        ) { Text("Cancel", fontSize = 12.sp, color = Color.White) }
+
+                        if (occurrence != null && currentBucket.recurFreq != RecurrenceFrequency.NONE) {
+                            Button(
+                                onClick = {
+                                    showDeleteDialog = false
+                                    scope.launch {
+                                        db.taskBucketDao().deleteOccurrence(occurrence.id)
+                                        onTaskChanged(db)
+                                        onBack()
+                                    }
+                                },
+                                modifier = Modifier.weight(1f),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
+                                contentPadding = PaddingValues(12.dp)
+                            ) { Text("Delete This", fontSize = 12.sp, color = Color.White) }
                         }
-                        TextButton(onClick = {
-                            showDeleteDialog = false
-                            scope.launch {
-                                TaskBucketManager.delete(db, currentBucket.id)
-                                onBack()
-                            }
-                        }) { Text("Delete All", color = Color.Red) }
+
+                        Button(
+                            onClick = {
+                                showDeleteDialog = false
+                                scope.launch {
+                                    TaskBucketManager.delete(db, currentBucket.id)
+                                    onBack()
+                                }
+                            },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
+                            contentPadding = PaddingValues(12.dp)
+                        ) { Text(if (currentBucket.recurFreq != RecurrenceFrequency.NONE) "Delete All" else "Delete", fontSize = 12.sp, color = Color.White) }
                     }
                 }
             )

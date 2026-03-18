@@ -262,6 +262,8 @@ suspend fun trimAndExtendOccurrences(db: AppDatabase) {
     // Events
     val allEventOccurrences = db.eventDao().getAllOccurrences()
     db.eventDao().getAllMasterEvents().forEach { event ->
+        if (event.recurFreq == RecurrenceFrequency.NONE) return@forEach
+
         val existingDates = allEventOccurrences
             .filter { it.masterEventId == event.id }
             .map { it.occurDate }
@@ -281,6 +283,8 @@ suspend fun trimAndExtendOccurrences(db: AppDatabase) {
     // Reminders
     val allReminderOccurrences = db.reminderDao().getAllOccurrences()
     db.reminderDao().getAllMasterReminders().forEach { reminder ->
+        if (reminder.recurFreq == RecurrenceFrequency.NONE) return@forEach
+
         val existingDates = allReminderOccurrences
             .filter { it.masterReminderId == reminder.id }
             .map { it.occurDate }
@@ -300,6 +304,8 @@ suspend fun trimAndExtendOccurrences(db: AppDatabase) {
     // Task Buckets
     val allBucketOccurrences = db.taskBucketDao().getAllBucketOccurrences()
     db.taskBucketDao().getAllMasterBuckets().forEach { bucket ->
+        if (bucket.recurFreq == RecurrenceFrequency.NONE) return@forEach
+
         val existingDates = allBucketOccurrences
             .filter { it.masterBucketId == bucket.id }
             .map { it.occurDate }

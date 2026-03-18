@@ -200,6 +200,7 @@ fun DeadlineInfoView(
     var currentDeadline by remember { mutableStateOf(deadline) }
     var relatedTasks by remember { mutableStateOf<List<MasterTask>>(emptyList()) }
     var updateDataReady by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(deadline.id) {
         currentDeadline = db.deadlineDao().getDeadlineById(deadline.id) ?: deadline
@@ -324,7 +325,7 @@ fun DeadlineInfoView(
 
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Button(
-                onClick = { scope.launch { DeadlineManager.delete(db, currentDeadline.id); onBack() } },
+                onClick = { showDeleteDialog = true },
                 modifier = Modifier.weight(1f),
                 colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
                 contentPadding = PaddingValues(16.dp)
@@ -335,6 +336,41 @@ fun DeadlineInfoView(
                 colors = ButtonDefaults.buttonColors(containerColor = if (updateDataReady) PrimaryColor else Color.LightGray),
                 contentPadding = PaddingValues(16.dp)
             ) { Text("Update", fontSize = 16.sp, color = Color.White) }
+        }
+
+        if (showDeleteDialog) {
+            AlertDialog(
+                onDismissRequest = { showDeleteDialog = false },
+                containerColor = BackgroundColor,
+                title = null,
+                text = { Text("Delete this deadline?", fontSize = 16.sp) },
+                confirmButton = {},
+                dismissButton = {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Button(
+                            onClick = { showDeleteDialog = false },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
+                            contentPadding = PaddingValues(12.dp)
+                        ) { Text("Cancel", fontSize = 12.sp, color = Color.White) }
+                        Button(
+                            onClick = {
+                                showDeleteDialog = false
+                                scope.launch {
+                                    DeadlineManager.delete(db, currentDeadline.id)
+                                    onBack()
+                                }
+                            },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
+                            contentPadding = PaddingValues(12.dp)
+                        ) { Text("Delete", fontSize = 12.sp, color = Color.White) }
+                    }
+                }
+            )
         }
     }
 }

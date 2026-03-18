@@ -255,8 +255,6 @@ fun ReminderInfoView(
                 Spacer(modifier = Modifier.height(18.dp))
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
-
             InfoCard(listOf(
                 "Start Date" to currentReminder.startDate.format(dateFormatter),
                 "End Date" to (currentReminder.endDate?.format(dateFormatter) ?: "N/A"),
@@ -294,38 +292,49 @@ fun ReminderInfoView(
         if (showDeleteDialog) {
             AlertDialog(
                 onDismissRequest = { showDeleteDialog = false },
-                title = { Text("Delete Reminder") },
-                text = {
-                    Text(
-                        if (occurrence != null && currentReminder.recurFreq != RecurrenceFrequency.NONE)
-                            "Delete just this occurrence or all occurrences of this reminder?"
-                        else
-                            "Delete this reminder?"
-                    )
-                },
-                confirmButton = {
-                    if (occurrence != null && currentReminder.recurFreq != RecurrenceFrequency.NONE) {
-                        TextButton(onClick = {
-                            showDeleteDialog = false
-                            scope.launch {
-                                db.reminderDao().deleteOccurrence(occurrence.id)
-                                onBack()
-                            }
-                        }) { Text("Delete This", color = Color.Gray) }
-                    }
-                },
+                containerColor = BackgroundColor,
+                title = null,
+                text = { Text("Delete this reminder?", fontSize = 16.sp) },
+                confirmButton = {},
                 dismissButton = {
-                    Row {
-                        TextButton(onClick = { showDeleteDialog = false }) {
-                            Text("Cancel", color = Color.Gray)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Button(
+                            onClick = { showDeleteDialog = false },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
+                            contentPadding = PaddingValues(12.dp)
+                        ) { Text("Cancel", fontSize = 12.sp, color = Color.White) }
+
+                        if (occurrence != null && currentReminder.recurFreq != RecurrenceFrequency.NONE) {
+                            Button(
+                                onClick = {
+                                    showDeleteDialog = false
+                                    scope.launch {
+                                        db.reminderDao().deleteOccurrence(occurrence.id)
+                                        onBack()
+                                    }
+                                },
+                                modifier = Modifier.weight(1f),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
+                                contentPadding = PaddingValues(12.dp)
+                            ) { Text("Delete This", fontSize = 12.sp, color = Color.White) }
                         }
-                        TextButton(onClick = {
-                            showDeleteDialog = false
-                            scope.launch {
-                                ReminderManager.delete(db, currentReminder.id)
-                                onBack()
-                            }
-                        }) { Text("Delete All", color = Color.Red) }
+
+                        Button(
+                            onClick = {
+                                showDeleteDialog = false
+                                scope.launch {
+                                    ReminderManager.delete(db, currentReminder.id)
+                                    onBack()
+                                }
+                            },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
+                            contentPadding = PaddingValues(12.dp)
+                        ) { Text(if (currentReminder.recurFreq != RecurrenceFrequency.NONE) "Delete All" else "Delete", fontSize = 12.sp, color = Color.White) }
                     }
                 }
             )

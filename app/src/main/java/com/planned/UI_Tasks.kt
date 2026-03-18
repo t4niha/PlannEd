@@ -505,6 +505,7 @@ fun TaskInfoPage(
     var intervals by remember { mutableStateOf<List<TaskInterval>>(emptyList()) }
     var currentTask by remember { mutableStateOf(task) }
     var updateDataReady by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(task.id) {
         currentTask = db.taskDao().getMasterTaskById(task.id) ?: task
@@ -599,6 +600,8 @@ fun TaskInfoPage(
                     Text(text = currentTask.notes!!, fontSize = 16.sp)
                 }
                 Spacer(modifier = Modifier.height(18.dp))
+            } else {
+                Spacer(modifier = Modifier.height(18.dp))
             }
 
             if (intervals.isNotEmpty()) {
@@ -641,12 +644,7 @@ fun TaskInfoPage(
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Button(
-                onClick = {
-                    scope.launch {
-                        TaskManager.delete(db, currentTask.id)
-                        onBack()
-                    }
-                },
+                onClick = { showDeleteDialog = true },
                 modifier = Modifier.weight(1f),
                 colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
                 contentPadding = PaddingValues(16.dp)
@@ -663,6 +661,41 @@ fun TaskInfoPage(
             ) {
                 Text("Update", fontSize = 16.sp, color = Color.White)
             }
+        }
+
+        if (showDeleteDialog) {
+            AlertDialog(
+                onDismissRequest = { showDeleteDialog = false },
+                containerColor = BackgroundColor,
+                title = null,
+                text = { Text("Delete this task?", fontSize = 16.sp) },
+                confirmButton = {},
+                dismissButton = {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Button(
+                            onClick = { showDeleteDialog = false },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
+                            contentPadding = PaddingValues(12.dp)
+                        ) { Text("Cancel", fontSize = 12.sp, color = Color.White) }
+                        Button(
+                            onClick = {
+                                showDeleteDialog = false
+                                scope.launch {
+                                    TaskManager.delete(db, currentTask.id)
+                                    onBack()
+                                }
+                            },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
+                            contentPadding = PaddingValues(12.dp)
+                        ) { Text("Delete", fontSize = 12.sp, color = Color.White) }
+                    }
+                }
+            )
         }
     }
 }
@@ -1213,6 +1246,7 @@ fun AllDayTaskInfoPage(
     var category by remember { mutableStateOf<Category?>(null) }
     var event by remember { mutableStateOf<MasterEvent?>(null) }
     var deadline by remember { mutableStateOf<Deadline?>(null) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(task.id) {
         currentTask = db.taskDao().getMasterTaskById(task.id) ?: task
@@ -1286,12 +1320,7 @@ fun AllDayTaskInfoPage(
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Button(
-                onClick = {
-                    scope.launch {
-                        TaskManager.delete(db, currentTask.id)
-                        onBack()
-                    }
-                },
+                onClick = { showDeleteDialog = true },
                 modifier = Modifier.weight(1f),
                 colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
                 contentPadding = PaddingValues(16.dp)
@@ -1306,6 +1335,41 @@ fun AllDayTaskInfoPage(
             ) {
                 Text("Update", fontSize = 16.sp, color = Color.White)
             }
+        }
+
+        if (showDeleteDialog) {
+            AlertDialog(
+                onDismissRequest = { showDeleteDialog = false },
+                containerColor = BackgroundColor,
+                title = null,
+                text = { Text("Delete this task?", fontSize = 16.sp) },
+                confirmButton = {},
+                dismissButton = {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Button(
+                            onClick = { showDeleteDialog = false },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
+                            contentPadding = PaddingValues(12.dp)
+                        ) { Text("Cancel", fontSize = 12.sp, color = Color.White) }
+                        Button(
+                            onClick = {
+                                showDeleteDialog = false
+                                scope.launch {
+                                    TaskManager.delete(db, currentTask.id)
+                                    onBack()
+                                }
+                            },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
+                            contentPadding = PaddingValues(12.dp)
+                        ) { Text("Delete", fontSize = 12.sp, color = Color.White) }
+                    }
+                }
+            )
         }
     }
 }

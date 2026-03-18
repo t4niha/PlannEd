@@ -57,7 +57,7 @@ TODO: [-] Fix UI pages (category, event, deadline, reminder, task bucket)
 TODO: [-] Calendar to UI pages navigation
 TODO: [ ] On creation don't allow duplicate titles for events, categories
 TODO: [ ] refresh schedule button?
-TODO: [ ] Confirmation dialogs for destructive operations (delete master, cascading)
+TODO: [-] Confirmation dialogs for destructive operations (this/all)
 TODO: [ ] Warning for insufficient bucket space
 TODO: [ ] Warning when tasks scheduled after deadline / impossible to meet deadline
 
