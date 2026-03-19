@@ -65,8 +65,8 @@ TODO: [/] Kanban board?
 TODO: [-] POMODORO have the option to control timer spread (not just an hour!)
 TODO: [ ] DB Sample stuff
 
-TODO: [ ] notifications?
-TODO: [ ] Status indicators and overtime warnings for task elements on calendar?
+TODO: [ ] notifications
+TODO: [?] Status indicators and overtime warnings for task elements on calendar?
 
 TODO: [ ] Task info back to calendar doesn't scroll to that task, only to today
 TODO: [-] Task update form dropdown loop glitch
