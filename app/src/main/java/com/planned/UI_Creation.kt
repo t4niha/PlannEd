@@ -4,6 +4,7 @@ import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -718,24 +719,28 @@ fun Creation(db: AppDatabase) {
             exit = slideOutVertically(targetOffsetY = { -it }) + fadeOut(),
             modifier = Modifier.align(Alignment.TopCenter)
         ) {
-            Surface(
-                color = PrimaryColor,
+            val dragOffset = remember { androidx.compose.runtime.mutableFloatStateOf(0f) }
+            Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                shadowElevation = 8.dp,
-                shape = MaterialTheme.shapes.medium
-            ) {
-                Box(
-                    modifier = Modifier.padding(16.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        validationMessage,
-                        color = BackgroundColor,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold
+                    .offset(y = dragOffset.floatValue.coerceAtMost(0f).dp)
+                    .draggable(
+                        orientation = androidx.compose.foundation.gestures.Orientation.Vertical,
+                        state = androidx.compose.foundation.gestures.rememberDraggableState { delta ->
+                            dragOffset.floatValue += delta
+                            if (dragOffset.floatValue < -80f) showValidationNotification = false
+                        },
+                        onDragStopped = { dragOffset.floatValue = 0f }
                     )
+            ) {
+                Surface(
+                    color = PrimaryColor,
+                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                    shadowElevation = 8.dp,
+                    shape = MaterialTheme.shapes.medium
+                ) {
+                    Box(modifier = Modifier.padding(16.dp), contentAlignment = Alignment.Center) {
+                        Text(validationMessage, color = BackgroundColor, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    }
                 }
             }
         }
@@ -747,24 +752,28 @@ fun Creation(db: AppDatabase) {
             exit = slideOutVertically(targetOffsetY = { -it }) + fadeOut(),
             modifier = Modifier.align(Alignment.TopCenter)
         ) {
-            Surface(
-                color = PrimaryColor,
+            val dragOffset = remember { androidx.compose.runtime.mutableFloatStateOf(0f) }
+            Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                shadowElevation = 8.dp,
-                shape = MaterialTheme.shapes.medium
-            ) {
-                Box(
-                    modifier = Modifier.padding(16.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        overlapMessage,
-                        color = BackgroundColor,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold
+                    .offset(y = dragOffset.floatValue.coerceAtMost(0f).dp)
+                    .draggable(
+                        orientation = androidx.compose.foundation.gestures.Orientation.Vertical,
+                        state = androidx.compose.foundation.gestures.rememberDraggableState { delta ->
+                            dragOffset.floatValue += delta
+                            if (dragOffset.floatValue < -80f) showOverlapNotification = false
+                        },
+                        onDragStopped = { dragOffset.floatValue = 0f }
                     )
+            ) {
+                Surface(
+                    color = PrimaryColor,
+                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                    shadowElevation = 8.dp,
+                    shape = MaterialTheme.shapes.medium
+                ) {
+                    Box(modifier = Modifier.padding(16.dp), contentAlignment = Alignment.Center) {
+                        Text(overlapMessage, color = BackgroundColor, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    }
                 }
             }
         }
@@ -776,25 +785,34 @@ fun Creation(db: AppDatabase) {
             exit = slideOutVertically(targetOffsetY = { -it }) + fadeOut(),
             modifier = Modifier.align(Alignment.TopCenter)
         ) {
-            Surface(
-                color = PrimaryColor,
+            val dragOffset = remember { androidx.compose.runtime.mutableFloatStateOf(0f) }
+            Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                shadowElevation = 8.dp,
-                shape = MaterialTheme.shapes.medium
-            ) {
-                Box(
-                    modifier = Modifier.padding(16.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        successMessage,
-                        color = BackgroundColor,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    .offset(y = dragOffset.floatValue.coerceAtMost(0f).dp)
+                    .draggable(
+                        orientation = androidx.compose.foundation.gestures.Orientation.Vertical,
+                        state = androidx.compose.foundation.gestures.rememberDraggableState { delta ->
+                            dragOffset.floatValue += delta
+                            if (dragOffset.floatValue < -80f) showSuccessNotification = false
+                        },
+                        onDragStopped = { dragOffset.floatValue = 0f }
                     )
+            ) {
+                Surface(
+                    color = PrimaryColor,
+                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                    shadowElevation = 8.dp,
+                    shape = MaterialTheme.shapes.medium
+                ) {
+                    Box(modifier = Modifier.padding(16.dp), contentAlignment = Alignment.Center) {
+                        Text(
+                            successMessage,
+                            color = BackgroundColor,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
+                    }
                 }
             }
         }
