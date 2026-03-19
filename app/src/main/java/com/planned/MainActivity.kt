@@ -55,11 +55,11 @@ TODO: [-] Deadlines/Events info pages -> Related Tasks
 TODO: [-] Scheduler schedules tasks before right now??????
 TODO: [-] Fix UI pages (category, event, deadline, reminder, task bucket)
 TODO: [-] Calendar to UI pages navigation
-TODO: [ ] On creation don't allow duplicate titles for events, categories
-TODO: [ ] refresh schedule button?
+TODO: [?] On creation don't allow duplicate titles for events, categories?
+TODO: [-] refresh schedule button?
 TODO: [-] Confirmation dialogs for destructive operations (this/all)
 TODO: [-] Warning for insufficient bucket space
-TODO: [ ] Warning when tasks scheduled after deadline / impossible to meet deadline
+TODO: [?] Warning when tasks scheduled after deadline / impossible to meet deadline?
 
 TODO: [/] Kanban board?
 TODO: [-] POMODORO have the option to control timer spread (not just an hour!)

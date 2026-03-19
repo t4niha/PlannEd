@@ -14,6 +14,8 @@ import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Refresh
+import kotlinx.coroutines.launch
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -34,6 +36,8 @@ import androidx.compose.material.icons.filled.Android
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.ui.graphics.graphicsLayer
 
+/* VARIABLES */
+//<editor-fold desc="Variables">
 var currentScreen by mutableStateOf("Calendars")
 var currentCalendarView by mutableStateOf("Month")
 var calendarResetTrigger by mutableIntStateOf(0)
@@ -45,14 +49,14 @@ var taskInfoReturnScreen by mutableStateOf("Calendars")
 
 // Event
 var selectedEventForInfo by mutableStateOf<MasterEvent?>(null)
-var selectedEventOccurrenceForInfo by mutableStateOf<EventOccurrence?>(null)
 var navEventUpdateFormData by mutableStateOf<EventUpdateFormData?>(null)
 var eventInfoReturnScreen by mutableStateOf("Calendars")
+var selectedEventOccurrenceForInfo by mutableStateOf<EventOccurrence?>(null)
 
 // Reminder
 var selectedReminderForInfo by mutableStateOf<MasterReminder?>(null)
-var selectedReminderOccurrenceForInfo by mutableStateOf<ReminderOccurrence?>(null)
 var navReminderUpdateFormData by mutableStateOf<ReminderUpdateFormData?>(null)
+var selectedReminderOccurrenceForInfo by mutableStateOf<ReminderOccurrence?>(null)
 
 // Deadline
 var selectedDeadlineForInfo by mutableStateOf<Deadline?>(null)
@@ -63,14 +67,16 @@ var deadlineInfoReturnScreen by mutableStateOf("Calendars")
 var selectedBucketForInfo by mutableStateOf<MasterTaskBucket?>(null)
 var selectedBucketOccurrenceForInfo by mutableStateOf<TaskBucketOccurrence?>(null)
 
-// All-Day Task (reuses selectedTaskForInfo flow but separate screen keys)
+// All-Day Task
 var selectedAllDayTaskForInfo by mutableStateOf<MasterTask?>(null)
+//</editor-fold>
 
 /* APP NAVIGATION */
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun AppNavigation(db: AppDatabase) {
     var isDrawerOpen by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
 
     NavigationDrawer(
         isDrawerOpen = isDrawerOpen,
@@ -90,6 +96,12 @@ fun AppNavigation(db: AppDatabase) {
                     onCreateClick = {
                         currentScreen = "Creation"
                         if (isDrawerOpen) isDrawerOpen = false
+                    },
+                    onRefreshClick = {
+                        coroutineScope.launch {
+                            generateTaskIntervals(db)
+                            calendarResetTrigger++
+                        }
                     }
                 )
             },
@@ -316,7 +328,8 @@ fun Header(
     currentView: String,
     onViewSelected: (String) -> Unit,
     onMenuClick: () -> Unit,
-    onCreateClick: () -> Unit
+    onCreateClick: () -> Unit,
+    onRefreshClick: () -> Unit
 ) {
     Column(modifier = Modifier.background(BackgroundColor)) {
         CenterAlignedTopAppBar(
@@ -362,6 +375,10 @@ fun Header(
                     }
 
                     Spacer(modifier = Modifier.width(8.dp))
+
+                    IconButton(onClick = onRefreshClick) {
+                        Icon(Icons.Filled.Refresh, contentDescription = "Refresh Schedule", modifier = Modifier.size(30.dp))
+                    }
 
                     IconButton(onClick = onCreateClick) {
                         Icon(Icons.Filled.Add, contentDescription = "Create", modifier = Modifier.size(32.dp))
