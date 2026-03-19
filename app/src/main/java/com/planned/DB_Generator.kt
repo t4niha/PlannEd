@@ -157,45 +157,9 @@ suspend fun generateTaskBucketOccurrences(
                     db.taskBucketDao().deleteOccurrence(overlappingOccurrences[i].id)
                 }
 
-                // Carve all events out of the merged occurrence
-                val eventsOnDate = db.eventDao().getAllOccurrences().filter { it.occurDate == current }
-                eventsOnDate.forEach { event ->
-                    carveEventFromBucketsOnDate(db, current, event.startTime, event.endTime)
-                }
-
             } else {
-                // No bucket overlaps — subtract events from this occurrence before adding
-                val eventsOnDate = db.eventDao().getAllOccurrences().filter { it.occurDate == current }
-                val carved = mutableListOf(newOccurrence)
-
-                for (event in eventsOnDate) {
-                    val next = mutableListOf<TaskBucketOccurrence>()
-                    for (slot in carved) {
-                        if (!doTimeRangesOverlap(event.startTime, event.endTime, slot.startTime, slot.endTime)) {
-                            next.add(slot)
-                            continue
-                        }
-                        // Event completely covers slot — drop it
-                        if (!event.startTime.isAfter(slot.startTime) && !event.endTime.isBefore(slot.endTime)) continue
-                        // Event trims start
-                        if (!event.startTime.isAfter(slot.startTime) && event.endTime.isBefore(slot.endTime)) {
-                            next.add(slot.copy(startTime = event.endTime, isException = true))
-                            continue
-                        }
-                        // Event trims end
-                        if (event.startTime.isAfter(slot.startTime) && !event.endTime.isBefore(slot.endTime)) {
-                            next.add(slot.copy(endTime = event.startTime, isException = true))
-                            continue
-                        }
-                        // Event splits slot
-                        next.add(slot.copy(endTime = event.startTime, isException = true))
-                        next.add(slot.copy(startTime = event.endTime, isException = true))
-                    }
-                    carved.clear()
-                    carved.addAll(next)
-                }
-
-                newOccurrences.addAll(carved)
+                // No overlaps found, add as new occurrence
+                newOccurrences.add(newOccurrence)
             }
         }
 
@@ -312,10 +276,7 @@ suspend fun trimAndExtendOccurrences(db: AppDatabase) {
             val extendedMaster = event.copy(startDate = maxOfDate(event.startDate, generateFrom))
             val newOccurrences = generateEventOccurrences(extendedMaster)
                 .filter { it.occurDate !in existingDates }
-            newOccurrences.forEach { occ ->
-                db.eventDao().insertOccurrence(occ)
-                carveEventFromBucketsOnDate(db, occ.occurDate, occ.startTime, occ.endTime)
-            }
+            newOccurrences.forEach { db.eventDao().insertOccurrence(it) }
         }
     }
 

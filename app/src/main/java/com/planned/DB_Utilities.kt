@@ -178,57 +178,6 @@ suspend fun getMaxBucketDurationMinutes(db: AppDatabase): Int? {
     }
 }
 
-/* Carve an event occurrence's time out of any bucket occurrences on the same date */
-@RequiresApi(Build.VERSION_CODES.O)
-suspend fun carveEventFromBucketsOnDate(
-    db: AppDatabase,
-    occurDate: LocalDate,
-    eventStartTime: LocalTime,
-    eventEndTime: LocalTime
-) {
-    val bucketsOnDate = db.taskBucketDao().getOccurrencesByDate(occurDate)
-
-    for (bucket in bucketsOnDate) {
-        if (!doTimeRangesOverlap(eventStartTime, eventEndTime, bucket.startTime, bucket.endTime)) continue
-
-        // Event completely covers bucket — delete it
-        if (!eventStartTime.isAfter(bucket.startTime) && !eventEndTime.isBefore(bucket.endTime)) {
-            db.taskBucketDao().deleteOccurrence(bucket.id)
-            continue
-        }
-
-        // Event overlaps start of bucket — trim start
-        if (!eventStartTime.isAfter(bucket.startTime) && eventEndTime.isBefore(bucket.endTime)) {
-            db.taskBucketDao().updateBucketOccurrence(
-                bucket.copy(startTime = eventEndTime, isException = true)
-            )
-            continue
-        }
-
-        // Event overlaps end of bucket — trim end
-        if (eventStartTime.isAfter(bucket.startTime) && !eventEndTime.isBefore(bucket.endTime)) {
-            db.taskBucketDao().updateBucketOccurrence(
-                bucket.copy(endTime = eventStartTime, isException = true)
-            )
-            continue
-        }
-
-        // Event is in the middle of bucket — split into two
-        db.taskBucketDao().updateBucketOccurrence(
-            bucket.copy(endTime = eventStartTime, isException = true)
-        )
-        db.taskBucketDao().insertOccurrence(
-            TaskBucketOccurrence(
-                masterBucketId = bucket.masterBucketId,
-                occurDate = occurDate,
-                startTime = eventEndTime,
-                endTime = bucket.endTime,
-                isException = true
-            )
-        )
-    }
-}
-
 /* CASCADE NULL-SETTING FUNCTIONS */
 
 /* Handle category deletion */

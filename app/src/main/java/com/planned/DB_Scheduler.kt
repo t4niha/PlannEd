@@ -190,6 +190,10 @@ private suspend fun getAvailableTimeSlots(db: AppDatabase): MutableList<Availabl
     // Get all manually scheduled task intervals
     val manualIntervals = db.taskDao().getAllIntervals()
 
+    // Get all event occurrences - today and future only
+    val eventOccurrences = db.eventDao().getAllOccurrences()
+        .filter { it.occurDate >= today }
+
     // Convert bucket occurrences to available slots
     val availableSlots = mutableListOf<AvailableTimeSlot>()
 
@@ -220,20 +224,32 @@ private suspend fun getAvailableTimeSlots(db: AppDatabase): MutableList<Availabl
             val newSlots = mutableListOf<AvailableTimeSlot>()
 
             for (slot in currentSlots) {
-                // Check if manual interval overlaps with slot
                 if (doTimeRangesOverlap(
                         slot.startTime, slot.endTime,
                         manualInterval.startTime, manualInterval.endTime
                     )) {
-                    // Split slot around manual interval
-                    val splitSlots = subtractTimeRange(
-                        slot,
-                        manualInterval.startTime,
-                        manualInterval.endTime
-                    )
-                    newSlots.addAll(splitSlots)
+                    newSlots.addAll(subtractTimeRange(slot, manualInterval.startTime, manualInterval.endTime))
                 } else {
-                    // No overlap, keep the slot as is
+                    newSlots.add(slot)
+                }
+            }
+
+            currentSlots = newSlots
+        }
+
+        // Subtract all event occurrences
+        val eventsOnDate = eventOccurrences.filter { it.occurDate == bucket.occurDate }
+
+        for (event in eventsOnDate) {
+            val newSlots = mutableListOf<AvailableTimeSlot>()
+
+            for (slot in currentSlots) {
+                if (doTimeRangesOverlap(
+                        slot.startTime, slot.endTime,
+                        event.startTime, event.endTime
+                    )) {
+                    newSlots.addAll(subtractTimeRange(slot, event.startTime, event.endTime))
+                } else {
                     newSlots.add(slot)
                 }
             }

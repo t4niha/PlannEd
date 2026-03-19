@@ -132,13 +132,12 @@ object EventManager {
         // Generate occurrences
         val occurrences = generateEventOccurrences(insertedEvent)
 
-        // Insert generated occurrences and carve buckets
+        // Insert generated occurrences
         occurrences.forEach { occurrence ->
             db.eventDao().insertOccurrence(occurrence)
-            carveEventFromBucketsOnDate(db, occurrence.occurDate, occurrence.startTime, occurrence.endTime)
         }
 
-        // Reschedule tasks into updated bucket slots
+        // Rerun scheduler since event times affect available slots
         onTaskChanged(db)
     }
 
@@ -157,22 +156,34 @@ object EventManager {
             .filter { it.masterEventId == event.id }
         oldOccurrences.forEach { db.eventDao().deleteOccurrence(it.id) }
 
-        // Regenerate occurrences and carve buckets
+        // Regenerate occurrences
         val occurrences = generateEventOccurrences(event)
         occurrences.forEach { occurrence ->
             db.eventDao().insertOccurrence(occurrence)
-            carveEventFromBucketsOnDate(db, occurrence.occurDate, occurrence.startTime, occurrence.endTime)
         }
 
-        // Reschedule tasks into updated bucket slots
+        // Rerun scheduler since event times affect available slots
         onTaskChanged(db)
     }
 
     // Delete master event and cascade null-setting
     @RequiresApi(Build.VERSION_CODES.O)
     suspend fun delete(db: AppDatabase, eventId: Int) {
-        onEventDeleted(db, eventId)
+        // Null-set references in deadlines and tasks first
+        val deadlines = db.deadlineDao().getAll()
+        deadlines.filter { it.eventId == eventId }.forEach { deadline ->
+            db.deadlineDao().update(deadline.copy(eventId = null))
+        }
+        val tasks = db.taskDao().getAllMasterTasks()
+        tasks.filter { it.eventId == eventId }.forEach { task ->
+            db.taskDao().update(task.copy(eventId = null))
+        }
+
+        // Delete master event (cascades to occurrences)
         db.eventDao().deleteMasterEvent(eventId)
+
+        // Rerun scheduler now that event occurrences are gone
+        generateTaskIntervals(db)
     }
 }
 
