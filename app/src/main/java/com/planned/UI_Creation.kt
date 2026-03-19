@@ -39,6 +39,7 @@ fun Creation(db: AppDatabase) {
 
     // Success notification
     var showSuccessNotification by remember { mutableStateOf(false) }
+    var successMessage by remember { mutableStateOf("") }
 
     // Reset trigger
     var resetTrigger by remember { mutableIntStateOf(0) }
@@ -71,8 +72,8 @@ fun Creation(db: AppDatabase) {
     var deadlineSelectedCategory by remember { mutableStateOf<Int?>(null) }
     var deadlineSelectedEvent by remember { mutableStateOf<Int?>(null) }
     var deadlineAutoScheduleTask by remember { mutableStateOf(false) }
-    var deadlineTaskDurationHours by remember { mutableIntStateOf(0) }
-    var deadlineTaskDurationMinutes by remember { mutableIntStateOf(30) }
+    var deadlineTaskDurationHours by remember { mutableIntStateOf(1) }
+    var deadlineTaskDurationMinutes by remember { mutableIntStateOf(0) }
     var deadlineTaskIsBreakable by remember { mutableStateOf(false) }
     var deadlineTaskBreakableLockedByDuration by remember { mutableStateOf(false) }
 
@@ -142,8 +143,8 @@ fun Creation(db: AppDatabase) {
         deadlineSelectedCategory = null
         deadlineSelectedEvent = null
         deadlineAutoScheduleTask = false
-        deadlineTaskDurationHours = 0
-        deadlineTaskDurationMinutes = 30
+        deadlineTaskDurationHours = 1
+        deadlineTaskDurationMinutes = 0
         deadlineTaskIsBreakable = false
         deadlineTaskBreakableLockedByDuration = false
 
@@ -409,7 +410,7 @@ fun Creation(db: AppDatabase) {
                                     showValidationNotification = true
                                     scope.launch {
                                         scrollState.animateScrollTo(0)
-                                        delay(1000)
+                                        delay(3000)
                                         showValidationNotification = false
                                     }
                                     return@Button
@@ -437,9 +438,33 @@ fun Creation(db: AppDatabase) {
                                         deadlineId = taskSelectedDeadline?.let { deadlines.getOrNull(it)?.id },
                                         dependencyTaskId = taskSelectedDependencyTask?.let { dependencyTasks.getOrNull(it)?.id }
                                     )
+
+                                    val dateFormatter = java.time.format.DateTimeFormatter.ofPattern("MMMM d, yyyy")
+                                    val timeFormatter = java.time.format.DateTimeFormatter.ofPattern("h:mm a")
+                                    val capturedTitle = taskTitle
+                                    val capturedIsAllDay = taskIsAllDay
+                                    val capturedAllDayDate = taskAllDayDate
+                                    val capturedStartDate = taskStartDate
+                                    val capturedStartTime = taskStartTime
+
                                     clearAllForms()
+
+                                    successMessage = when {
+                                        capturedIsAllDay -> "Task created\nScheduled on ${capturedAllDayDate.format(dateFormatter)}"
+                                        capturedStartDate != null && capturedStartTime != null -> "Task created\n${capturedStartDate.format(dateFormatter)} at ${capturedStartTime.format(timeFormatter)}"
+                                        else -> {
+                                            val inserted = db.taskDao().getAllMasterTasks().lastOrNull { it.title == capturedTitle }
+                                            val intervals = inserted?.let { db.taskDao().getIntervalsForTask(it.id) }
+                                            if (intervals.isNullOrEmpty()) {
+                                                "Task created\nUnscheduled, no bucket space"
+                                            } else {
+                                                val first = intervals.minByOrNull { it.occurDate }!!
+                                                "Task created\n${first.occurDate.format(dateFormatter)} at ${first.startTime.format(timeFormatter)}"
+                                            }
+                                        }
+                                    }
                                     showSuccessNotification = true
-                                    delay(1000)
+                                    delay(3000)
                                     showSuccessNotification = false
                                 }
                             }
@@ -449,7 +474,7 @@ fun Creation(db: AppDatabase) {
                                     showValidationNotification = true
                                     scope.launch {
                                         scrollState.animateScrollTo(0)
-                                        delay(1000)
+                                        delay(3000)
                                         showValidationNotification = false
                                     }
                                     return@Button
@@ -478,8 +503,9 @@ fun Creation(db: AppDatabase) {
                                         categoryId = reminderSelectedCategory?.let { categories.getOrNull(it)?.id }
                                     )
                                     clearAllForms()
+                                    successMessage = "Reminder created"
                                     showSuccessNotification = true
-                                    delay(1000)
+                                    delay(3000)
                                     showSuccessNotification = false
                                 }
                             }
@@ -489,7 +515,7 @@ fun Creation(db: AppDatabase) {
                                     showValidationNotification = true
                                     scope.launch {
                                         scrollState.animateScrollTo(0)
-                                        delay(1000)
+                                        delay(3000)
                                         showValidationNotification = false
                                     }
                                     return@Button
@@ -535,9 +561,27 @@ fun Creation(db: AppDatabase) {
                                         )
                                     }
 
+                                    val dateFormatter = java.time.format.DateTimeFormatter.ofPattern("MMMM d, yyyy")
+                                    val timeFormatter = java.time.format.DateTimeFormatter.ofPattern("h:mm a")
+                                    val capturedDeadlineTitle = deadlineTitle
+                                    val capturedAutoSchedule = deadlineAutoScheduleTask
+
                                     clearAllForms()
+
+                                    successMessage = if (capturedAutoSchedule) {
+                                        val inserted = db.taskDao().getAllMasterTasks().lastOrNull { it.title == capturedDeadlineTitle }
+                                        val intervals = inserted?.let { db.taskDao().getIntervalsForTask(it.id) }
+                                        if (intervals.isNullOrEmpty()) {
+                                            "Deadline created, Task created\nUnscheduled, no bucket space"
+                                        } else {
+                                            val first = intervals.minByOrNull { it.occurDate }!!
+                                            "Deadline created, Task created\n${first.occurDate.format(dateFormatter)} at ${first.startTime.format(timeFormatter)}"
+                                        }
+                                    } else {
+                                        "Deadline created"
+                                    }
                                     showSuccessNotification = true
-                                    delay(1000)
+                                    delay(3000)
                                     showSuccessNotification = false
                                 }
                             }
@@ -547,7 +591,7 @@ fun Creation(db: AppDatabase) {
                                     showValidationNotification = true
                                     scope.launch {
                                         scrollState.animateScrollTo(0)
-                                        delay(1000)
+                                        delay(3000)
                                         showValidationNotification = false
                                     }
                                     return@Button
@@ -577,7 +621,7 @@ fun Creation(db: AppDatabase) {
                                         overlapMessage = formatOverlapMessage(eventOverlapInfo)
                                         showOverlapNotification = true
                                         scrollState.animateScrollTo(0)
-                                        delay(2000)
+                                        delay(3000)
                                         showOverlapNotification = false
                                         return@launch
                                     }
@@ -599,8 +643,9 @@ fun Creation(db: AppDatabase) {
                                         categoryId = eventSelectedCategory?.let { categories.getOrNull(it)?.id }
                                     )
                                     clearAllForms()
+                                    successMessage = "Event created"
                                     showSuccessNotification = true
-                                    delay(1000)
+                                    delay(3000)
                                     showSuccessNotification = false
                                 }
                             }
@@ -624,8 +669,9 @@ fun Creation(db: AppDatabase) {
                                         recurRule = recurRule
                                     )
                                     clearAllForms()
+                                    successMessage = "Task Bucket created"
                                     showSuccessNotification = true
-                                    delay(1000)
+                                    delay(3000)
                                     showSuccessNotification = false
                                 }
                             }
@@ -635,7 +681,7 @@ fun Creation(db: AppDatabase) {
                                     showValidationNotification = true
                                     scope.launch {
                                         scrollState.animateScrollTo(0)
-                                        delay(1000)
+                                        delay(3000)
                                         showValidationNotification = false
                                     }
                                     return@Button
@@ -648,8 +694,9 @@ fun Creation(db: AppDatabase) {
                                         color = categoryColor
                                     )
                                     clearAllForms()
+                                    successMessage = "Category created"
                                     showSuccessNotification = true
-                                    delay(1000)
+                                    delay(3000)
                                     showSuccessNotification = false
                                 }
                             }
@@ -742,10 +789,11 @@ fun Creation(db: AppDatabase) {
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        "Saved",
+                        successMessage,
                         color = BackgroundColor,
                         fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
                     )
                 }
             }
