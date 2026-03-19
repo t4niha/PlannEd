@@ -270,7 +270,7 @@ fun ReminderDeadlineIndicators(db: AppDatabase, date: LocalDate) {
     var showDeadlines by remember { mutableStateOf(false) }
     var showTodos by remember { mutableStateOf(false) }
 
-    LaunchedEffect(date) {
+    LaunchedEffect(date, calendarResetTrigger) {
         reminders = db.reminderDao().getAllOccurrences()
             .filter { it.occurDate == date }
             .sortedWith(compareBy({ !it.allDay }, { it.time }))

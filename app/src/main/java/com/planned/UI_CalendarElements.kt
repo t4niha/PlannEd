@@ -172,15 +172,15 @@ fun RenderDayViewItems(
     hourHeight: Dp,
     modifier: Modifier = Modifier
 ) {
-    val events = remember(date, showEvents) {
+    val events = remember(date, showEvents, calendarResetTrigger) {
         runBlocking { getEventsForDate(db, date) }
     }
 
-    val buckets = remember(date, showTaskBuckets) {
+    val buckets = remember(date, showTaskBuckets, calendarResetTrigger) {
         runBlocking { getTaskBucketsForDate(db, date) }
     }
 
-    val tasks = remember(date, showTasks) {
+    val tasks = remember(date, showTasks, calendarResetTrigger) {
         runBlocking { getTasksForDate(db, date) }
     }
 
@@ -372,15 +372,15 @@ fun RenderWeekViewItems(
     columnWidth: Dp,
     modifier: Modifier = Modifier
 ) {
-    val events = remember(date, showEvents) {
+    val events = remember(date, showEvents, calendarResetTrigger) {
         runBlocking { getEventsForDate(db, date) }
     }
 
-    val buckets = remember(date, showTaskBuckets) {
+    val buckets = remember(date, showTaskBuckets, calendarResetTrigger) {
         runBlocking { getTaskBucketsForDate(db, date) }
     }
 
-    val tasks = remember(date, showTasks) {
+    val tasks = remember(date, showTasks, calendarResetTrigger) {
         runBlocking { getTasksForDate(db, date) }
     }
 

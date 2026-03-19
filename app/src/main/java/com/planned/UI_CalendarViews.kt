@@ -256,13 +256,13 @@ fun WeekView(
                         Spacer(modifier = Modifier.height(3.dp))
 
                         // Indicators row
-                        val hasRemindersWeek = remember(day, showReminders) {
+                        val hasRemindersWeek = remember(day, showReminders, calendarResetTrigger) {
                             runBlocking { hasRemindersForDate(db, day) }
                         }
-                        val hasDeadlinesWeek = remember(day, showDeadlines) {
+                        val hasDeadlinesWeek = remember(day, showDeadlines, calendarResetTrigger) {
                             runBlocking { hasDeadlinesForDate(db, day) }
                         }
-                        val hasTasksWeek = remember(day, showTasks) {
+                        val hasTasksWeek = remember(day, showTasks, calendarResetTrigger) {
                             runBlocking { hasTasksForDate(db, day) }
                         }
 
@@ -392,7 +392,7 @@ fun MonthView(
     var taskIntervals by remember { mutableStateOf<List<TaskInterval>>(emptyList()) }
     var masterTasks by remember { mutableStateOf<List<MasterTask>>(emptyList()) }
 
-    LaunchedEffect(selectedDate) {
+    LaunchedEffect(selectedDate, calendarResetTrigger) {
         taskIntervals = db.taskDao().getAllIntervals()
             .filter { it.occurDate == selectedDate }
             .sortedBy { it.startTime }
@@ -460,13 +460,13 @@ fun MonthView(
                                     contentAlignment = Alignment.TopCenter
                                 ) {
                                     // Load indicators for this date
-                                    val hasReminders = remember(date, showReminders) {
+                                    val hasReminders = remember(date, showReminders, calendarResetTrigger) {
                                         runBlocking { hasRemindersForDate(db, date) }
                                     }
-                                    val hasDeadlines = remember(date, showDeadlines) {
+                                    val hasDeadlines = remember(date, showDeadlines, calendarResetTrigger) {
                                         runBlocking { hasDeadlinesForDate(db, date) }
                                     }
-                                    val hasTasks = remember(date, showTasks) {
+                                    val hasTasks = remember(date, showTasks, calendarResetTrigger) {
                                         runBlocking { hasTasksForDate(db, date) }
                                     }
 
