@@ -351,12 +351,6 @@ fun DeadlineInfoView(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Button(
-                            onClick = { showDeleteDialog = false },
-                            modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
-                            contentPadding = PaddingValues(12.dp)
-                        ) { Text("Cancel", fontSize = 12.sp, color = Color.White) }
-                        Button(
                             onClick = {
                                 showDeleteDialog = false
                                 scope.launch {
@@ -365,9 +359,15 @@ fun DeadlineInfoView(
                                 }
                             },
                             modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
                             contentPadding = PaddingValues(12.dp)
                         ) { Text("Delete", fontSize = 12.sp, color = Color.White) }
+                        Button(
+                            onClick = { showDeleteDialog = false },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
+                            contentPadding = PaddingValues(12.dp)
+                        ) { Text("Cancel", fontSize = 12.sp, color = Color.White) }
                     }
                 }
             )

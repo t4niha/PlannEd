@@ -354,13 +354,6 @@ fun EventInfoPage(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Button(
-                            onClick = { showDeleteDialog = false },
-                            modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
-                            contentPadding = PaddingValues(12.dp)
-                        ) { Text("Cancel", fontSize = 12.sp, color = Color.White) }
-
                         if (occurrence != null && currentEvent.recurFreq != RecurrenceFrequency.NONE) {
                             Button(
                                 onClick = {
@@ -388,6 +381,13 @@ fun EventInfoPage(
                             colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
                             contentPadding = PaddingValues(12.dp)
                         ) { Text(if (currentEvent.recurFreq != RecurrenceFrequency.NONE) "Delete All" else "Delete", fontSize = 12.sp, color = Color.White) }
+
+                        Button(
+                            onClick = { showDeleteDialog = false },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
+                            contentPadding = PaddingValues(12.dp)
+                        ) { Text("Cancel", fontSize = 12.sp, color = Color.White) }
                     }
                 }
             )
