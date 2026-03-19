@@ -290,7 +290,7 @@ fun ReminderDeadlineIndicators(db: AppDatabase, date: LocalDate) {
     ) {
         // Indicator row
         Row(
-            modifier = Modifier.wrapContentWidth(),
+            modifier = Modifier.wrapContentWidth().padding(bottom = 4.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             // To-Dos
@@ -412,7 +412,7 @@ fun ReminderDeadlineIndicators(db: AppDatabase, date: LocalDate) {
             exit = shrinkVertically() + fadeOut()
         ) {
             Column(
-                modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+                modifier = Modifier.fillMaxWidth()
             ) {
                 if (todos.isEmpty()) {
                     Text(
@@ -493,7 +493,6 @@ fun ReminderDeadlineIndicators(db: AppDatabase, date: LocalDate) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 8.dp)
             ) {
                 if (reminders.isEmpty()) {
                     Text(
@@ -576,7 +575,6 @@ fun ReminderDeadlineIndicators(db: AppDatabase, date: LocalDate) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 8.dp)
             ) {
                 if (deadlines.isEmpty()) {
                     Text(
