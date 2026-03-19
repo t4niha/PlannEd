@@ -29,6 +29,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -271,13 +272,13 @@ fun WeekView(
                             horizontalArrangement = Arrangement.Center,
                             modifier = Modifier.height(5.dp)
                         ) {
-                            if (hasRemindersWeek) {
+                            if (hasTasksWeek) {
                                 Canvas(modifier = Modifier.size(5.dp)) {
                                     drawCircle(color = weekIndicatorColor)
                                 }
-                                if (hasDeadlinesWeek || hasTasksWeek) Spacer(modifier = Modifier.width(2.dp))
+                                if (hasRemindersWeek || hasDeadlinesWeek) Spacer(modifier = Modifier.width(2.dp))
                             }
-                            if (hasDeadlinesWeek) {
+                            if (hasRemindersWeek) {
                                 Canvas(modifier = Modifier.size(5.dp)) {
                                     val path = Path().apply {
                                         moveTo(size.width / 2, 0f)
@@ -287,9 +288,9 @@ fun WeekView(
                                     }
                                     drawPath(path, color = weekIndicatorColor)
                                 }
-                                if (hasTasksWeek) Spacer(modifier = Modifier.width(2.dp))
+                                if (hasDeadlinesWeek) Spacer(modifier = Modifier.width(2.dp))
                             }
-                            if (hasTasksWeek) {
+                            if (hasDeadlinesWeek) {
                                 Canvas(modifier = Modifier.size(5.dp)) {
                                     drawRect(color = weekIndicatorColor)
                                 }
@@ -433,6 +434,7 @@ fun MonthView(
                 }
 
                 Column(modifier = Modifier.fillMaxSize()) {
+                    HorizontalDivider(thickness = 1.dp, color = Color.LightGray)
                     weeks.forEach { week ->
                         Row(modifier = Modifier.fillMaxWidth().weight(1f)) {
                             week.forEach { date ->
@@ -452,7 +454,6 @@ fun MonthView(
                                     modifier = Modifier
                                         .weight(1f)
                                         .fillMaxHeight()
-                                        .border(1.dp, Color.LightGray)
                                         .background(backgroundColor)
                                         .clickable { onDateSelected(date) }
                                         .padding(5.dp),
@@ -493,13 +494,13 @@ fun MonthView(
                                             horizontalArrangement = Arrangement.Center,
                                             modifier = Modifier.height(7.dp)
                                         ) {
-                                            if (hasReminders) {
+                                            if (hasTasks) {
                                                 Canvas(modifier = Modifier.size(7.dp)) {
                                                     drawCircle(color = indicatorColor)
                                                 }
-                                                if (hasDeadlines || hasTasks) Spacer(modifier = Modifier.width(3.dp))
+                                                if (hasReminders || hasDeadlines) Spacer(modifier = Modifier.width(3.dp))
                                             }
-                                            if (hasDeadlines) {
+                                            if (hasReminders) {
                                                 Canvas(modifier = Modifier.size(7.dp)) {
                                                     val path = Path().apply {
                                                         moveTo(size.width / 2, 0f)
@@ -509,9 +510,9 @@ fun MonthView(
                                                     }
                                                     drawPath(path, color = indicatorColor)
                                                 }
-                                                if (hasTasks) Spacer(modifier = Modifier.width(3.dp))
+                                                if (hasDeadlines) Spacer(modifier = Modifier.width(3.dp))
                                             }
-                                            if (hasTasks) {
+                                            if (hasDeadlines) {
                                                 Canvas(modifier = Modifier.size(7.dp)) {
                                                     drawRect(color = indicatorColor)
                                                 }
@@ -521,6 +522,7 @@ fun MonthView(
                                 }
                             }
                         }
+                        HorizontalDivider(thickness = 1.dp, color = Color.LightGray)
                     }
                 }
             }
