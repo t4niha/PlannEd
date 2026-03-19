@@ -328,9 +328,9 @@ fun RenderTaskBlock(
             .height(height)
             .padding(bottom = ELEMENT_VERTICAL_PADDING.dp)
             .fillMaxWidth()
+            .padding(horizontal = 6.dp)
             .clip(RoundedCornerShape(ELEMENT_CORNER_RADIUS_DAY.dp))
             .background(task.color)
-            .border(6.dp, Color(CardColor), RoundedCornerShape(ELEMENT_CORNER_RADIUS_DAY.dp))
             .clickable {
                 com.planned.selectedTaskForInfo = task.master
                 com.planned.currentScreen = "TaskInfo"
@@ -488,9 +488,9 @@ fun RenderTaskBlockWeek(
             .height(height)
             .padding(horizontal = ELEMENT_HORIZONTAL_PADDING.dp, vertical = ELEMENT_VERTICAL_PADDING.dp)
             .fillMaxWidth()
+            .padding(horizontal = 4.dp)
             .clip(RoundedCornerShape(ELEMENT_CORNER_RADIUS_WEEK.dp))
             .background(task.color)
-            .border(4.dp, Color(CardColor), RoundedCornerShape(ELEMENT_CORNER_RADIUS_WEEK.dp))
             .clickable {
                 com.planned.selectedTaskForInfo = task.master
                 com.planned.currentScreen = "TaskInfo"
