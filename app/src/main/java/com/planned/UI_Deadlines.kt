@@ -5,6 +5,7 @@ import androidx.annotation.RequiresApi
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -22,6 +23,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import java.time.format.DateTimeFormatter
 
@@ -398,6 +400,7 @@ fun DeadlineUpdateView(
     var selectedEvent by remember { mutableStateOf(preloadedData.selectedEvent) }
     var previousEvent by remember { mutableStateOf(preloadedData.selectedEvent) }
     var resetTrigger by remember { mutableIntStateOf(0) }
+    var showNotification by remember { mutableStateOf(false) }
 
     // Lock category when event selected
     LaunchedEffect(selectedEvent, events.size) {
@@ -420,106 +423,148 @@ fun DeadlineUpdateView(
         }
     }
 
-    Column(modifier = Modifier.fillMaxSize().background(BackgroundColor).padding(16.dp)) {
-        Box(
-            modifier = Modifier
-                .clip(RoundedCornerShape(8.dp))
-                .background(PrimaryColor)
-                .clickable { onBack() }
-                .padding(horizontal = 16.dp, vertical = 8.dp)
-        ) {
-            Text("Back", fontSize = 16.sp, color = Color.White)
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize().background(BackgroundColor).padding(16.dp)) {
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(PrimaryColor)
+                    .clickable { onBack() }
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            ) {
+                Text("Back", fontSize = 16.sp, color = Color.White)
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Column(modifier = Modifier.weight(1f).verticalScroll(scrollState)) {
+                val titleValue = textInputField("Title", title, resetTrigger)
+                title = titleValue
+                Spacer(modifier = Modifier.height(12.dp))
+
+                val notesValue = notesInputField("Notes", notes, resetTrigger)
+                notes = notesValue
+                Spacer(modifier = Modifier.height(12.dp))
+
+                val dateValue = datePickerField(
+                    label = "Date",
+                    initialDate = date,
+                    isOptional = false,
+                    key = resetTrigger,
+                    allowPastDates = false,
+                    onDateValidated = { validated -> if (validated != date) date = validated }
+                )!!
+                if (dateValue != date) date = dateValue
+                Spacer(modifier = Modifier.height(12.dp))
+
+                val timeValue = timePickerField(
+                    label = "Time",
+                    initialTime = time,
+                    key = resetTrigger,
+                    contextDate = date,
+                    allowPastTimes = false
+                )
+                time = timeValue
+                Spacer(modifier = Modifier.height(12.dp))
+
+                val eventValue = dropdownField(
+                    label = "Event",
+                    items = events.map { it.title },
+                    initialSelection = selectedEvent,
+                    key = resetTrigger
+                )
+                selectedEvent = eventValue
+                Spacer(modifier = Modifier.height(12.dp))
+
+                val categoryValue = dropdownField(
+                    label = "Category",
+                    items = categories.map { it.title },
+                    initialSelection = selectedCategory,
+                    key = resetTrigger,
+                    locked = selectedEvent != null
+                )
+                if (selectedEvent == null) selectedCategory = categoryValue
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Button(
+                        onClick = {
+                            title = deadline.title
+                            notes = deadline.notes ?: ""
+                            date = deadline.date
+                            time = deadline.time
+                            selectedCategory = preloadedData.selectedCategory
+                            selectedEvent = preloadedData.selectedEvent
+                            resetTrigger++
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(16.dp)
+                    ) { Text("Reset", fontSize = 16.sp) }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Button(
+                        onClick = {
+                            if (title.isBlank()) {
+                                scope.launch {
+                                    showNotification = true
+                                    scrollState.animateScrollTo(0)
+                                    delay(3000)
+                                    showNotification = false
+                                }
+                                return@Button
+                            }
+                            scope.launch {
+                                val updatedDeadline = deadline.copy(
+                                    title = title,
+                                    notes = notes.ifBlank { null },
+                                    date = date,
+                                    time = time,
+                                    categoryId = selectedCategory?.let { categories.getOrNull(it)?.id },
+                                    eventId = selectedEvent?.let { events.getOrNull(it)?.id }
+                                )
+                                DeadlineManager.update(db, updatedDeadline)
+                                val refreshedDeadline = db.deadlineDao().getDeadlineById(deadline.id) ?: updatedDeadline
+                                onSaveSuccess(refreshedDeadline)
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(16.dp)
+                    ) { Text("Save", fontSize = 16.sp) }
+                }
+            }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Column(modifier = Modifier.weight(1f).verticalScroll(scrollState)) {
-            val titleValue = textInputField("Title", title, resetTrigger)
-            title = titleValue
-            Spacer(modifier = Modifier.height(12.dp))
-
-            val notesValue = notesInputField("Notes", notes, resetTrigger)
-            notes = notesValue
-            Spacer(modifier = Modifier.height(12.dp))
-
-            val dateValue = datePickerField(
-                label = "Date",
-                initialDate = date,
-                isOptional = false,
-                key = resetTrigger,
-                allowPastDates = false,
-                onDateValidated = { validated -> if (validated != date) date = validated }
-            )!!
-            if (dateValue != date) date = dateValue
-            Spacer(modifier = Modifier.height(12.dp))
-
-            val timeValue = timePickerField(
-                label = "Time",
-                initialTime = time,
-                key = resetTrigger,
-                contextDate = date,
-                allowPastTimes = false
-            )
-            time = timeValue
-            Spacer(modifier = Modifier.height(12.dp))
-
-            val eventValue = dropdownField(
-                label = "Event",
-                items = events.map { it.title },
-                initialSelection = selectedEvent,
-                key = resetTrigger
-            )
-            selectedEvent = eventValue
-            Spacer(modifier = Modifier.height(12.dp))
-
-            val categoryValue = dropdownField(
-                label = "Category",
-                items = categories.map { it.title },
-                initialSelection = selectedCategory,
-                key = resetTrigger,
-                locked = selectedEvent != null
-            )
-            if (selectedEvent == null) selectedCategory = categoryValue
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Button(
-                    onClick = {
-                        title = deadline.title
-                        notes = deadline.notes ?: ""
-                        date = deadline.date
-                        time = deadline.time
-                        selectedCategory = preloadedData.selectedCategory
-                        selectedEvent = preloadedData.selectedEvent
-                        resetTrigger++
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
-                    modifier = Modifier.weight(1f),
-                    contentPadding = PaddingValues(16.dp)
-                ) { Text("Reset", fontSize = 16.sp) }
-                Spacer(modifier = Modifier.width(12.dp))
-                Button(
-                    onClick = {
-                        if (title.isBlank()) return@Button
-                        scope.launch {
-                            val updatedDeadline = deadline.copy(
-                                title = title,
-                                notes = notes.ifBlank { null },
-                                date = date,
-                                time = time,
-                                categoryId = selectedCategory?.let { categories.getOrNull(it)?.id },
-                                eventId = selectedEvent?.let { events.getOrNull(it)?.id }
-                            )
-                            DeadlineManager.update(db, updatedDeadline)
-                            val refreshedDeadline = db.deadlineDao().getDeadlineById(deadline.id) ?: updatedDeadline
-                            onSaveSuccess(refreshedDeadline)
-                        }
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
-                    modifier = Modifier.weight(1f),
-                    contentPadding = PaddingValues(16.dp)
-                ) { Text("Save", fontSize = 16.sp) }
+        AnimatedVisibility(
+            visible = showNotification,
+            enter = slideInVertically(initialOffsetY = { -it }) + fadeIn(),
+            exit = slideOutVertically(targetOffsetY = { -it }) + fadeOut(),
+            modifier = Modifier.align(Alignment.TopCenter)
+        ) {
+            val dragOffset = remember { androidx.compose.runtime.mutableFloatStateOf(0f) }
+            Box(
+                modifier = Modifier
+                    .offset(y = dragOffset.floatValue.coerceAtMost(0f).dp)
+                    .draggable(
+                        orientation = androidx.compose.foundation.gestures.Orientation.Vertical,
+                        state = androidx.compose.foundation.gestures.rememberDraggableState { delta ->
+                            dragOffset.floatValue += delta
+                            if (dragOffset.floatValue < -80f) showNotification = false
+                        },
+                        onDragStopped = { dragOffset.floatValue = 0f }
+                    )
+            ) {
+                Surface(
+                    color = PrimaryColor,
+                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                    shadowElevation = 8.dp,
+                    shape = MaterialTheme.shapes.medium
+                ) {
+                    Box(modifier = Modifier.padding(16.dp), contentAlignment = Alignment.Center) {
+                        Text("Title is required", color = BackgroundColor, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
             }
         }
     }

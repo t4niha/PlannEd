@@ -5,6 +5,7 @@ import androidx.annotation.RequiresApi
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -768,6 +769,7 @@ fun TaskUpdateForm(
     var selectedDependencyTask by remember { mutableStateOf(preloadedData.selectedDependencyTask) }
 
     var resetTrigger by remember { mutableIntStateOf(0) }
+    var showNotification by remember { mutableStateOf(false) }
 
     fun clearForm() {
         title = task.title
@@ -785,106 +787,147 @@ fun TaskUpdateForm(
         resetTrigger++
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(BackgroundColor)
-            .padding(16.dp)
-    ) {
-        Box(
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(
             modifier = Modifier
-                .clip(RoundedCornerShape(8.dp))
-                .background(PrimaryColor)
-                .clickable { onBack() }
-                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .fillMaxSize()
+                .background(BackgroundColor)
+                .padding(16.dp)
         ) {
-            Text("Back", fontSize = 16.sp, color = Color.White)
-        }
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Column(modifier = Modifier.weight(1f).verticalScroll(scrollState)) {
-            TaskForm(
-                db = db,
-                title = title,
-                onTitleChange = { title = it },
-                notes = notes,
-                onNotesChange = { notes = it },
-                isAllDay = false,
-                onAllDayChange = { },
-                allDayDate = java.time.LocalDate.now(),
-                onAllDayDateChange = { },
-                isBreakable = isBreakable,
-                onBreakableChange = { isBreakable = it },
-                isAutoSchedule = isAutoSchedule,
-                startDate = startDate,
-                startTime = startTime,
-                onScheduleChange = { auto, date, time ->
-                    isAutoSchedule = auto
-                    startDate = date
-                    startTime = time
-                },
-                durationHours = durationHours,
-                durationMinutes = durationMinutes,
-                onDurationChange = { h, m ->
-                    durationHours = h
-                    durationMinutes = m
-                },
-                selectedCategory = selectedCategory,
-                onCategoryChange = { selectedCategory = it },
-                selectedEvent = selectedEvent,
-                onEventChange = { selectedEvent = it },
-                selectedDeadline = selectedDeadline,
-                onDeadlineChange = { selectedDeadline = it },
-                selectedDependencyTask = selectedDependencyTask,
-                onDependencyTaskChange = { selectedDependencyTask = it },
-                breakableLockedByDuration = breakableLockedByDuration,
-                onBreakableLockedByDurationChange = { breakableLockedByDuration = it },
-                resetTrigger = resetTrigger,
-                currentTaskId = task.id
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(PrimaryColor)
+                    .clickable { onBack() }
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
             ) {
-                Button(
-                    onClick = { clearForm() },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
-                    modifier = Modifier.weight(1f),
-                    contentPadding = PaddingValues(16.dp)
-                ) {
-                    Text("Reset", fontSize = 16.sp)
-                }
-                Spacer(modifier = Modifier.width(12.dp))
-                Button(
-                    onClick = {
-                        if (title.isBlank()) return@Button
-                        scope.launch {
-                            val durationInMinutes = (durationHours * 60) + durationMinutes
-                            val updatedTask = task.copy(
-                                title = title,
-                                notes = notes.ifBlank { null },
-                                breakable = isBreakable,
-                                predictedDuration = durationInMinutes,
-                                startDate = if (isAutoSchedule) null else startDate,
-                                startTime = if (isAutoSchedule) null else startTime,
-                                categoryId = selectedCategory?.let { categories.getOrNull(it)?.id },
-                                eventId = selectedEvent?.let { events.getOrNull(it)?.id },
-                                deadlineId = selectedDeadline?.let { deadlines.getOrNull(it)?.id },
-                                dependencyTaskId = selectedDependencyTask?.let { dependencyTasks.getOrNull(it)?.id }
-                            )
-                            TaskManager.update(db, updatedTask)
-                            val refreshedTask = db.taskDao().getMasterTaskById(task.id) ?: updatedTask
-                            onSaveSuccess(refreshedTask)
-                        }
+                Text("Back", fontSize = 16.sp, color = Color.White)
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Column(modifier = Modifier.weight(1f).verticalScroll(scrollState)) {
+                TaskForm(
+                    db = db,
+                    title = title,
+                    onTitleChange = { title = it },
+                    notes = notes,
+                    onNotesChange = { notes = it },
+                    isAllDay = false,
+                    onAllDayChange = { },
+                    allDayDate = java.time.LocalDate.now(),
+                    onAllDayDateChange = { },
+                    isBreakable = isBreakable,
+                    onBreakableChange = { isBreakable = it },
+                    isAutoSchedule = isAutoSchedule,
+                    startDate = startDate,
+                    startTime = startTime,
+                    onScheduleChange = { auto, date, time ->
+                        isAutoSchedule = auto
+                        startDate = date
+                        startTime = time
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
-                    modifier = Modifier.weight(1f),
-                    contentPadding = PaddingValues(16.dp)
+                    durationHours = durationHours,
+                    durationMinutes = durationMinutes,
+                    onDurationChange = { h, m ->
+                        durationHours = h
+                        durationMinutes = m
+                    },
+                    selectedCategory = selectedCategory,
+                    onCategoryChange = { selectedCategory = it },
+                    selectedEvent = selectedEvent,
+                    onEventChange = { selectedEvent = it },
+                    selectedDeadline = selectedDeadline,
+                    onDeadlineChange = { selectedDeadline = it },
+                    selectedDependencyTask = selectedDependencyTask,
+                    onDependencyTaskChange = { selectedDependencyTask = it },
+                    breakableLockedByDuration = breakableLockedByDuration,
+                    onBreakableLockedByDurationChange = { breakableLockedByDuration = it },
+                    resetTrigger = resetTrigger,
+                    currentTaskId = task.id
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text("Save", fontSize = 16.sp)
+                    Button(
+                        onClick = { clearForm() },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(16.dp)
+                    ) {
+                        Text("Reset", fontSize = 16.sp)
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Button(
+                        onClick = {
+                            if (title.isBlank()) {
+                                scope.launch {
+                                    showNotification = true
+                                    delay(3000)
+                                    showNotification = false
+                                }
+                                return@Button
+                            }
+                            scope.launch {
+                                val durationInMinutes = (durationHours * 60) + durationMinutes
+                                val updatedTask = task.copy(
+                                    title = title,
+                                    notes = notes.ifBlank { null },
+                                    breakable = isBreakable,
+                                    predictedDuration = durationInMinutes,
+                                    startDate = if (isAutoSchedule) null else startDate,
+                                    startTime = if (isAutoSchedule) null else startTime,
+                                    categoryId = selectedCategory?.let { categories.getOrNull(it)?.id },
+                                    eventId = selectedEvent?.let { events.getOrNull(it)?.id },
+                                    deadlineId = selectedDeadline?.let { deadlines.getOrNull(it)?.id },
+                                    dependencyTaskId = selectedDependencyTask?.let { dependencyTasks.getOrNull(it)?.id }
+                                )
+                                TaskManager.update(db, updatedTask)
+                                val refreshedTask = db.taskDao().getMasterTaskById(task.id) ?: updatedTask
+                                onSaveSuccess(refreshedTask)
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(16.dp)
+                    ) {
+                        Text("Save", fontSize = 16.sp)
+                    }
+                }
+            }
+        }
+
+        AnimatedVisibility(
+            visible = showNotification,
+            enter = slideInVertically(initialOffsetY = { -it }) + fadeIn(),
+            exit = slideOutVertically(targetOffsetY = { -it }) + fadeOut(),
+            modifier = Modifier.align(Alignment.TopCenter)
+        ) {
+            val dragOffset = remember { androidx.compose.runtime.mutableFloatStateOf(0f) }
+            Box(
+                modifier = Modifier
+                    .offset(y = dragOffset.floatValue.coerceAtMost(0f).dp)
+                    .draggable(
+                        orientation = androidx.compose.foundation.gestures.Orientation.Vertical,
+                        state = androidx.compose.foundation.gestures.rememberDraggableState { delta ->
+                            dragOffset.floatValue += delta
+                            if (dragOffset.floatValue < -80f) showNotification = false
+                        },
+                        onDragStopped = { dragOffset.floatValue = 0f }
+                    )
+            ) {
+                Surface(
+                    color = PrimaryColor,
+                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                    shadowElevation = 8.dp,
+                    shape = MaterialTheme.shapes.medium
+                ) {
+                    Box(modifier = Modifier.padding(16.dp), contentAlignment = Alignment.Center) {
+                        Text("Title is required", color = BackgroundColor, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    }
                 }
             }
         }
@@ -1396,6 +1439,7 @@ fun AllDayTaskUpdateForm(
     var events by remember { mutableStateOf<List<MasterEvent>>(emptyList()) }
     var deadlines by remember { mutableStateOf<List<Deadline>>(emptyList()) }
     var resetTrigger by remember { mutableIntStateOf(0) }
+    var showNotification by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         categories = CategoryManager.getAll(db)
@@ -1406,83 +1450,124 @@ fun AllDayTaskUpdateForm(
         selectedDeadline = task.deadlineId?.let { dlId -> deadlines.indexOfFirst { it.id == dlId }.takeIf { it >= 0 } }
     }
 
-    Column(
-        modifier = Modifier.fillMaxSize().background(BackgroundColor).padding(16.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .clip(RoundedCornerShape(8.dp))
-                .background(PrimaryColor)
-                .clickable { onBack() }
-                .padding(horizontal = 16.dp, vertical = 8.dp)
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier.fillMaxSize().background(BackgroundColor).padding(16.dp)
         ) {
-            Text("Back", fontSize = 16.sp, color = Color.White)
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(PrimaryColor)
+                    .clickable { onBack() }
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            ) {
+                Text("Back", fontSize = 16.sp, color = Color.White)
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Column(modifier = Modifier.weight(1f).verticalScroll(scrollState)) {
+                AllDayTaskForm(
+                    title = title,
+                    onTitleChange = { title = it },
+                    notes = notes,
+                    onNotesChange = { notes = it },
+                    allDayDate = allDayDate,
+                    onAllDayDateChange = { allDayDate = it },
+                    selectedCategory = selectedCategory,
+                    onCategoryChange = { selectedCategory = it },
+                    selectedEvent = selectedEvent,
+                    onEventChange = { selectedEvent = it },
+                    selectedDeadline = selectedDeadline,
+                    onDeadlineChange = { selectedDeadline = it },
+                    categories = categories,
+                    events = events,
+                    deadlines = deadlines,
+                    resetTrigger = resetTrigger
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Button(
+                        onClick = {
+                            title = task.title
+                            notes = task.notes ?: ""
+                            allDayDate = task.allDay ?: java.time.LocalDate.now()
+                            resetTrigger++
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(16.dp)
+                    ) {
+                        Text("Reset", fontSize = 16.sp)
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Button(
+                        onClick = {
+                            if (title.isBlank()) {
+                                scope.launch {
+                                    showNotification = true
+                                    delay(3000)
+                                    showNotification = false
+                                }
+                                return@Button
+                            }
+                            scope.launch {
+                                val updatedTask = task.copy(
+                                    title = title,
+                                    notes = notes.ifBlank { null },
+                                    allDay = allDayDate,
+                                    categoryId = selectedCategory?.let { categories.getOrNull(it)?.id },
+                                    eventId = selectedEvent?.let { events.getOrNull(it)?.id },
+                                    deadlineId = selectedDeadline?.let { deadlines.getOrNull(it)?.id }
+                                )
+                                TaskManager.update(db, updatedTask)
+                                val refreshed = db.taskDao().getMasterTaskById(task.id) ?: updatedTask
+                                onSaveSuccess(refreshed)
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(16.dp)
+                    ) {
+                        Text("Save", fontSize = 16.sp)
+                    }
+                }
+            }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Column(modifier = Modifier.weight(1f).verticalScroll(scrollState)) {
-            AllDayTaskForm(
-                title = title,
-                onTitleChange = { title = it },
-                notes = notes,
-                onNotesChange = { notes = it },
-                allDayDate = allDayDate,
-                onAllDayDateChange = { allDayDate = it },
-                selectedCategory = selectedCategory,
-                onCategoryChange = { selectedCategory = it },
-                selectedEvent = selectedEvent,
-                onEventChange = { selectedEvent = it },
-                selectedDeadline = selectedDeadline,
-                onDeadlineChange = { selectedDeadline = it },
-                categories = categories,
-                events = events,
-                deadlines = deadlines,
-                resetTrigger = resetTrigger
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+        AnimatedVisibility(
+            visible = showNotification,
+            enter = slideInVertically(initialOffsetY = { -it }) + fadeIn(),
+            exit = slideOutVertically(targetOffsetY = { -it }) + fadeOut(),
+            modifier = Modifier.align(Alignment.TopCenter)
+        ) {
+            val dragOffset = remember { androidx.compose.runtime.mutableFloatStateOf(0f) }
+            Box(
+                modifier = Modifier
+                    .offset(y = dragOffset.floatValue.coerceAtMost(0f).dp)
+                    .draggable(
+                        orientation = androidx.compose.foundation.gestures.Orientation.Vertical,
+                        state = androidx.compose.foundation.gestures.rememberDraggableState { delta ->
+                            dragOffset.floatValue += delta
+                            if (dragOffset.floatValue < -80f) showNotification = false
+                        },
+                        onDragStopped = { dragOffset.floatValue = 0f }
+                    )
             ) {
-                Button(
-                    onClick = {
-                        title = task.title
-                        notes = task.notes ?: ""
-                        allDayDate = task.allDay ?: java.time.LocalDate.now()
-                        resetTrigger++
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
-                    modifier = Modifier.weight(1f),
-                    contentPadding = PaddingValues(16.dp)
+                Surface(
+                    color = PrimaryColor,
+                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                    shadowElevation = 8.dp,
+                    shape = MaterialTheme.shapes.medium
                 ) {
-                    Text("Reset", fontSize = 16.sp)
-                }
-                Spacer(modifier = Modifier.width(12.dp))
-                Button(
-                    onClick = {
-                        if (title.isBlank()) return@Button
-                        scope.launch {
-                            val updatedTask = task.copy(
-                                title = title,
-                                notes = notes.ifBlank { null },
-                                allDay = allDayDate,
-                                categoryId = selectedCategory?.let { categories.getOrNull(it)?.id },
-                                eventId = selectedEvent?.let { events.getOrNull(it)?.id },
-                                deadlineId = selectedDeadline?.let { deadlines.getOrNull(it)?.id }
-                            )
-                            TaskManager.update(db, updatedTask)
-                            val refreshed = db.taskDao().getMasterTaskById(task.id) ?: updatedTask
-                            onSaveSuccess(refreshed)
-                        }
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
-                    modifier = Modifier.weight(1f),
-                    contentPadding = PaddingValues(16.dp)
-                ) {
-                    Text("Save", fontSize = 16.sp)
+                    Box(modifier = Modifier.padding(16.dp), contentAlignment = Alignment.Center) {
+                        Text("Title is required", color = BackgroundColor, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    }
                 }
             }
         }

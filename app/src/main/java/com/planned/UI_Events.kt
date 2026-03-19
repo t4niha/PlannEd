@@ -5,6 +5,7 @@ import androidx.annotation.RequiresApi
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -22,6 +23,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 
 data class EventUpdateFormData(
@@ -421,6 +423,8 @@ fun EventUpdateForm(
     val categories = preloadedData.categories
     var selectedCategory by remember { mutableStateOf(preloadedData.selectedCategory) }
     var resetTrigger by remember { mutableIntStateOf(0) }
+    var showNotification by remember { mutableStateOf(false) }
+    var notificationMessage by remember { mutableStateOf("") }
 
     fun clearForm() {
         title = event.title
@@ -429,93 +433,154 @@ fun EventUpdateForm(
         resetTrigger++
     }
 
-    Column(
-        modifier = Modifier.fillMaxSize().background(BackgroundColor).padding(16.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .clip(RoundedCornerShape(8.dp))
-                .background(PrimaryColor)
-                .clickable { onBack() }
-                .padding(horizontal = 16.dp, vertical = 8.dp)
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier.fillMaxSize().background(BackgroundColor).padding(16.dp)
         ) {
-            Text("Back", fontSize = 16.sp, color = Color.White)
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(PrimaryColor)
+                    .clickable { onBack() }
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            ) {
+                Text("Back", fontSize = 16.sp, color = Color.White)
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Column(modifier = Modifier.weight(1f).verticalScroll(scrollState)) {
+                EventForm(
+                    db = db,
+                    title = title,
+                    onTitleChange = { title = it },
+                    notes = notes,
+                    onNotesChange = { notes = it },
+                    color = color,
+                    onColorChange = { color = it },
+                    startDate = startDate,
+                    onStartDateChange = { startDate = it },
+                    endDate = endDate,
+                    startTime = startTime,
+                    onStartTimeChange = { startTime = it },
+                    endTime = endTime,
+                    onEndTimeChange = { endTime = it },
+                    recurrenceFreq = recurrenceFreq,
+                    selectedDaysOfWeek = selectedDaysOfWeek,
+                    selectedDaysOfMonth = selectedDaysOfMonth,
+                    onRecurrenceChange = { freq, daysWeek, daysMonth, endDateVal ->
+                        recurrenceFreq = freq
+                        selectedDaysOfWeek = daysWeek
+                        selectedDaysOfMonth = daysMonth
+                        endDate = endDateVal
+                    },
+                    selectedCategory = selectedCategory,
+                    onCategoryChange = { selectedCategory = it },
+                    resetTrigger = resetTrigger
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Button(
+                        onClick = { clearForm() },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(16.dp)
+                    ) { Text("Reset", fontSize = 16.sp) }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Button(
+                        onClick = {
+                            if (title.isBlank()) {
+                                notificationMessage = "Title is required"
+                                scope.launch {
+                                    showNotification = true
+                                    scrollState.animateScrollTo(0)
+                                    delay(3000)
+                                    showNotification = false
+                                }
+                                return@Button
+                            }
+                            scope.launch {
+                                val recurRule = when (recurrenceFreq) {
+                                    RecurrenceFrequency.NONE -> RecurrenceRule()
+                                    RecurrenceFrequency.DAILY -> RecurrenceRule()
+                                    RecurrenceFrequency.WEEKLY -> RecurrenceRule(daysOfWeek = selectedDaysOfWeek.toList())
+                                    RecurrenceFrequency.MONTHLY -> RecurrenceRule(daysOfMonth = selectedDaysOfMonth.toList())
+                                    RecurrenceFrequency.YEARLY -> RecurrenceRule(monthAndDay = Pair(startDate.dayOfMonth, startDate.monthValue))
+                                }
+                                val overlapInfo = checkEventOverlapWithEvents(
+                                    db = db,
+                                    startDate = startDate,
+                                    endDate = endDate,
+                                    startTime = startTime,
+                                    endTime = endTime,
+                                    recurFreq = recurrenceFreq,
+                                    recurRule = recurRule,
+                                    excludeEventId = event.id
+                                )
+                                if (overlapInfo.hasOverlap) {
+                                    notificationMessage = formatOverlapMessage(overlapInfo)
+                                    showNotification = true
+                                    scrollState.animateScrollTo(0)
+                                    delay(3000)
+                                    showNotification = false
+                                    return@launch
+                                }
+                                val updatedEvent = event.copy(
+                                    title = title,
+                                    notes = notes.ifBlank { null },
+                                    color = Converters.fromColor(color),
+                                    startDate = startDate,
+                                    endDate = endDate,
+                                    startTime = startTime,
+                                    endTime = endTime,
+                                    recurFreq = recurrenceFreq,
+                                    recurRule = recurRule,
+                                    categoryId = selectedCategory?.let { categories.getOrNull(it)?.id }
+                                )
+                                EventManager.update(db, updatedEvent)
+                                val refreshedEvent = db.eventDao().getMasterEventById(event.id) ?: updatedEvent
+                                onSaveSuccess(refreshedEvent)
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(16.dp)
+                    ) { Text("Save", fontSize = 16.sp) }
+                }
+            }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Column(modifier = Modifier.weight(1f).verticalScroll(scrollState)) {
-            EventForm(
-                db = db,
-                title = title,
-                onTitleChange = { title = it },
-                notes = notes,
-                onNotesChange = { notes = it },
-                color = color,
-                onColorChange = { color = it },
-                startDate = startDate,
-                onStartDateChange = { startDate = it },
-                endDate = endDate,
-                startTime = startTime,
-                onStartTimeChange = { startTime = it },
-                endTime = endTime,
-                onEndTimeChange = { endTime = it },
-                recurrenceFreq = recurrenceFreq,
-                selectedDaysOfWeek = selectedDaysOfWeek,
-                selectedDaysOfMonth = selectedDaysOfMonth,
-                onRecurrenceChange = { freq, daysWeek, daysMonth, endDateVal ->
-                    recurrenceFreq = freq
-                    selectedDaysOfWeek = daysWeek
-                    selectedDaysOfMonth = daysMonth
-                    endDate = endDateVal
-                },
-                selectedCategory = selectedCategory,
-                onCategoryChange = { selectedCategory = it },
-                resetTrigger = resetTrigger
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Button(
-                    onClick = { clearForm() },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
-                    modifier = Modifier.weight(1f),
-                    contentPadding = PaddingValues(16.dp)
-                ) { Text("Reset", fontSize = 16.sp) }
-                Spacer(modifier = Modifier.width(12.dp))
-                Button(
-                    onClick = {
-                        if (title.isBlank()) return@Button
-                        scope.launch {
-                            val recurRule = when (recurrenceFreq) {
-                                RecurrenceFrequency.NONE -> RecurrenceRule()
-                                RecurrenceFrequency.DAILY -> RecurrenceRule()
-                                RecurrenceFrequency.WEEKLY -> RecurrenceRule(daysOfWeek = selectedDaysOfWeek.toList())
-                                RecurrenceFrequency.MONTHLY -> RecurrenceRule(daysOfMonth = selectedDaysOfMonth.toList())
-                                RecurrenceFrequency.YEARLY -> RecurrenceRule(monthAndDay = Pair(startDate.dayOfMonth, startDate.monthValue))
-                            }
-                            val updatedEvent = event.copy(
-                                title = title,
-                                notes = notes.ifBlank { null },
-                                color = Converters.fromColor(color),
-                                startDate = startDate,
-                                endDate = endDate,
-                                startTime = startTime,
-                                endTime = endTime,
-                                recurFreq = recurrenceFreq,
-                                recurRule = recurRule,
-                                categoryId = selectedCategory?.let { categories.getOrNull(it)?.id }
-                            )
-                            EventManager.update(db, updatedEvent)
-                            val refreshedEvent = db.eventDao().getMasterEventById(event.id) ?: updatedEvent
-                            onSaveSuccess(refreshedEvent)
-                        }
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
-                    modifier = Modifier.weight(1f),
-                    contentPadding = PaddingValues(16.dp)
-                ) { Text("Save", fontSize = 16.sp) }
+        AnimatedVisibility(
+            visible = showNotification,
+            enter = slideInVertically(initialOffsetY = { -it }) + fadeIn(),
+            exit = slideOutVertically(targetOffsetY = { -it }) + fadeOut(),
+            modifier = Modifier.align(Alignment.TopCenter)
+        ) {
+            val dragOffset = remember { androidx.compose.runtime.mutableFloatStateOf(0f) }
+            Box(
+                modifier = Modifier
+                    .offset(y = dragOffset.floatValue.coerceAtMost(0f).dp)
+                    .draggable(
+                        orientation = androidx.compose.foundation.gestures.Orientation.Vertical,
+                        state = androidx.compose.foundation.gestures.rememberDraggableState { delta ->
+                            dragOffset.floatValue += delta
+                            if (dragOffset.floatValue < -80f) showNotification = false
+                        },
+                        onDragStopped = { dragOffset.floatValue = 0f }
+                    )
+            ) {
+                Surface(
+                    color = PrimaryColor,
+                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                    shadowElevation = 8.dp,
+                    shape = MaterialTheme.shapes.medium
+                ) {
+                    Box(modifier = Modifier.padding(16.dp), contentAlignment = Alignment.Center) {
+                        Text(notificationMessage, color = BackgroundColor, fontSize = 18.sp, fontWeight = FontWeight.Bold, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                    }
+                }
             }
         }
     }

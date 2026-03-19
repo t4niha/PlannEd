@@ -5,6 +5,7 @@ import androidx.annotation.RequiresApi
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -22,6 +23,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
@@ -321,79 +323,124 @@ fun CategoryUpdateForm(
     var notes by remember { mutableStateOf(category.notes ?: "") }
     var color by remember { mutableStateOf(Converters.toColor(category.color)) }
     var resetTrigger by remember { mutableIntStateOf(0) }
+    var showNotification by remember { mutableStateOf(false) }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(BackgroundColor)
-            .padding(16.dp)
+    Box(
+        modifier = Modifier.fillMaxSize()
     ) {
-        Box(
-            modifier = Modifier
-                .clip(RoundedCornerShape(8.dp))
-                .background(PrimaryColor)
-                .clickable { onBack() }
-                .padding(horizontal = 16.dp, vertical = 8.dp)
-        ) {
-            Text("Back", fontSize = 16.sp, color = Color.White)
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
         Column(
             modifier = Modifier
-                .weight(1f)
-                .verticalScroll(scrollState)
+                .fillMaxSize()
+                .background(BackgroundColor)
+                .padding(16.dp)
         ) {
-            CategoryForm(
-                title = title,
-                onTitleChange = { title = it },
-                notes = notes,
-                onNotesChange = { notes = it },
-                color = color,
-                onColorChange = { color = it },
-                resetTrigger = resetTrigger
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(PrimaryColor)
+                    .clickable { onBack() }
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
             ) {
-                Button(
-                    onClick = {
-                        title = category.title
-                        notes = category.notes ?: ""
-                        color = Converters.toColor(category.color)
-                        resetTrigger++
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
-                    modifier = Modifier.weight(1f),
-                    contentPadding = PaddingValues(16.dp)
+                Text("Back", fontSize = 16.sp, color = Color.White)
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .verticalScroll(scrollState)
+            ) {
+                CategoryForm(
+                    title = title,
+                    onTitleChange = { title = it },
+                    notes = notes,
+                    onNotesChange = { notes = it },
+                    color = color,
+                    onColorChange = { color = it },
+                    resetTrigger = resetTrigger
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text("Reset", fontSize = 16.sp)
+                    Button(
+                        onClick = {
+                            title = category.title
+                            notes = category.notes ?: ""
+                            color = Converters.toColor(category.color)
+                            resetTrigger++
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(16.dp)
+                    ) {
+                        Text("Reset", fontSize = 16.sp)
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Button(
+                        onClick = {
+                            if (title.isBlank()) {
+                                scope.launch {
+                                    showNotification = true
+                                    scrollState.animateScrollTo(0)
+                                    delay(3000)
+                                    showNotification = false
+                                }
+                                return@Button
+                            }
+                            scope.launch {
+                                val updatedCategory = category.copy(
+                                    title = title,
+                                    notes = notes.ifBlank { null },
+                                    color = Converters.fromColor(color)
+                                )
+                                CategoryManager.update(db, updatedCategory)
+                                val refreshedCategory = db.categoryDao().getCategoryById(category.id) ?: updatedCategory
+                                onSaveSuccess(refreshedCategory)
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(16.dp)
+                    ) {
+                        Text("Save", fontSize = 16.sp)
+                    }
                 }
-                Spacer(modifier = Modifier.width(12.dp))
-                Button(
-                    onClick = {
-                        if (title.isBlank()) return@Button
-                        scope.launch {
-                            val updatedCategory = category.copy(
-                                title = title,
-                                notes = notes.ifBlank { null },
-                                color = Converters.fromColor(color)
-                            )
-                            CategoryManager.update(db, updatedCategory)
-                            val refreshedCategory = db.categoryDao().getCategoryById(category.id) ?: updatedCategory
-                            onSaveSuccess(refreshedCategory)
-                        }
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
-                    modifier = Modifier.weight(1f),
-                    contentPadding = PaddingValues(16.dp)
+            }
+        }
+
+        AnimatedVisibility(
+            visible = showNotification,
+            enter = slideInVertically(initialOffsetY = { -it }) + fadeIn(),
+            exit = slideOutVertically(targetOffsetY = { -it }) + fadeOut(),
+            modifier = Modifier.align(Alignment.TopCenter)
+        ) {
+            val dragOffset = remember { androidx.compose.runtime.mutableFloatStateOf(0f) }
+            Box(
+                modifier = Modifier
+                    .offset(y = dragOffset.floatValue.coerceAtMost(0f).dp)
+                    .draggable(
+                        orientation = androidx.compose.foundation.gestures.Orientation.Vertical,
+                        state = androidx.compose.foundation.gestures.rememberDraggableState { delta ->
+                            dragOffset.floatValue += delta
+                            if (dragOffset.floatValue < -80f) showNotification = false
+                        },
+                        onDragStopped = { dragOffset.floatValue = 0f }
+                    )
+            ) {
+                Surface(
+                    color = PrimaryColor,
+                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                    shadowElevation = 8.dp,
+                    shape = MaterialTheme.shapes.medium
                 ) {
-                    Text("Save", fontSize = 16.sp)
+                    Box(modifier = Modifier.padding(16.dp), contentAlignment = Alignment.Center) {
+                        Text("Title is required", color = BackgroundColor, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    }
                 }
             }
         }
