@@ -362,6 +362,7 @@ fun EventInfoPage(
                                     showDeleteDialog = false
                                     scope.launch {
                                         db.eventDao().deleteOccurrence(occurrence.id)
+                                        onTaskChanged(db)
                                         onBack()
                                     }
                                 },
