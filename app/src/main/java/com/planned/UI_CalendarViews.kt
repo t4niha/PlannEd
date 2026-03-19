@@ -419,7 +419,7 @@ fun MonthView(
         }
 
         // Month grid
-        Box(modifier = Modifier.fillMaxWidth().height(300.dp)) {
+        Box(modifier = Modifier.fillMaxWidth().height(360.dp)) {
             HorizontalPager(
                 state = pagerState,
                 modifier = Modifier.fillMaxSize()
@@ -441,21 +441,22 @@ fun MonthView(
                                 val isCurrentMonth = date.month == pageDate.month
                                 val isSelected = date == selectedDate
                                 val isToday = date == today
-                                val backgroundColor = if (isSelected) PrimaryColor else Color.Transparent
                                 val textColor = when {
                                     isSelected -> BackgroundColor
                                     isToday && !isSelected -> PrimaryColor
                                     !isCurrentMonth -> Color.Gray
                                     else -> Color.Black
                                 }
-                                val textWeight = if (isSelected || (isToday)) FontWeight.Bold else FontWeight.Normal
+                                val textWeight = if (isSelected || isToday) FontWeight.Bold else FontWeight.Normal
 
                                 Box(
                                     modifier = Modifier
                                         .weight(1f)
                                         .fillMaxHeight()
-                                        .background(backgroundColor)
-                                        .clickable { onDateSelected(date) }
+                                        .clickable(
+                                            interactionSource = remember { MutableInteractionSource() },
+                                            indication = null
+                                        ) { onDateSelected(date) }
                                         .padding(5.dp),
                                     contentAlignment = Alignment.TopCenter
                                 ) {
@@ -470,38 +471,44 @@ fun MonthView(
                                         runBlocking { hasTasksForDate(db, date) }
                                     }
 
-                                    val indicatorColor = when {
-                                        isSelected -> BackgroundColor
-                                        !isCurrentMonth -> Color.LightGray
-                                        else -> PrimaryColor
-                                    }
+                                    val indicatorColor = if (!isCurrentMonth) Color.LightGray else PrimaryColor
 
                                     Column(
                                         horizontalAlignment = Alignment.CenterHorizontally,
                                         modifier = Modifier.fillMaxSize()
                                     ) {
-                                        Text(
-                                            date.dayOfMonth.toString(),
-                                            fontWeight = textWeight,
-                                            color = textColor,
-                                            fontSize = 14.sp
-                                        )
+                                        Box(
+                                            modifier = Modifier
+                                                .size(40.dp)
+                                                .background(
+                                                    if (isSelected) PrimaryColor else Color.Transparent,
+                                                    shape = CircleShape
+                                                ),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                date.dayOfMonth.toString(),
+                                                fontWeight = textWeight,
+                                                color = textColor,
+                                                fontSize = 14.sp
+                                            )
+                                        }
 
                                         Spacer(modifier = Modifier.height(2.dp))
 
                                         // Indicators row
                                         Row(
                                             horizontalArrangement = Arrangement.Center,
-                                            modifier = Modifier.height(7.dp)
+                                            modifier = Modifier.height(5.dp)
                                         ) {
                                             if (hasTasks) {
-                                                Canvas(modifier = Modifier.size(7.dp)) {
+                                                Canvas(modifier = Modifier.size(5.dp)) {
                                                     drawCircle(color = indicatorColor)
                                                 }
-                                                if (hasReminders || hasDeadlines) Spacer(modifier = Modifier.width(3.dp))
+                                                if (hasReminders || hasDeadlines) Spacer(modifier = Modifier.width(2.dp))
                                             }
                                             if (hasReminders) {
-                                                Canvas(modifier = Modifier.size(7.dp)) {
+                                                Canvas(modifier = Modifier.size(5.dp)) {
                                                     val path = Path().apply {
                                                         moveTo(size.width / 2, 0f)
                                                         lineTo(size.width, size.height)
@@ -510,10 +517,10 @@ fun MonthView(
                                                     }
                                                     drawPath(path, color = indicatorColor)
                                                 }
-                                                if (hasDeadlines) Spacer(modifier = Modifier.width(3.dp))
+                                                if (hasDeadlines) Spacer(modifier = Modifier.width(2.dp))
                                             }
                                             if (hasDeadlines) {
-                                                Canvas(modifier = Modifier.size(7.dp)) {
+                                                Canvas(modifier = Modifier.size(5.dp)) {
                                                     drawRect(color = indicatorColor)
                                                 }
                                             }
