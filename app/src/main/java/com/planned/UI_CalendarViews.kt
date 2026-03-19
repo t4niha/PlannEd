@@ -270,16 +270,16 @@ fun WeekView(
 
                         Row(
                             horizontalArrangement = Arrangement.Center,
-                            modifier = Modifier.height(5.dp)
+                            modifier = Modifier.height(6.dp)
                         ) {
                             if (hasTasksWeek) {
-                                Canvas(modifier = Modifier.size(5.dp)) {
+                                Canvas(modifier = Modifier.size(6.dp)) {
                                     drawCircle(color = weekIndicatorColor)
                                 }
                                 if (hasRemindersWeek || hasDeadlinesWeek) Spacer(modifier = Modifier.width(2.dp))
                             }
                             if (hasRemindersWeek) {
-                                Canvas(modifier = Modifier.size(5.dp)) {
+                                Canvas(modifier = Modifier.size(6.dp)) {
                                     val path = Path().apply {
                                         moveTo(size.width / 2, 0f)
                                         lineTo(size.width, size.height)
@@ -291,7 +291,7 @@ fun WeekView(
                                 if (hasDeadlinesWeek) Spacer(modifier = Modifier.width(2.dp))
                             }
                             if (hasDeadlinesWeek) {
-                                Canvas(modifier = Modifier.size(5.dp)) {
+                                Canvas(modifier = Modifier.size(6.dp)) {
                                     drawRect(color = weekIndicatorColor)
                                 }
                             }
@@ -499,16 +499,16 @@ fun MonthView(
                                         // Indicators row
                                         Row(
                                             horizontalArrangement = Arrangement.Center,
-                                            modifier = Modifier.height(5.dp)
+                                            modifier = Modifier.height(6.dp)
                                         ) {
                                             if (hasTasks) {
-                                                Canvas(modifier = Modifier.size(5.dp)) {
+                                                Canvas(modifier = Modifier.size(6.dp)) {
                                                     drawCircle(color = indicatorColor)
                                                 }
                                                 if (hasReminders || hasDeadlines) Spacer(modifier = Modifier.width(2.dp))
                                             }
                                             if (hasReminders) {
-                                                Canvas(modifier = Modifier.size(5.dp)) {
+                                                Canvas(modifier = Modifier.size(6.dp)) {
                                                     val path = Path().apply {
                                                         moveTo(size.width / 2, 0f)
                                                         lineTo(size.width, size.height)
@@ -520,7 +520,7 @@ fun MonthView(
                                                 if (hasDeadlines) Spacer(modifier = Modifier.width(2.dp))
                                             }
                                             if (hasDeadlines) {
-                                                Canvas(modifier = Modifier.size(5.dp)) {
+                                                Canvas(modifier = Modifier.size(6.dp)) {
                                                     drawRect(color = indicatorColor)
                                                 }
                                             }
@@ -632,7 +632,5 @@ fun MonthView(
                 }
             }
         }
-
-        Spacer(modifier = Modifier.height(20.dp))
     }
 }
