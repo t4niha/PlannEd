@@ -34,37 +34,13 @@ fun formatBucketRecurrence(bucket: MasterTaskBucket, startWeekOnMonday: Boolean)
             val dayNames = sorted.joinToString(", ") { d ->
                 when (d) { 1 -> "Mo"; 2 -> "Tu"; 3 -> "We"; 4 -> "Th"; 5 -> "Fr"; 6 -> "Sa"; 7 -> "Su"; else -> "" }
             }
-            "Weekly $dayNames"
+            "Weekly (${dayNames})"
         }
         RecurrenceFrequency.MONTHLY -> {
             val days = bucket.recurRule.daysOfMonth?.sorted()?.joinToString(", ") ?: ""
-            "Monthly $days"
+            "Monthly ($days)"
         }
         RecurrenceFrequency.YEARLY -> "Yearly"
-    }
-}
-
-@RequiresApi(Build.VERSION_CODES.O)
-fun formatBucketRecurrenceMultiline(bucket: MasterTaskBucket, startWeekOnMonday: Boolean): String {
-    return when (bucket.recurFreq) {
-        RecurrenceFrequency.NONE -> "No Recurrence"
-        RecurrenceFrequency.DAILY -> "Daily"
-        RecurrenceFrequency.WEEKLY -> {
-            val days = bucket.recurRule.daysOfWeek ?: emptyList()
-            val order = if (startWeekOnMonday) listOf(1,2,3,4,5,6,7) else listOf(7,1,2,3,4,5,6)
-            val sorted = days.sortedBy { order.indexOf(it) }
-            val dayNames = sorted.joinToString(", ") { d ->
-                when (d) { 1 -> "Mo"; 2 -> "Tu"; 3 -> "We"; 4 -> "Th"; 5 -> "Fr"; 6 -> "Sa"; 7 -> "Su"; else -> "" }
-            }
-            "Weekly\n$dayNames"
-        }
-        RecurrenceFrequency.MONTHLY -> {
-            val days = bucket.recurRule.daysOfMonth?.sorted()?.joinToString(", ") ?: ""
-            "Monthly\n$days"
-        }
-        RecurrenceFrequency.YEARLY -> bucket.recurRule.monthAndDay?.let {
-            "Yearly (${java.time.Month.of(it.second).getDisplayName(java.time.format.TextStyle.FULL, java.util.Locale.getDefault())} ${it.first})"
-        } ?: "Yearly"
     }
 }
 
@@ -262,7 +238,7 @@ fun TaskBucketInfoPage(
                 "End Date" to (currentBucket.endDate?.format(dateFormatter) ?: "N/A"),
                 "Start Time" to currentBucket.startTime.format(timeFormatter),
                 "End Time" to currentBucket.endTime.format(timeFormatter),
-                "Recurrence" to formatBucketRecurrenceMultiline(currentBucket, SettingsManager.settings?.startWeekOnMonday ?: false)
+                "Recurrence" to formatBucketRecurrence(currentBucket, SettingsManager.settings?.startWeekOnMonday ?: false)
             ))
         }
 

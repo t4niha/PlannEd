@@ -242,8 +242,8 @@ fun CategoryInfoPage(
             ) {
                 InfoField("Events", eventCount.toString())
                 InfoField("Deadlines", deadlineCount.toString())
-                InfoField("Tasks", taskCount.toString())
                 InfoField("Reminders", reminderCount.toString())
+                InfoField("Tasks", taskCount.toString())
             }
         }
 
