@@ -100,23 +100,6 @@ fun Settings(db: AppDatabase) {
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Break Duration
-        val breakDurationValue = durationPickerField(
-            label = "Break Duration",
-            initialHours = (settings?.breakDuration ?: 5) / 60,
-            initialMinutes = (settings?.breakDuration ?: 5) % 60,
-            key = 0
-        )
-
-        LaunchedEffect(breakDurationValue) {
-            val totalMinutes = (breakDurationValue.first * 60) + breakDurationValue.second
-            if (totalMinutes != settings?.breakDuration) {
-                SettingsManager.setBreakDuration(db, totalMinutes)
-            }
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
         // Break Every
         val breakEveryValue = durationPickerField(
             label = "Break Every",
@@ -129,6 +112,23 @@ fun Settings(db: AppDatabase) {
             val totalMinutes = (breakEveryValue.first * 60) + breakEveryValue.second
             if (totalMinutes != settings?.breakEvery) {
                 SettingsManager.setBreakEvery(db, totalMinutes)
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Break Duration
+        val breakDurationValue = durationPickerField(
+            label = "Break Duration",
+            initialHours = (settings?.breakDuration ?: 5) / 60,
+            initialMinutes = (settings?.breakDuration ?: 5) % 60,
+            key = 0
+        )
+
+        LaunchedEffect(breakDurationValue) {
+            val totalMinutes = (breakDurationValue.first * 60) + breakDurationValue.second
+            if (totalMinutes != settings?.breakDuration) {
+                SettingsManager.setBreakDuration(db, totalMinutes)
             }
         }
 
