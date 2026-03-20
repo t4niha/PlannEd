@@ -143,7 +143,10 @@ fun DeadlineItemView(
             when {
                 deadline.eventId != null -> {
                     val event = db.eventDao().getMasterEventById(deadline.eventId)
-                    event?.color?.let { Converters.toColor(it) } ?: Color.LightGray
+                    event?.color?.let { Converters.toColor(it) }
+                        ?: event?.categoryId?.let { catId -> db.categoryDao().getCategoryById(catId)?.color?.let { Converters.toColor(it) } }
+                        ?: deadline.categoryId?.let { catId -> db.categoryDao().getCategoryById(catId)?.color?.let { Converters.toColor(it) } }
+                        ?: Color.LightGray
                 }
                 deadline.categoryId != null -> {
                     val category = db.categoryDao().getCategoryById(deadline.categoryId)

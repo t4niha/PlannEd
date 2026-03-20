@@ -63,7 +63,7 @@ TODO: [?] Warning when tasks scheduled after deadline / impossible to meet deadl
 
 TODO: [/] Kanban board?
 TODO: [-] POMODORO have the option to control timer spread (not just an hour!)
-TODO: [ ] DB Sample stuff
+TODO: [-] DB Sample stuff
 
 TODO: [ ] notifications
 TODO: [?] Status indicators and overtime warnings for task elements on calendar?
