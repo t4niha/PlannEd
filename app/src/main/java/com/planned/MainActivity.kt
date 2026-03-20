@@ -51,27 +51,11 @@ class MainActivity : ComponentActivity() {
 }
 
 /**
-TODO: [-] Deadlines/Events info pages -> Related Tasks
-TODO: [-] Scheduler schedules tasks before right now??????
-TODO: [-] Fix UI pages (category, event, deadline, reminder, task bucket)
-TODO: [-] Calendar to UI pages navigation
-TODO: [?] On creation don't allow duplicate titles for events, categories?
-TODO: [-] refresh schedule button?
-TODO: [-] Confirmation dialogs for destructive operations (this/all)
-TODO: [-] Warning for insufficient bucket space
-TODO: [?] Warning when tasks scheduled after deadline / impossible to meet deadline?
-
-TODO: [/] Kanban board?
-TODO: [-] POMODORO have the option to control timer spread (not just an hour!)
-TODO: [-] DB Sample stuff
-
-TODO: [?] notifications
-TODO: [?] Status indicators and overtime warnings for task elements on calendar?
-
-TODO: [-] Task info back to calendar doesn't scroll to that task, only to today
-TODO: [-] Task update form dropdown loop glitch
-TODO: [-] Cancel (dialogue) buttons do same as Save?
-TODO: [-] Task form update needed after Save for dependency option
+[?] On creation don't allow duplicate titles for events, categories?
+[?] Warning when tasks scheduled after deadline / impossible to meet deadline?
+[/] Kanban board?
+[?] notifications
+[?] Status indicators and overtime warnings for task elements on calendar?
  **/
 
 /*  */
