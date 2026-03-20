@@ -428,7 +428,10 @@ fun ReminderDeadlineIndicators(db: AppDatabase, date: LocalDate) {
                                 when {
                                     todo.eventId != null -> {
                                         val event = db.eventDao().getAllMasterEvents().find { it.id == todo.eventId }
-                                        event?.color?.let { Converters.toColor(it) } ?: Color.LightGray
+                                        event?.color?.let { Converters.toColor(it) }
+                                            ?: event?.categoryId?.let { catId -> db.categoryDao().getAll().find { it.id == catId }?.color?.let { Converters.toColor(it) } }
+                                            ?: todo.categoryId?.let { catId -> db.categoryDao().getAll().find { it.id == catId }?.color?.let { Converters.toColor(it) } }
+                                            ?: Color.LightGray
                                     }
                                     todo.categoryId != null -> {
                                         val category = db.categoryDao().getAll().find { it.id == todo.categoryId }
@@ -590,7 +593,10 @@ fun ReminderDeadlineIndicators(db: AppDatabase, date: LocalDate) {
                                 when {
                                     deadline.eventId != null -> {
                                         val event = db.eventDao().getAllMasterEvents().find { it.id == deadline.eventId }
-                                        event?.color?.let { Converters.toColor(it) } ?: Color.LightGray
+                                        event?.color?.let { Converters.toColor(it) }
+                                            ?: event?.categoryId?.let { catId -> db.categoryDao().getAll().find { it.id == catId }?.color?.let { Converters.toColor(it) } }
+                                            ?: deadline.categoryId?.let { catId -> db.categoryDao().getAll().find { it.id == catId }?.color?.let { Converters.toColor(it) } }
+                                            ?: Color.LightGray
                                     }
                                     deadline.categoryId != null -> {
                                         val category = db.categoryDao().getAll().find { it.id == deadline.categoryId }
