@@ -321,7 +321,7 @@ fun runSample(db: AppDatabase) = runBlocking {
         startTime = LocalTime.of(20, 0),
         predictedDuration = 60,
         categoryId = schoolCatId,
-        eventId = null,
+        eventId = englishEventId,
         deadlineId = null,
         dependencyTaskId = null
     )

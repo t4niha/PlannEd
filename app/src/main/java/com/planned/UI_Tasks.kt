@@ -939,7 +939,8 @@ fun TaskUpdateForm(
 fun PomodoroPage(
     db: AppDatabase,
     task: MasterTask,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onComplete: () -> Unit = onBack
 ) {
     var elapsedSeconds by remember { mutableIntStateOf(0) }
     var sessionSeconds by remember { mutableIntStateOf(0) }
@@ -1084,7 +1085,7 @@ fun PomodoroPage(
                         }
                         intervals.forEach { interval -> db.taskDao().deleteInterval(interval.id) }
                         db.taskDao().update(currentTask.copy(status = 3, noIntervals = 0))
-                        onBack()
+                        onComplete()
                     }
                 },
                 modifier = Modifier.weight(1f),
@@ -1648,7 +1649,8 @@ fun AllDayTaskForm(
 fun AllDayPomodoroPage(
     db: AppDatabase,
     task: MasterTask,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onComplete: () -> Unit = onBack
 ) {
     var elapsedSeconds by remember { mutableIntStateOf(0) }
     var sessionSeconds by remember { mutableIntStateOf(0) }
@@ -1782,7 +1784,7 @@ fun AllDayPomodoroPage(
                         } else {
                             db.taskDao().update(currentTask.copy(status = 3))
                         }
-                        onBack()
+                        onComplete()
                     }
                 },
                 modifier = Modifier.weight(1f),

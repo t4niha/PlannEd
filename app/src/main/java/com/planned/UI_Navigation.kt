@@ -155,7 +155,14 @@ fun AppNavigation(db: AppDatabase) {
                             PomodoroPage(
                                 db = db,
                                 task = task,
-                                onBack = { currentScreen = "TaskInfo" }
+                                onBack = { currentScreen = "TaskInfo" },
+                                onComplete = {
+                                    val returnTo = taskInfoReturnScreen
+                                    taskInfoReturnScreen = "Calendars"
+                                    navUpdateFormData = null
+                                    selectedTaskForInfo = null
+                                    currentScreen = returnTo
+                                }
                             )
                         }
 
@@ -187,7 +194,11 @@ fun AppNavigation(db: AppDatabase) {
                             AllDayPomodoroPage(
                                 db = db,
                                 task = task,
-                                onBack = { currentScreen = "AllDayTaskInfo" }
+                                onBack = { currentScreen = "AllDayTaskInfo" },
+                                onComplete = {
+                                    selectedAllDayTaskForInfo = null
+                                    currentScreen = "Calendars"
+                                }
                             )
                         }
 
