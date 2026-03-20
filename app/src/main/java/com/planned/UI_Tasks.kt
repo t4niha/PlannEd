@@ -1084,7 +1084,20 @@ fun PomodoroPage(
                             updateTaskProgress(db, currentTask, intervals, sessionMinutes)
                         }
                         intervals.forEach { interval -> db.taskDao().deleteInterval(interval.id) }
-                        db.taskDao().update(currentTask.copy(status = 3, noIntervals = 0))
+
+                        // Check deadline miss at completion time
+                        val missedDeadline = currentTask.deadlineId?.let { deadlineId ->
+                            val deadline = db.deadlineDao().getDeadlineById(deadlineId)
+                            val now = java.time.LocalDate.now()
+                            val nowTime = java.time.LocalTime.now()
+                            deadline?.let {
+                                now.isAfter(it.date) ||
+                                        (now == it.date && nowTime.isAfter(it.time))
+                            }
+                        } ?: false
+
+                        db.taskDao().update(currentTask.copy(status = 3, noIntervals = 0, deadlineMissed = missedDeadline))
+                        updateATIOnTaskComplete(db, currentTask)
                         onComplete()
                     }
                 },

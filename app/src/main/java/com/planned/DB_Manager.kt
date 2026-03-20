@@ -73,6 +73,10 @@ object CategoryManager {
             color = Converters.fromColor(color)
         )
         db.categoryDao().insert(category)
+
+        // Create initialized ATI record
+        val insertedId = db.categoryDao().getAll().last().id
+        db.categoryATIDao().insert(CategoryATI(categoryId = insertedId))
     }
 
     // Get all categories
@@ -89,6 +93,7 @@ object CategoryManager {
     @RequiresApi(Build.VERSION_CODES.O)
     suspend fun delete(db: AppDatabase, categoryId: Int) {
         onCategoryDeleted(db, categoryId)
+        db.categoryATIDao().deleteById(categoryId)
         db.categoryDao().deleteById(categoryId)
     }
 }
@@ -137,6 +142,9 @@ object EventManager {
             db.eventDao().insertOccurrence(occurrence)
         }
 
+        // Create initialized ATI record
+        db.eventATIDao().insert(EventATI(eventId = insertedId))
+
         // Rerun scheduler since event times affect available slots
         onTaskChanged(db)
     }
@@ -180,6 +188,7 @@ object EventManager {
         }
 
         // Delete master event (cascades to occurrences)
+        db.eventATIDao().deleteById(eventId)
         db.eventDao().deleteMasterEvent(eventId)
 
         // Rerun scheduler now that event occurrences are gone

@@ -196,6 +196,7 @@ data class MasterTask(
     val status: Int? = 1,                   // 1 = not started, 2 = in progress, 3 = completed
     val timeLeft: Int? = null,              // auto calculated
     val overTime: Int? = null,              // auto-calculated
+    val deadlineMissed: Boolean = false,    // set at completion time
 
     val dependencyTaskId: Int? = null,      // task that must be completed before this one
     val eventId: Int? = null,
@@ -229,6 +230,7 @@ data class TaskInterval(
     val status: Int? = 1,
     val timeLeft: Int? = null,              // auto calculated
     val overTime: Int? = null,              // auto-calculated
+    val atiPadding: Int = 0                 // padding added by ATI at scheduling time
 )
 //</editor-fold>
 
@@ -291,17 +293,23 @@ data class ReminderOccurrence(
 //<editor-fold desc="ATI">
 
 @Entity
-data class EventATI(
-    @PrimaryKey val eventId: Int,
-    val viewScore: Int = 0,
-    val createScore: Int = 0,
-    val totalScore: Int = 0
+data class CategoryATI(
+    @PrimaryKey val categoryId: Int,
+    val score: Float = 0f,
+    val deadlineMissCount: Int = 0,     // out of last 10 completed tasks
+    val avgOvertime: Float = 0f,        // average overtime in minutes, last 10 tasks
+    val tasksCompleted: Int = 0,        // total completed tasks for this category
+    val predictedPadding: Int = 0       // in minutes, rounded up to nearest 5
 )
 
 @Entity
-data class UserATI(
-    @PrimaryKey val userId: Int = 0,
-    val data: String = "{}"
+data class EventATI(
+    @PrimaryKey val eventId: Int,
+    val score: Float = 0f,
+    val deadlineMissCount: Int = 0,     // out of last 10 completed tasks
+    val avgOvertime: Float = 0f,        // average overtime in minutes, last 10 tasks
+    val tasksCompleted: Int = 0,        // total completed tasks for this event
+    val predictedPadding: Int = 0       // in minutes, rounded up to nearest 5
 )
 //</editor-fold>
 
@@ -531,6 +539,44 @@ interface ReminderDao {
     suspend fun deleteMasterReminder(masterId: Int)
 }
 
+// CategoryATI
+@Dao
+interface CategoryATIDao {
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(categoryATI: CategoryATI)
+
+    @Query("SELECT * FROM CategoryATI WHERE categoryId = :categoryId")
+    suspend fun getById(categoryId: Int): CategoryATI?
+
+    @Query("SELECT * FROM CategoryATI")
+    suspend fun getAll(): List<CategoryATI>
+
+    @Update
+    suspend fun update(categoryATI: CategoryATI)
+
+    @Query("DELETE FROM CategoryATI WHERE categoryId = :categoryId")
+    suspend fun deleteById(categoryId: Int)
+}
+
+// EventATI
+@Dao
+interface EventATIDao {
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(eventATI: EventATI)
+
+    @Query("SELECT * FROM EventATI WHERE eventId = :eventId")
+    suspend fun getById(eventId: Int): EventATI?
+
+    @Query("SELECT * FROM EventATI")
+    suspend fun getAll(): List<EventATI>
+
+    @Update
+    suspend fun update(eventATI: EventATI)
+
+    @Query("DELETE FROM EventATI WHERE eventId = :eventId")
+    suspend fun deleteById(eventId: Int)
+}
+
 // AppSetting
 @Dao
 interface SettingsDao {
@@ -602,6 +648,12 @@ data class MasterEventWithATI(
     val eventATI: EventATI?
 )
 
+data class CategoryWithATI(
+    @Embedded val category: Category,
+    @Relation(parentColumn = "id", entityColumn = "categoryId")
+    val categoryATI: CategoryATI?
+)
+
 // EventOccurrence
 data class EventOccurrenceWithTasks(
     @Embedded val occurrence: EventOccurrence,
@@ -664,9 +716,9 @@ data class CategoryWithMasterReminders(
         MasterTask::class, TaskInterval::class,
         MasterReminder::class, ReminderOccurrence::class,
         AppSetting::class,
-        EventATI::class, UserATI::class
+        CategoryATI::class, EventATI::class
     ],
-    version = 12
+    version = 14
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
@@ -677,5 +729,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun taskDao(): TaskDao
     abstract fun reminderDao(): ReminderDao
     abstract fun settingsDao(): SettingsDao
+    abstract fun categoryATIDao(): CategoryATIDao
+    abstract fun eventATIDao(): EventATIDao
 }
 //</editor-fold>

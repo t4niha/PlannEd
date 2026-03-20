@@ -52,6 +52,8 @@ fun Developer(db: AppDatabase) {
     var masterReminders by remember { mutableStateOf(listOf<MasterReminder>()) }
     var reminderOccurrences by remember { mutableStateOf(listOf<ReminderOccurrence>()) }
     var settings by remember { mutableStateOf(listOf<AppSetting>()) }
+    var categoryATIList by remember { mutableStateOf(listOf<CategoryATI>()) }
+    var eventATIList by remember { mutableStateOf(listOf<EventATI>()) }
 
     // Load DB
     fun refreshData() {
@@ -67,6 +69,8 @@ fun Developer(db: AppDatabase) {
             masterReminders = db.reminderDao().getAllMasterReminders()
             reminderOccurrences = db.reminderDao().getAllOccurrences()
             db.settingsDao().getAll()?.let { settings = listOf(it) } ?: run { settings = emptyList() }
+            categoryATIList = db.categoryATIDao().getAll()
+            eventATIList = db.eventATIDao().getAll()
         }
     }
     LaunchedEffect(Unit) { refreshData() }
@@ -172,6 +176,10 @@ fun Developer(db: AppDatabase) {
                                 .forEach { db.eventDao().deleteMasterEvent(it.id) }
                             db.categoryDao().getAll()
                                 .forEach { db.categoryDao().deleteById(it.id) }
+                            db.categoryATIDao().getAll()
+                                .forEach { db.categoryATIDao().deleteById(it.categoryId) }
+                            db.eventATIDao().getAll()
+                                .forEach { db.eventATIDao().deleteById(it.eventId) }
                             refreshData()
                         }
                     },
@@ -483,7 +491,8 @@ fun Developer(db: AppDatabase) {
                     "End Time",
                     "Status",
                     "Time Left",
-                    "Overtime"
+                    "Overtime",
+                    "ATI Padding"
                 )
             ) { i ->
                 listOf(
@@ -496,7 +505,8 @@ fun Developer(db: AppDatabase) {
                     i.endTime.toString(),
                     i.status?.toString() ?: "",
                     i.timeLeft?.toString() ?: "",
-                    i.overTime?.toString() ?: ""
+                    i.overTime?.toString() ?: "",
+                    i.atiPadding.toString()
                 )
             }
 
@@ -549,6 +559,50 @@ fun Developer(db: AppDatabase) {
                     o.occurDate.toString(),
                     o.time?.toString() ?: "",
                     o.allDay.toString()
+                )
+            }
+
+            Table(
+                title = "Category ATI",
+                data = categoryATIList,
+                headers = listOf(
+                    "Category ID",
+                    "Score",
+                    "Deadline Misses",
+                    "Avg Overtime",
+                    "Tasks Completed",
+                    "Predicted Padding"
+                )
+            ) { a ->
+                listOf(
+                    a.categoryId.toString(),
+                    "%.3f".format(a.score),
+                    a.deadlineMissCount.toString(),
+                    "%.1f".format(a.avgOvertime),
+                    a.tasksCompleted.toString(),
+                    a.predictedPadding.toString()
+                )
+            }
+
+            Table(
+                title = "Event ATI",
+                data = eventATIList,
+                headers = listOf(
+                    "Event ID",
+                    "Score",
+                    "Deadline Misses",
+                    "Avg Overtime",
+                    "Tasks Completed",
+                    "Predicted Padding"
+                )
+            ) { a ->
+                listOf(
+                    a.eventId.toString(),
+                    "%.3f".format(a.score),
+                    a.deadlineMissCount.toString(),
+                    "%.1f".format(a.avgOvertime),
+                    a.tasksCompleted.toString(),
+                    a.predictedPadding.toString()
                 )
             }
 

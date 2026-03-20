@@ -9,8 +9,8 @@ import java.time.LocalTime
 Ordering Factors:
 0) Dependency
 1) Urgency (Deadline)
-2) Category Score (ATI - TODO)
-3) Event Score (ATI - TODO)
+2) Category Score (ATI)
+3) Event Score (ATI)
 4) Date Created (Task ID)
  **/
 
@@ -72,7 +72,7 @@ private suspend fun processManuallyScheduledTasks(db: AppDatabase, manualTasks: 
         val startDate = task.startDate!!
         val durationMinutes = task.predictedDuration
 
-        // Calculate end time
+        // Calculate end time — no ATI padding for manually scheduled tasks
         val endTime = startTime.plusMinutes(durationMinutes.toLong())
 
         // Create single interval
@@ -85,7 +85,8 @@ private suspend fun processManuallyScheduledTasks(db: AppDatabase, manualTasks: 
             endTime = endTime,
             status = 1,
             timeLeft = durationMinutes,
-            overTime = 0
+            overTime = 0,
+            atiPadding = 0
         )
 
         db.taskDao().insertInterval(interval)
@@ -112,16 +113,16 @@ private suspend fun orderAutoScheduledTasks(db: AppDatabase, autoTasks: List<Mas
             daysUntil.toInt()
         }
 
-        // ATI scores
-        val categoryScore = 0 // TODO: Category score calculation
-        val eventScore = 0 // TODO: Event score calculation
+        // ATI scores — category score first, then event score as secondary
+        val categoryScore = task.categoryId?.let { db.categoryATIDao().getById(it)?.score } ?: 0f
+        val eventScore = task.eventId?.let { db.eventATIDao().getById(it)?.score } ?: 0f
 
         Triple(task, urgency, Triple(categoryScore, eventScore, task.id))
     }.sortedWith(compareBy(
-        { it.second ?: Int.MAX_VALUE },
-        { it.third.first },
-        { it.third.second },
-        { it.third.third }
+        { it.second ?: Int.MAX_VALUE },   // 1) Urgency ascending (no deadline = last)
+        { -(it.third.first) },            // 2) Category score descending (higher = earlier)
+        { -(it.third.second) },           // 3) Event score descending (higher = earlier)
+        { it.third.third }                // 4) Task ID ascending (tie breaker)
     )).map {
         OrderedTask(it.first, it.first.predictedDuration)
     }.toMutableList().also { orderedList ->
@@ -332,13 +333,19 @@ private suspend fun assignAutoScheduledTasks(
         // Find slot that fits this task
         var assigned = false
 
+        // Look up ATI padding once per task — take max of category and event padding
+        val categoryPadding = task.categoryId?.let { db.categoryATIDao().getById(it)?.predictedPadding } ?: 0
+        val eventPadding = task.eventId?.let { db.eventATIDao().getById(it)?.predictedPadding } ?: 0
+        val atiPadding = maxOf(categoryPadding, eventPadding)
+
         for (i in availableSlots.indices) {
             val slot = availableSlots[i]
             val slotDuration = slot.durationMinutes()
 
             if (slotDuration >= durationNeeded) {
-                // Slot can fit the entire task
-                val endTime = slot.startTime.plusMinutes(durationNeeded.toLong())
+                // Slot fits the task — add as much padding as the slot allows
+                val actualPadding = minOf(atiPadding, slotDuration - durationNeeded)
+                val endTime = slot.startTime.plusMinutes((durationNeeded + actualPadding).toLong())
 
                 // Get current interval count for this task
                 val currentIntervals = db.taskDao().getIntervalsForTask(task.id)
@@ -354,20 +361,18 @@ private suspend fun assignAutoScheduledTasks(
                     endTime = endTime,
                     status = 1,
                     timeLeft = durationNeeded,
-                    overTime = 0
+                    overTime = 0,
+                    atiPadding = actualPadding
                 )
 
                 db.taskDao().insertInterval(interval)
-
-                // Update master task noIntervals
                 db.taskDao().update(task.copy(noIntervals = intervalNo))
 
-                // Update slot
-                if (slotDuration == durationNeeded) {
-                    // Slot is completely filled, remove it
+                // Update slot — consume task duration + padding
+                val totalConsumed = durationNeeded + actualPadding
+                if (slotDuration == totalConsumed) {
                     availableSlots.removeAt(i)
                 } else {
-                    // Slot has remaining time, update it
                     availableSlots[i] = AvailableTimeSlot(
                         date = slot.date,
                         startTime = endTime,
@@ -375,20 +380,17 @@ private suspend fun assignAutoScheduledTasks(
                     )
                 }
 
-                // Task is fully assigned
                 tasksToProcess.removeAt(0)
                 assigned = true
                 break
 
             } else if (task.breakable == true && slotDuration >= MIN_INTERVAL_SIZE) {
-                // Task is breakable and slot has enough space, assign partial interval
+                // Partial interval — fill slot completely, no padding on partial chunks
                 val endTime = slot.endTime
 
-                // Get current interval count for this task
                 val currentIntervals = db.taskDao().getIntervalsForTask(task.id)
                 val intervalNo = currentIntervals.size + 1
 
-                // Create interval for this chunk
                 val interval = TaskInterval(
                     masterTaskId = task.id,
                     intervalNo = intervalNo,
@@ -398,7 +400,8 @@ private suspend fun assignAutoScheduledTasks(
                     endTime = endTime,
                     status = 1,
                     timeLeft = slotDuration,
-                    overTime = 0
+                    overTime = 0,
+                    atiPadding = 0
                 )
 
                 db.taskDao().insertInterval(interval)
