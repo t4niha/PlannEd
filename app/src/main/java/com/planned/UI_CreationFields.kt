@@ -1239,7 +1239,7 @@ fun schedulePickerField(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("Start Date", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                        Text("Date", fontSize = 16.sp, fontWeight = FontWeight.Medium)
                         Spacer(modifier = Modifier.width(16.dp))
 
                         var showDatePicker by remember { mutableStateOf(false) }
