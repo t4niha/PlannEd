@@ -100,35 +100,119 @@ fun Settings(db: AppDatabase) {
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Break Every
-        val breakEveryValue = durationPickerField(
-            label = "Break Every",
-            initialHours = (settings?.breakEvery ?: 25) / 60,
-            initialMinutes = (settings?.breakEvery ?: 25) % 60,
-            key = 1
-        )
+        // Break Every + Break Duration in one card
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color(CardColor), RoundedCornerShape(12.dp))
+                .padding(16.dp)
+        ) {
+            Column {
+                // Break Every
+                var breakEveryHours by remember { mutableIntStateOf((settings?.breakEvery ?: 25) / 60) }
+                var breakEveryMinutes by remember { mutableIntStateOf((settings?.breakEvery ?: 25) % 60) }
+                var showBreakEveryPicker by remember { mutableStateOf(false) }
+                var tempBreakEveryH by remember { mutableIntStateOf(breakEveryHours) }
+                var tempBreakEveryM by remember { mutableIntStateOf(breakEveryMinutes) }
 
-        LaunchedEffect(breakEveryValue) {
-            val totalMinutes = (breakEveryValue.first * 60) + breakEveryValue.second
-            if (totalMinutes != settings?.breakEvery) {
-                SettingsManager.setBreakEvery(db, totalMinutes)
-            }
-        }
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                    Text("Break Every", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Button(
+                        onClick = { tempBreakEveryH = breakEveryHours; tempBreakEveryM = breakEveryMinutes; showBreakEveryPicker = true },
+                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
+                    ) { Text("${breakEveryHours}h ${breakEveryMinutes}m") }
+                }
+                if (showBreakEveryPicker) {
+                    AlertDialog(
+                        onDismissRequest = { showBreakEveryPicker = false },
+                        confirmButton = {
+                            TextButton(onClick = {
+                                breakEveryHours = tempBreakEveryH
+                                breakEveryMinutes = tempBreakEveryM
+                                showBreakEveryPicker = false
+                                scope.launch { SettingsManager.setBreakEvery(db, tempBreakEveryH * 60 + tempBreakEveryM) }
+                            }) { Text("OK", color = Color.Black, fontSize = 16.sp) }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { showBreakEveryPicker = false }) { Text("Cancel", color = Color.Black, fontSize = 16.sp) }
+                        },
+                        containerColor = BackgroundColor,
+                        text = {
+                            Row(horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text("Hours", fontSize = 12.sp)
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Button(onClick = { tempBreakEveryH++ }, colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)) { Text("▲") }
+                                    Text(tempBreakEveryH.toString(), fontSize = 24.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(vertical = 8.dp))
+                                    Button(onClick = { if (tempBreakEveryH > 0 && !(tempBreakEveryH == 1 && tempBreakEveryM == 0)) tempBreakEveryH-- }, colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)) { Text("▼") }
+                                }
+                                Spacer(modifier = Modifier.width(32.dp))
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text("Minutes", fontSize = 12.sp)
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Button(onClick = { val n = (tempBreakEveryM + 5) % 60; if (!(tempBreakEveryH == 0 && n == 0)) tempBreakEveryM = n }, colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)) { Text("▲") }
+                                    Text(tempBreakEveryM.toString(), fontSize = 24.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(vertical = 8.dp))
+                                    Button(onClick = { val n = if (tempBreakEveryM - 5 < 0) 55 else tempBreakEveryM - 5; if (!(tempBreakEveryH == 0 && n == 0)) tempBreakEveryM = n }, colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)) { Text("▼") }
+                                }
+                            }
+                        }
+                    )
+                }
 
-        Spacer(modifier = Modifier.height(12.dp))
+                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), thickness = 1.dp, color = Color.LightGray)
 
-        // Break Duration
-        val breakDurationValue = durationPickerField(
-            label = "Break Duration",
-            initialHours = (settings?.breakDuration ?: 5) / 60,
-            initialMinutes = (settings?.breakDuration ?: 5) % 60,
-            key = 0
-        )
+                // Break Duration
+                var breakDurationHours by remember { mutableIntStateOf((settings?.breakDuration ?: 5) / 60) }
+                var breakDurationMinutes by remember { mutableIntStateOf((settings?.breakDuration ?: 5) % 60) }
+                var showBreakDurationPicker by remember { mutableStateOf(false) }
+                var tempBreakDurH by remember { mutableIntStateOf(breakDurationHours) }
+                var tempBreakDurM by remember { mutableIntStateOf(breakDurationMinutes) }
 
-        LaunchedEffect(breakDurationValue) {
-            val totalMinutes = (breakDurationValue.first * 60) + breakDurationValue.second
-            if (totalMinutes != settings?.breakDuration) {
-                SettingsManager.setBreakDuration(db, totalMinutes)
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                    Text("Break Duration", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Button(
+                        onClick = { tempBreakDurH = breakDurationHours; tempBreakDurM = breakDurationMinutes; showBreakDurationPicker = true },
+                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
+                    ) { Text("${breakDurationHours}h ${breakDurationMinutes}m") }
+                }
+                if (showBreakDurationPicker) {
+                    AlertDialog(
+                        onDismissRequest = { showBreakDurationPicker = false },
+                        confirmButton = {
+                            TextButton(onClick = {
+                                breakDurationHours = tempBreakDurH
+                                breakDurationMinutes = tempBreakDurM
+                                showBreakDurationPicker = false
+                                scope.launch { SettingsManager.setBreakDuration(db, tempBreakDurH * 60 + tempBreakDurM) }
+                            }) { Text("OK", color = Color.Black, fontSize = 16.sp) }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { showBreakDurationPicker = false }) { Text("Cancel", color = Color.Black, fontSize = 16.sp) }
+                        },
+                        containerColor = BackgroundColor,
+                        text = {
+                            Row(horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text("Hours", fontSize = 12.sp)
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Button(onClick = { tempBreakDurH++ }, colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)) { Text("▲") }
+                                    Text(tempBreakDurH.toString(), fontSize = 24.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(vertical = 8.dp))
+                                    Button(onClick = { if (tempBreakDurH > 0 && !(tempBreakDurH == 1 && tempBreakDurM == 0)) tempBreakDurH-- }, colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)) { Text("▼") }
+                                }
+                                Spacer(modifier = Modifier.width(32.dp))
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text("Minutes", fontSize = 12.sp)
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Button(onClick = { val n = (tempBreakDurM + 5) % 60; if (!(tempBreakDurH == 0 && n == 0)) tempBreakDurM = n }, colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)) { Text("▲") }
+                                    Text(tempBreakDurM.toString(), fontSize = 24.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(vertical = 8.dp))
+                                    Button(onClick = { val n = if (tempBreakDurM - 5 < 0) 55 else tempBreakDurM - 5; if (!(tempBreakDurH == 0 && n == 0)) tempBreakDurM = n }, colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)) { Text("▼") }
+                                }
+                            }
+                        }
+                    )
+                }
             }
         }
 
