@@ -558,6 +558,7 @@ interface SettingsDao {
     @Query("DELETE FROM AppSetting")
     suspend fun deleteAll()
 }
+//</editor-fold>
 
 /* RELATIONS */
 //<editor-fold desc="Relations">

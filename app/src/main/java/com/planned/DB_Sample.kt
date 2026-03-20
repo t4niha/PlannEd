@@ -6,147 +6,279 @@ import kotlinx.coroutines.runBlocking
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalTime
+import java.time.temporal.TemporalAdjusters
 
 /* LOAD SAMPLE OBJECTS INTO DATABASE */
 @RequiresApi(Build.VERSION_CODES.O)
 fun runSample(db: AppDatabase) = runBlocking {
 
-    // Category: School
-    CategoryManager.insert(
-        db = db,
-        title = "School",
-        notes = "All academic related",
-        color = Preset1
-    )
+    // Determine week bounds based on settings
+    val startOnMonday = SettingsManager.settings?.startWeekOnMonday ?: false
+    val firstDayOfWeek = if (startOnMonday) DayOfWeek.MONDAY else DayOfWeek.SUNDAY
+    val lastDayOfWeek = if (startOnMonday) DayOfWeek.SUNDAY else DayOfWeek.SATURDAY
+
+    val today = LocalDate.now()
+    val weekStart = today.with(TemporalAdjusters.previousOrSame(firstDayOfWeek))
+    val weekEnd = today.with(TemporalAdjusters.nextOrSame(lastDayOfWeek))
+
+    // Specific days this week
+    val thisSunday    = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.SUNDAY))
+    val thisMonday    = thisSunday.plusDays(1)
+    val thisTuesday   = thisSunday.plusDays(2)
+    val thisThursday  = thisSunday.plusDays(4)
+    val thisSaturday  = thisSunday.plusDays(6)
+
+    // CATEGORIES
+
+    CategoryManager.insert(db, "School", "Academic classes and coursework", Preset12)
     val schoolCatId = db.categoryDao().getAll().last().id
 
-    // Category: Soccer
-    CategoryManager.insert(
-        db = db,
-        title = "Soccer",
-        notes = "Soccer lessons",
-        color = Preset5
-    )
-    val soccerCatId = db.categoryDao().getAll().last().id
+    CategoryManager.insert(db, "Extracurricular", "Band, piano, and other activities", Preset5)
+    val ecCatId = db.categoryDao().getAll().last().id
 
-    // Category: Tutoring
-    CategoryManager.insert(
-        db = db,
-        title = "Tutoring",
-        notes = "Tutoring sessions",
-        color = Preset9
-    )
-    val tutoringCatId = db.categoryDao().getAll().last().id
+    CategoryManager.insert(db, "Home", "Household tasks and personal errands", Preset9)
+    val homeCatId = db.categoryDao().getAll().last().id
 
-    // Event: Math
+    // EVENTS
+
     EventManager.insert(
         db = db,
-        title = "Math Lecture",
-        notes = "Calculus and linear algebra",
-        color = Preset2,
-        startDate = LocalDate.now(),
-        endDate = null,
-        startTime = LocalTime.of(9, 0),
-        endTime = LocalTime.of(10, 30),
+        title = "English Class",
+        notes = "Prof. Harrison — Room 204",
+        color = null,
+        startDate = weekStart,
+        endDate = weekEnd,
+        startTime = LocalTime.of(10, 0),
+        endTime = LocalTime.of(12, 30),
         recurFreq = RecurrenceFrequency.WEEKLY,
-        recurRule = RecurrenceRule(daysOfWeek = listOf(DayOfWeek.MONDAY.value)),
+        recurRule = RecurrenceRule(daysOfWeek = listOf(DayOfWeek.SUNDAY.value, DayOfWeek.TUESDAY.value)),
+        categoryId = schoolCatId
+    )
+    val englishEventId = db.eventDao().getAllMasterEvents().last().id
+
+    EventManager.insert(
+        db = db,
+        title = "Science Class",
+        notes = "Prof. Chen — Room 112",
+        color = null,
+        startDate = weekStart,
+        endDate = weekEnd,
+        startTime = LocalTime.of(10, 0),
+        endTime = LocalTime.of(12, 30),
+        recurFreq = RecurrenceFrequency.WEEKLY,
+        recurRule = RecurrenceRule(daysOfWeek = listOf(DayOfWeek.MONDAY.value, DayOfWeek.WEDNESDAY.value)),
+        categoryId = schoolCatId
+    )
+    val scienceEventId = db.eventDao().getAllMasterEvents().last().id
+
+    EventManager.insert(
+        db = db,
+        title = "Math Class",
+        notes = "Prof. Williams — Room 308",
+        color = null,
+        startDate = weekStart,
+        endDate = weekEnd,
+        startTime = LocalTime.of(12, 40),
+        endTime = LocalTime.of(14, 10),
+        recurFreq = RecurrenceFrequency.WEEKLY,
+        recurRule = RecurrenceRule(daysOfWeek = listOf(DayOfWeek.SUNDAY.value, DayOfWeek.TUESDAY.value)),
         categoryId = schoolCatId
     )
     val mathEventId = db.eventDao().getAllMasterEvents().last().id
 
-    // Event: Chemistry
     EventManager.insert(
         db = db,
-        title = "Chemistry Lab",
-        notes = "Organic chemistry experiments",
-        color = Preset3,
-        startDate = LocalDate.now(),
-        endDate = null,
-        startTime = LocalTime.of(10, 30),
-        endTime = LocalTime.of(12, 0),
+        title = "Social Studies Class",
+        notes = "Prof. Okafor — Room 215",
+        color = null,
+        startDate = weekStart,
+        endDate = weekEnd,
+        startTime = LocalTime.of(12, 40),
+        endTime = LocalTime.of(14, 10),
         recurFreq = RecurrenceFrequency.WEEKLY,
-        recurRule = RecurrenceRule(daysOfWeek = listOf(DayOfWeek.WEDNESDAY.value)),
+        recurRule = RecurrenceRule(daysOfWeek = listOf(DayOfWeek.MONDAY.value, DayOfWeek.WEDNESDAY.value)),
         categoryId = schoolCatId
     )
 
-    // Event: Physics
     EventManager.insert(
         db = db,
-        title = "Physics Lecture",
-        notes = "Mechanics and thermodynamics",
-        color = Preset4,
-        startDate = LocalDate.now(),
-        endDate = null,
-        startTime = LocalTime.of(9, 0),
-        endTime = LocalTime.of(10, 30),
+        title = "Band Practice",
+        notes = "Main Auditorium",
+        color = null,
+        startDate = weekStart,
+        endDate = weekEnd,
+        startTime = LocalTime.of(12, 40),
+        endTime = LocalTime.of(14, 10),
         recurFreq = RecurrenceFrequency.WEEKLY,
-        recurRule = RecurrenceRule(daysOfWeek = listOf(DayOfWeek.FRIDAY.value)),
+        recurRule = RecurrenceRule(daysOfWeek = listOf(DayOfWeek.THURSDAY.value)),
+        categoryId = ecCatId
+    )
+
+    EventManager.insert(
+        db = db,
+        title = "Piano Lesson",
+        notes = "Music Room 3",
+        color = null,
+        startDate = weekStart,
+        endDate = weekEnd,
+        startTime = LocalTime.of(14, 10),
+        endTime = LocalTime.of(15, 40),
+        recurFreq = RecurrenceFrequency.WEEKLY,
+        recurRule = RecurrenceRule(daysOfWeek = listOf(DayOfWeek.THURSDAY.value)),
+        categoryId = ecCatId
+    )
+
+    EventManager.insert(
+        db = db,
+        title = "Meal Prep",
+        notes = "Cook rice, chicken, and veggies",
+        color = null,
+        startDate = weekStart,
+        endDate = weekEnd,
+        startTime = LocalTime.of(18, 30),
+        endTime = LocalTime.of(20, 0),
+        recurFreq = RecurrenceFrequency.WEEKLY,
+        recurRule = RecurrenceRule(daysOfWeek = listOf(DayOfWeek.THURSDAY.value)),
+        categoryId = homeCatId
+    )
+
+    // REMINDERS
+
+    ReminderManager.insert(
+        db = db,
+        title = "Doctor's Appointment",
+        notes = "Get sore throat checked out",
+        startDate = thisMonday,
+        endDate = null,
+        time = LocalTime.of(14, 30),
+        allDay = false,
+        recurFreq = RecurrenceFrequency.NONE,
+        recurRule = RecurrenceRule(),
+        categoryId = homeCatId
+    )
+
+    ReminderManager.insert(
+        db = db,
+        title = "Visit Counsellor's Office",
+        notes = "Discuss next semester's classes",
+        startDate = thisThursday,
+        endDate = null,
+        time = null,
+        allDay = true,
+        recurFreq = RecurrenceFrequency.NONE,
+        recurRule = RecurrenceRule(),
         categoryId = schoolCatId
     )
 
-    // Math Quiz Deadline
-    val nextMonday = LocalDate.now().with(DayOfWeek.MONDAY).let {
-        if (it.isBefore(LocalDate.now()) || it.isEqual(LocalDate.now()))
-            it.plusWeeks(1)
-        else
-            it
-    }
+    // DEADLINES
+
     DeadlineManager.insert(
         db = db,
-        title = "Math Quiz 3",
-        notes = "Covers chapters 5-7",
-        date = nextMonday,
-        time = LocalTime.of(8, 45),
+        title = "Math Quiz",
+        notes = "Chapter 3 Integrals",
+        date = thisTuesday,
+        time = LocalTime.of(12, 40),
         categoryId = schoolCatId,
         eventId = mathEventId
     )
 
-    // Task Bucket: Study Time
-    TaskBucketManager.insert(
+    DeadlineManager.insert(
         db = db,
-        startDate = LocalDate.now(),
-        endDate = null,
-        startTime = LocalTime.of(18, 0),
-        endTime = LocalTime.of(20, 0),
-        recurFreq = RecurrenceFrequency.WEEKLY,
-        recurRule = RecurrenceRule(daysOfWeek = listOf(DayOfWeek.MONDAY.value))
-    )
-    TaskBucketManager.insert(
-        db = db,
-        startDate = LocalDate.now(),
-        endDate = null,
-        startTime = LocalTime.of(18, 0),
-        endTime = LocalTime.of(20, 0),
-        recurFreq = RecurrenceFrequency.WEEKLY,
-        recurRule = RecurrenceRule(daysOfWeek = listOf(DayOfWeek.WEDNESDAY.value))
+        title = "Shakespeare Essay",
+        notes = "Upload on Canvas",
+        date = thisThursday,
+        time = LocalTime.of(20, 0),
+        categoryId = schoolCatId,
+        eventId = englishEventId
     )
 
-    // Event: Soccer Practice
-    EventManager.insert(
+    DeadlineManager.insert(
         db = db,
-        title = "Soccer Practice",
-        notes = "Team practice and drills",
-        color = Preset6,
-        startDate = LocalDate.now(),
-        endDate = null,
-        startTime = LocalTime.of(15, 0),
+        title = "Chemistry Homework",
+        notes = "Upload on Canvas",
+        date = thisSaturday,
+        time = LocalTime.of(20, 0),
+        categoryId = schoolCatId,
+        eventId = scienceEventId
+    )
+
+    // TASK BUCKETS
+
+    TaskBucketManager.insert(
+        db = db,
+        startDate = weekStart,
+        endDate = weekEnd,
+        startTime = LocalTime.of(16, 0),
+        endTime = LocalTime.of(18, 0),
+        recurFreq = RecurrenceFrequency.WEEKLY,
+        recurRule = RecurrenceRule(daysOfWeek = listOf(
+            DayOfWeek.SUNDAY.value,
+            DayOfWeek.MONDAY.value,
+            DayOfWeek.TUESDAY.value,
+            DayOfWeek.WEDNESDAY.value,
+            DayOfWeek.THURSDAY.value
+        ))
+    )
+
+    TaskBucketManager.insert(
+        db = db,
+        startDate = weekStart,
+        endDate = weekEnd,
+        startTime = LocalTime.of(14, 0),
         endTime = LocalTime.of(17, 0),
         recurFreq = RecurrenceFrequency.WEEKLY,
-        recurRule = RecurrenceRule(daysOfWeek = listOf(DayOfWeek.SATURDAY.value)),
-        categoryId = soccerCatId
+        recurRule = RecurrenceRule(daysOfWeek = listOf(
+            DayOfWeek.FRIDAY.value,
+            DayOfWeek.SATURDAY.value
+        ))
     )
 
-    // Reminder: Warm up
-    ReminderManager.insert(
+    // ALL-DAY TASKS
+
+    TaskManager.insert(
         db = db,
-        title = "Warm up for soccer",
-        notes = "Do stretches before practice",
-        startDate = LocalDate.now(),
-        endDate = null,
-        time = LocalTime.of(14, 30),
-        allDay = false,
-        recurFreq = RecurrenceFrequency.WEEKLY,
-        recurRule = RecurrenceRule(daysOfWeek = listOf(DayOfWeek.SATURDAY.value)),
-        categoryId = soccerCatId
+        title = "Pick up groceries",
+        notes = "Bread, Milk, Eggs",
+        allDay = thisMonday,
+        breakable = false,
+        startDate = null,
+        startTime = null,
+        predictedDuration = 60,
+        categoryId = homeCatId,
+        eventId = null,
+        deadlineId = null,
+        dependencyTaskId = null
+    )
+
+    TaskManager.insert(
+        db = db,
+        title = "Clean bedroom",
+        notes = "Change bedsheets, organize closet",
+        allDay = thisThursday,
+        breakable = false,
+        startDate = null,
+        startTime = null,
+        predictedDuration = 60,
+        categoryId = homeCatId,
+        eventId = null,
+        deadlineId = null,
+        dependencyTaskId = null
+    )
+
+    // MANUAL TASKS
+
+    TaskManager.insert(
+        db = db,
+        title = "Read Hamlet",
+        notes = "Pages 34–150",
+        allDay = null,
+        breakable = false,
+        startDate = thisThursday,
+        startTime = LocalTime.of(19, 0),
+        predictedDuration = 60,
+        categoryId = schoolCatId,
+        eventId = null,
+        deadlineId = null,
+        dependencyTaskId = null
     )
 }
