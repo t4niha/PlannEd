@@ -51,6 +51,8 @@ class MainActivity : ComponentActivity() {
 }
 
 /**
+[ ] DB Sample ATI
+[ ] Developer cards to separate tables, ATI Visualization, Task schedule order viewing
 [?] On creation don't allow duplicate titles for events, categories?
 [?] Warning when tasks scheduled after deadline / impossible to meet deadline?
 [/] Kanban board?
