@@ -425,7 +425,7 @@ fun Creation(db: AppDatabase) {
                                     }
 
                                     val durationInMinutes = (taskDurationHours * 60) + taskDurationMinutes
-                                    TaskManager.insert(
+                                    val insertedTaskId = TaskManager.insert(
                                         db = db,
                                         title = taskTitle,
                                         notes = taskNotes.ifBlank { null },
@@ -442,7 +442,6 @@ fun Creation(db: AppDatabase) {
 
                                     val dateFormatter = java.time.format.DateTimeFormatter.ofPattern("MMMM d, yyyy")
                                     val timeFormatter = java.time.format.DateTimeFormatter.ofPattern("h:mm a")
-                                    val capturedTitle = taskTitle
                                     val capturedIsAllDay = taskIsAllDay
                                     val capturedAllDayDate = taskAllDayDate
                                     val capturedStartDate = taskStartDate
@@ -454,9 +453,8 @@ fun Creation(db: AppDatabase) {
                                         capturedIsAllDay -> "Task created\nScheduled on ${capturedAllDayDate.format(dateFormatter)}"
                                         capturedStartDate != null && capturedStartTime != null -> "Task created\n${capturedStartDate.format(dateFormatter)} at ${capturedStartTime.format(timeFormatter)}"
                                         else -> {
-                                            val inserted = db.taskDao().getAllMasterTasks().lastOrNull { it.title == capturedTitle }
-                                            val intervals = inserted?.let { db.taskDao().getIntervalsForTask(it.id) }
-                                            if (intervals.isNullOrEmpty()) {
+                                            val intervals = db.taskDao().getIntervalsForTask(insertedTaskId)
+                                            if (intervals.isEmpty()) {
                                                 "Task created\nUnscheduled, no bucket space"
                                             } else {
                                                 val first = intervals.minByOrNull { it.occurDate }!!
@@ -526,7 +524,7 @@ fun Creation(db: AppDatabase) {
                                     val events = EventManager.getAll(db)
 
                                     // Insert deadline first
-                                    DeadlineManager.insert(
+                                    val insertedDeadlineId = DeadlineManager.insert(
                                         db = db,
                                         title = deadlineTitle,
                                         notes = deadlineNotes.ifBlank { null },
@@ -537,16 +535,10 @@ fun Creation(db: AppDatabase) {
                                     )
 
                                     // If auto schedule task enabled, create task
+                                    var insertedTaskId: Int? = null
                                     if (deadlineAutoScheduleTask) {
-                                        val allDeadlines = DeadlineManager.getAll(db)
-                                        val createdDeadline = allDeadlines.lastOrNull { deadline ->
-                                            deadline.title == deadlineTitle &&
-                                                    deadline.date == deadlineDate &&
-                                                    deadline.time == deadlineTime
-                                        }
-
                                         val durationInMinutes = (deadlineTaskDurationHours * 60) + deadlineTaskDurationMinutes
-                                        TaskManager.insert(
+                                        insertedTaskId = TaskManager.insert(
                                             db = db,
                                             title = deadlineTitle,
                                             notes = deadlineNotes.ifBlank { null },
@@ -557,22 +549,20 @@ fun Creation(db: AppDatabase) {
                                             predictedDuration = durationInMinutes,
                                             categoryId = deadlineSelectedCategory?.let { categories.getOrNull(it)?.id },
                                             eventId = deadlineSelectedEvent?.let { events.getOrNull(it)?.id },
-                                            deadlineId = createdDeadline?.id,
+                                            deadlineId = insertedDeadlineId,
                                             dependencyTaskId = null
                                         )
                                     }
 
                                     val dateFormatter = java.time.format.DateTimeFormatter.ofPattern("MMMM d, yyyy")
                                     val timeFormatter = java.time.format.DateTimeFormatter.ofPattern("h:mm a")
-                                    val capturedDeadlineTitle = deadlineTitle
                                     val capturedAutoSchedule = deadlineAutoScheduleTask
 
                                     clearAllForms()
 
-                                    successMessage = if (capturedAutoSchedule) {
-                                        val inserted = db.taskDao().getAllMasterTasks().lastOrNull { it.title == capturedDeadlineTitle }
-                                        val intervals = inserted?.let { db.taskDao().getIntervalsForTask(it.id) }
-                                        if (intervals.isNullOrEmpty()) {
+                                    successMessage = if (capturedAutoSchedule && insertedTaskId != null) {
+                                        val intervals = db.taskDao().getIntervalsForTask(insertedTaskId)
+                                        if (intervals.isEmpty()) {
                                             "Deadline created, Task created\nUnscheduled, no bucket space"
                                         } else {
                                             val first = intervals.minByOrNull { it.occurDate }!!

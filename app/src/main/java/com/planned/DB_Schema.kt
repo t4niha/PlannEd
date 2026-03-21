@@ -397,10 +397,10 @@ interface EventDao {
 @Dao
 interface DeadlineDao {
     // Insert new deadline
-    @Insert suspend fun insert(deadline: Deadline)
+    @Insert suspend fun insert(deadline: Deadline): Long
 
     // Fetch all deadlines
-    @Query("SELECT * FROM Deadline") suspend fun getAll(): List<Deadline>
+    @Query("SELECT * FROM Deadline ORDER BY title ASC") suspend fun getAll(): List<Deadline>
 
     // Fetch deadline by ID
     @Query("SELECT * FROM Deadline WHERE id = :deadlineId")
@@ -467,7 +467,7 @@ interface TaskBucketDao {
 @Dao
 interface TaskDao {
     // Insert new master task
-    @Insert suspend fun insert(task: MasterTask)
+    @Insert suspend fun insert(task: MasterTask): Long
 
     // Insert new task interval
     @Insert suspend fun insertInterval(interval: TaskInterval)

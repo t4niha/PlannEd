@@ -216,7 +216,7 @@ object DeadlineManager {
         time: LocalTime,
         categoryId: Int?,
         eventId: Int?
-    ) {
+    ): Int {
         val deadline = Deadline(
             title = title,
             notes = notes,
@@ -225,10 +225,12 @@ object DeadlineManager {
             categoryId = categoryId,
             eventId = eventId
         )
-        db.deadlineDao().insert(deadline)
+        val insertedId = db.deadlineDao().insert(deadline).toInt()
 
         // Regenerate task intervals
         onTaskChanged(db)
+
+        return insertedId
     }
 
     // Get all deadlines
@@ -345,7 +347,7 @@ object TaskManager {
         eventId: Int?,
         deadlineId: Int?,
         dependencyTaskId: Int?
-    ) {
+    ): Int {
         val task = MasterTask(
             title = title,
             notes = notes,
@@ -360,10 +362,12 @@ object TaskManager {
             deadlineId = deadlineId,
             dependencyTaskId = dependencyTaskId
         )
-        db.taskDao().insert(task)
+        val insertedId = db.taskDao().insert(task).toInt()
 
         // Regenerate task intervals
         onTaskChanged(db)
+
+        return insertedId
     }
 
     // Get all master tasks
