@@ -1073,12 +1073,14 @@ fun ATIScatterPlot(
             // Regression line
             if (dataPoints.size >= 2 && (slope != 0f || intercept != 0f)) {
                 val startX = if (intercept < 0f && slope > 0f) -intercept / slope else 0f
-                val endY = slope * maxX + intercept
-                if (startX < maxX && endY > 0f) {
+                val rawEndX = if (slope < 0f && intercept > 0f) intercept / (-slope) else maxX
+                val endX = rawEndX.coerceAtMost(maxX)
+                val endY = slope * endX + intercept
+                if (startX < endX) {
                     drawLine(
                         lineColor,
-                        Offset(px(startX), py(slope * startX + intercept)),
-                        Offset(px(maxX), py(endY.coerceAtMost(maxY))),
+                        Offset(px(startX), py((slope * startX + intercept).coerceAtMost(maxY))),
+                        Offset(px(endX), py(endY.coerceIn(0f, maxY))),
                         strokeWidth = 2f
                     )
                 }
