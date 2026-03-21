@@ -644,6 +644,7 @@ fun Developer(db: AppDatabase) {
     }
 }
 
+/* REGRESSION MODEL */
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun ATIScatterPlot(
@@ -687,10 +688,10 @@ fun ATIScatterPlot(
                 completed.forEach { t ->
                     points.add(Pair(t.predictedDuration.toFloat(), (t.overTime ?: 0).toFloat()))
                 }
-                atiRecord = "Score: ${"%.3f".format(ati?.score ?: 0f)}  " +
-                        "Misses: ${ati?.deadlineMissCount ?: 0}  " +
-                        "Avg OT: ${"%.1f".format(ati?.avgOvertime ?: 0f)}min  " +
-                        "Padding: ${ati?.predictedPadding ?: 0}min  " +
+                atiRecord = "Score: ${"%.3f".format(ati?.score ?: 0f)},  " +
+                        "Misses: ${ati?.deadlineMissCount ?: 0},  " +
+                        "Avg OT: ${"%.1f".format(ati?.avgOvertime ?: 0f)}min,  " +
+                        "Padding: ${ati?.predictedPadding ?: 0}min,  " +
                         "Tasks: ${ati?.tasksCompleted ?: 0}"
             } else if (selectedType == "Event" && masterEvents.isNotEmpty()) {
                 val evt = masterEvents.getOrNull(selectedEntityIndex) ?: return@launch
@@ -701,10 +702,10 @@ fun ATIScatterPlot(
                 completed.forEach { t ->
                     points.add(Pair(t.predictedDuration.toFloat(), (t.overTime ?: 0).toFloat()))
                 }
-                atiRecord = "Score: ${"%.3f".format(ati?.score ?: 0f)}  " +
-                        "Misses: ${ati?.deadlineMissCount ?: 0}  " +
-                        "Avg OT: ${"%.1f".format(ati?.avgOvertime ?: 0f)}min  " +
-                        "Padding: ${ati?.predictedPadding ?: 0}min  " +
+                atiRecord = "Score: ${"%.3f".format(ati?.score ?: 0f)},  " +
+                        "Misses: ${ati?.deadlineMissCount ?: 0},  " +
+                        "Avg OT: ${"%.1f".format(ati?.avgOvertime ?: 0f)}min,  " +
+                        "Padding: ${ati?.predictedPadding ?: 0}min,  " +
                         "Tasks: ${ati?.tasksCompleted ?: 0}"
             }
 
@@ -854,7 +855,7 @@ fun ATIScatterPlot(
 
     Canvas(
         modifier = Modifier
-            .width(378.dp)
+            .width(370.dp)
             .height(280.dp)
             .background(BackgroundColor)
     ) {
