@@ -338,7 +338,7 @@ interface CategoryDao {
     @Insert suspend fun insert(category: Category)
 
     // Fetch all categories
-    @Query("SELECT * FROM Category") suspend fun getAll(): List<Category>
+    @Query("SELECT * FROM Category ORDER BY title ASC") suspend fun getAll(): List<Category>
 
     // Fetch category by ID
     @Query("SELECT * FROM Category WHERE id = :categoryId")
@@ -362,7 +362,7 @@ interface EventDao {
     @Insert suspend fun insertOccurrence(occurrence: EventOccurrence)
 
     // Fetch all master events ordered by date and time
-    @Query("SELECT * FROM MasterEvent ORDER BY startDate, startTime")
+    @Query("SELECT * FROM MasterEvent ORDER BY title ASC")
     suspend fun getAllMasterEvents(): List<MasterEvent>
 
     // Fetch master event by ID
