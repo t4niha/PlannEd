@@ -773,7 +773,7 @@ fun DeveloperSchedulePage(
                             row.masterTaskId.toString(),
                             row.title,
                             row.dependencyTaskId?.toString() ?: "",
-                            row.urgency?.toString() ?: "—",
+                            row.urgency?.toString() ?: "",
                             "%.3f".format(row.categoryScore),
                             "%.3f".format(row.eventScore)
                         ) else List(6) { "" }
