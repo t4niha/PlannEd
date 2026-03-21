@@ -211,7 +211,7 @@ fun DeadlineInfoView(
         currentDeadline = db.deadlineDao().getDeadlineById(deadline.id) ?: deadline
         category = currentDeadline.categoryId?.let { db.categoryDao().getCategoryById(it) }
         event = currentDeadline.eventId?.let { db.eventDao().getMasterEventById(it) }
-        relatedTasks = db.taskDao().getAllMasterTasks().filter { it.deadlineId == deadline.id }
+        relatedTasks = db.taskDao().getAllMasterTasks().filter { it.deadlineId == deadline.id && it.status != 3 }
 
         // Preload update form data
         val categories = CategoryManager.getAll(db)

@@ -198,7 +198,7 @@ fun EventInfoPage(
     LaunchedEffect(event.id) {
         currentEvent = db.eventDao().getMasterEventById(event.id) ?: event
         category = currentEvent.categoryId?.let { db.categoryDao().getCategoryById(it) }
-        relatedTasks = db.taskDao().getAllMasterTasks().filter { it.eventId == event.id }
+        relatedTasks = db.taskDao().getAllMasterTasks().filter { it.eventId == event.id && it.status != 3 }
 
         // Preload update form data
         val categories = CategoryManager.getAll(db)

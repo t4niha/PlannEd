@@ -171,7 +171,7 @@ fun CategoryInfoPage(
         // Related items
         val events = db.eventDao().getAllMasterEvents().filter { it.categoryId == category.id }
         val deadlines = db.deadlineDao().getAll().filter { it.categoryId == category.id }
-        val tasks = db.taskDao().getAllMasterTasks().filter { it.categoryId == category.id }
+        val tasks = db.taskDao().getAllMasterTasks().filter { it.categoryId == category.id && it.status != 3 }
         val reminders = db.reminderDao().getAllMasterReminders().filter { it.categoryId == category.id }
 
         eventCount = events.size
