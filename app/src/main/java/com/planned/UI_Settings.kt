@@ -287,7 +287,7 @@ fun Settings(db: AppDatabase) {
                 .padding(16.dp)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Add Predicted Overtime", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                Text("Predict Overtime", fontSize = 16.sp, fontWeight = FontWeight.Medium)
                 Spacer(modifier = Modifier.width(16.dp))
 
                 Switch(
