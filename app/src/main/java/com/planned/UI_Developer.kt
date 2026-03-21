@@ -177,112 +177,118 @@ fun DeveloperMainView(
             .background(BackgroundColor)
             .padding(12.dp)
     ) {
-        // ── Generate Months card ──────────────────────────────
+        // ── Combined card ─────────────────────────────────────
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(Color(CardColor), RoundedCornerShape(12.dp))
                 .padding(16.dp)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text("Generate Months:", fontSize = 16.sp, color = Color.Black)
-                Spacer(modifier = Modifier.width(16.dp))
+            Column {
+                Text(
+                    "Occurrence Window (Months)",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color.Black
+                )
 
-                Button(
-                    onClick = { if (generationMonths > 1) generationMonths-- },
-                    shape = CircleShape,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = PrimaryColor,
-                        contentColor   = BackgroundColor
-                    ),
-                    modifier = Modifier.size(40.dp),
-                    contentPadding = PaddingValues(0.dp)
-                ) { Text("-", fontSize = 20.sp) }
+                Spacer(modifier = Modifier.height(12.dp))
 
-                Spacer(modifier = Modifier.width(12.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Button(
+                        onClick = { if (generationMonths > 1) generationMonths-- },
+                        shape = CircleShape,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = PrimaryColor,
+                            contentColor   = BackgroundColor
+                        ),
+                        modifier = Modifier.size(40.dp),
+                        contentPadding = PaddingValues(0.dp)
+                    ) { Text("-", fontSize = 20.sp) }
 
-                Box(
-                    modifier = Modifier
-                        .width(50.dp)
-                        .background(BackgroundColor, RoundedCornerShape(8.dp))
-                        .padding(vertical = 8.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(generationMonths.toString(), fontSize = 18.sp, color = Color.Black)
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    Box(
+                        modifier = Modifier
+                            .width(50.dp)
+                            .background(BackgroundColor, RoundedCornerShape(8.dp))
+                            .padding(vertical = 8.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(generationMonths.toString(), fontSize = 18.sp, color = Color.Black)
+                    }
+
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    Button(
+                        onClick = { if (generationMonths < 24) generationMonths++ },
+                        shape = CircleShape,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = PrimaryColor,
+                            contentColor   = BackgroundColor
+                        ),
+                        modifier = Modifier.size(40.dp),
+                        contentPadding = PaddingValues(0.dp)
+                    ) { Text("+", fontSize = 20.sp) }
                 }
 
-                Spacer(modifier = Modifier.width(12.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
-                Button(
-                    onClick = { if (generationMonths < 24) generationMonths++ },
-                    shape = CircleShape,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = PrimaryColor,
-                        contentColor   = BackgroundColor
-                    ),
-                    modifier = Modifier.size(40.dp),
-                    contentPadding = PaddingValues(0.dp)
-                ) { Text("+", fontSize = 20.sp) }
-            }
-        }
+                Text(
+                    "Database State",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color.Black
+                )
 
-        Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
-        // ── Clear / Sample card ───────────────────────────────
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color(CardColor), RoundedCornerShape(12.dp))
-                .padding(16.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Button(
-                    onClick = {
-                        CoroutineScope(Dispatchers.IO).launch {
-                            db.reminderDao().getAllMasterReminders()
-                                .forEach { db.reminderDao().deleteMasterReminder(it.id) }
-                            db.taskDao().getAllMasterTasks()
-                                .forEach { db.taskDao().deleteMasterTask(it.id) }
-                            db.taskBucketDao().getAllMasterBuckets()
-                                .forEach { db.taskBucketDao().deleteMasterBucket(it.id) }
-                            db.deadlineDao().getAll()
-                                .forEach { db.deadlineDao().deleteById(it.id) }
-                            db.eventDao().getAllMasterEvents()
-                                .forEach { db.eventDao().deleteMasterEvent(it.id) }
-                            db.categoryDao().getAll()
-                                .forEach { db.categoryDao().deleteById(it.id) }
-                            db.categoryATIDao().getAll()
-                                .forEach { db.categoryATIDao().deleteById(it.categoryId) }
-                            db.eventATIDao().getAll()
-                                .forEach { db.eventATIDao().deleteById(it.eventId) }
-                            refreshData()
-                        }
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
-                    modifier = Modifier.weight(1f),
-                    contentPadding = PaddingValues(16.dp)
-                ) { Text("Clear", fontSize = 16.sp) }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Button(
+                        onClick = {
+                            CoroutineScope(Dispatchers.IO).launch {
+                                db.reminderDao().getAllMasterReminders()
+                                    .forEach { db.reminderDao().deleteMasterReminder(it.id) }
+                                db.taskDao().getAllMasterTasks()
+                                    .forEach { db.taskDao().deleteMasterTask(it.id) }
+                                db.taskBucketDao().getAllMasterBuckets()
+                                    .forEach { db.taskBucketDao().deleteMasterBucket(it.id) }
+                                db.deadlineDao().getAll()
+                                    .forEach { db.deadlineDao().deleteById(it.id) }
+                                db.eventDao().getAllMasterEvents()
+                                    .forEach { db.eventDao().deleteMasterEvent(it.id) }
+                                db.categoryDao().getAll()
+                                    .forEach { db.categoryDao().deleteById(it.id) }
+                                db.categoryATIDao().getAll()
+                                    .forEach { db.categoryATIDao().deleteById(it.categoryId) }
+                                db.eventATIDao().getAll()
+                                    .forEach { db.eventATIDao().deleteById(it.eventId) }
+                                refreshData()
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(16.dp)
+                    ) { Text("Clear", fontSize = 16.sp) }
 
-                Spacer(modifier = Modifier.width(12.dp))
+                    Spacer(modifier = Modifier.width(12.dp))
 
-                Button(
-                    onClick = {
-                        CoroutineScope(Dispatchers.IO).launch {
-                            runSample(db)
-                            trimAndExtendOccurrences(db)
-                            refreshData()
-                        }
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
-                    modifier = Modifier.weight(1f),
-                    contentPadding = PaddingValues(16.dp)
-                ) { Text("Sample", fontSize = 16.sp) }
+                    Button(
+                        onClick = {
+                            CoroutineScope(Dispatchers.IO).launch {
+                                runSample(db)
+                                trimAndExtendOccurrences(db)
+                                refreshData()
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(16.dp)
+                    ) { Text("Sample", fontSize = 16.sp) }
+                }
             }
         }
 
@@ -310,7 +316,7 @@ fun DeveloperNavItem(label: String, onClick: () -> Unit) {
         Text(
             text = label,
             fontSize = 16.sp,
-            fontWeight = FontWeight.Normal,
+            fontWeight = FontWeight.Medium,
             color = Color.Black
         )
     }
