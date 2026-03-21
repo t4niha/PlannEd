@@ -232,7 +232,7 @@ fun DeveloperMainView(
                     ) { Text("+", fontSize = 20.sp) }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), thickness = 1.dp, color = Color.LightGray)
 
                 Text(
                     "Database State",
