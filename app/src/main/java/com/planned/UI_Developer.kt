@@ -24,6 +24,19 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.Canvas
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.text.font.FontWeight
+import androidx.core.graphics.withSave
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 
 // Occurrence generation months
 var generationMonths by mutableIntStateOf(1)
@@ -620,6 +633,302 @@ fun Developer(db: AppDatabase) {
                     s.breakEvery.toString()
                 )
             }
+
+            // ATI Scatter Plot
+            ATIScatterPlot(
+                db = db,
+                categories = categories,
+                masterEvents = masterEvents
+            )
         }
     }
+}
+
+@RequiresApi(Build.VERSION_CODES.O)
+@Composable
+fun ATIScatterPlot(
+    db: AppDatabase,
+    categories: List<Category>,
+    masterEvents: List<MasterEvent>
+) {
+    val scope = rememberCoroutineScope()
+
+    // Entity type selection
+    var selectedType by remember { mutableStateOf("Category") }
+    val types = listOf("Category", "Event")
+
+    // Selected entity
+    var selectedEntityIndex by remember { mutableIntStateOf(0) }
+
+    // Data points: list of (predictedDuration, overTime)
+    var dataPoints by remember { mutableStateOf(listOf<Pair<Float, Float>>()) }
+    var atiRecord by remember { mutableStateOf<String>("") }
+    var slope by remember { mutableFloatStateOf(0f) }
+    var intercept by remember { mutableFloatStateOf(0f) }
+
+    // Entity names for dropdown
+    val entityNames = if (selectedType == "Category")
+        categories.map { it.title }
+    else
+        masterEvents.map { it.title }
+
+    // Load data when selection changes
+    fun loadData() {
+        scope.launch(Dispatchers.IO) {
+            val allTasks = db.taskDao().getAllMasterTasks()
+            val points = mutableListOf<Pair<Float, Float>>()
+
+            if (selectedType == "Category" && categories.isNotEmpty()) {
+                val cat = categories.getOrNull(selectedEntityIndex) ?: return@launch
+                val ati = db.categoryATIDao().getById(cat.id)
+                val completed = allTasks
+                    .filter { it.categoryId == cat.id && it.status == 3 && it.allDay == null }
+                    .takeLast(10)
+                completed.forEach { t ->
+                    points.add(Pair(t.predictedDuration.toFloat(), (t.overTime ?: 0).toFloat()))
+                }
+                atiRecord = "Score: ${"%.3f".format(ati?.score ?: 0f)}  " +
+                        "Misses: ${ati?.deadlineMissCount ?: 0}  " +
+                        "Avg OT: ${"%.1f".format(ati?.avgOvertime ?: 0f)}min  " +
+                        "Padding: ${ati?.predictedPadding ?: 0}min  " +
+                        "Tasks: ${ati?.tasksCompleted ?: 0}"
+            } else if (selectedType == "Event" && masterEvents.isNotEmpty()) {
+                val evt = masterEvents.getOrNull(selectedEntityIndex) ?: return@launch
+                val ati = db.eventATIDao().getById(evt.id)
+                val completed = allTasks
+                    .filter { it.eventId == evt.id && it.status == 3 && it.allDay == null }
+                    .takeLast(10)
+                completed.forEach { t ->
+                    points.add(Pair(t.predictedDuration.toFloat(), (t.overTime ?: 0).toFloat()))
+                }
+                atiRecord = "Score: ${"%.3f".format(ati?.score ?: 0f)}  " +
+                        "Misses: ${ati?.deadlineMissCount ?: 0}  " +
+                        "Avg OT: ${"%.1f".format(ati?.avgOvertime ?: 0f)}min  " +
+                        "Padding: ${ati?.predictedPadding ?: 0}min  " +
+                        "Tasks: ${ati?.tasksCompleted ?: 0}"
+            }
+
+            // Calculate regression line for plot
+            if (points.size >= 2) {
+                val n = points.size.toFloat()
+                val sumX = points.sumOf { it.first.toDouble() }.toFloat()
+                val sumY = points.sumOf { it.second.toDouble() }.toFloat()
+                val sumXY = points.sumOf { (x, y) -> (x * y).toDouble() }.toFloat()
+                val sumX2 = points.sumOf { (x, _) -> (x * x).toDouble() }.toFloat()
+                val denom = n * sumX2 - sumX * sumX
+                slope = if (denom != 0f) (n * sumXY - sumX * sumY) / denom else 0f
+                intercept = (sumY - slope * sumX) / n
+            } else {
+                slope = 0f
+                intercept = 0f
+            }
+
+            dataPoints = points
+        }
+    }
+
+    LaunchedEffect(selectedType, selectedEntityIndex, categories, masterEvents) {
+        loadData()
+    }
+
+    Spacer(Modifier.height(16.dp))
+    Text(
+        "ATI Regression Model Visualizer",
+        style = MaterialTheme.typography.titleMedium,
+        color = Color.Black
+    )
+    Spacer(Modifier.height(12.dp))
+
+    // Type toggle + Entity dropdown
+    Box(
+        modifier = Modifier
+            .width(378.dp)
+            .background(Color(CardColor), RoundedCornerShape(12.dp))
+            .padding(16.dp)
+    ) {
+        Column {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                types.forEach { type ->
+                    WeekButton(
+                        label = type,
+                        selected = selectedType == type,
+                        color = PrimaryColor
+                    ) {
+                        selectedType = type
+                        selectedEntityIndex = 0
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(12.dp))
+
+            if (entityNames.isNotEmpty()) {
+                var showDropdown by remember(selectedType) { mutableStateOf(false) }
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) { showDropdown = !showDropdown }
+                ) {
+                    Column {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(BackgroundColor, RoundedCornerShape(8.dp))
+                                .border(1.dp, Color.LightGray, RoundedCornerShape(8.dp))
+                                .padding(12.dp)
+                        ) {
+                            Text(entityNames.getOrNull(selectedEntityIndex) ?: "None", color = Color.Black)
+                        }
+                        AnimatedVisibility(
+                            visible = showDropdown,
+                            enter = fadeIn() + expandVertically(),
+                            exit = fadeOut() + shrinkVertically()
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .padding(top = 8.dp)
+                                    .heightIn(max = 180.dp)
+                                    .verticalScroll(rememberScrollState())
+                            ) {
+                                entityNames.forEachIndexed { index, name ->
+                                    val isSelected = selectedEntityIndex == index
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 4.dp)
+                                            .background(
+                                                if (isSelected) PrimaryColor else Color.LightGray,
+                                                RoundedCornerShape(8.dp)
+                                            )
+                                            .clickable {
+                                                selectedEntityIndex = index
+                                                showDropdown = false
+                                            }
+                                            .padding(12.dp)
+                                    ) {
+                                        Text(
+                                            name,
+                                            color = if (isSelected) BackgroundColor else Color.Black,
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            } else {
+                Text("No ${selectedType.lowercase()} found", color = Color.Gray, fontSize = 14.sp)
+            }
+        }
+    }
+
+    Spacer(Modifier.height(12.dp))
+
+    // ATI stats
+    Box(
+        modifier = Modifier
+            .width(378.dp)
+            .background(Color(CardColor), RoundedCornerShape(8.dp))
+            .padding(10.dp)
+    ) {
+        Text(if (atiRecord.isNotEmpty()) atiRecord else "—", fontSize = 15.sp, color = Color.Black)
+    }
+
+    Spacer(Modifier.height(8.dp))
+
+    // Scatter plot
+    val maxX = (dataPoints.maxOfOrNull { it.first } ?: 0f).let { (it * 1.2f).coerceAtLeast(60f) }
+    val maxY = (dataPoints.maxOfOrNull { it.second } ?: 0f).let { (it * 1.2f).coerceAtLeast(30f) }
+    val dotColor = Color.Gray
+    val lineColor = PrimaryColor
+    val axisColor = Color.DarkGray
+    val gridColor = BackgroundColor
+    val mL = 44f   // margin left for Y labels
+    val mB = 44f   // margin bottom for X labels
+    val mT = 12f   // margin top
+    val mR = 12f   // margin right
+
+    Canvas(
+        modifier = Modifier
+            .width(378.dp)
+            .height(280.dp)
+            .background(Color.White, RoundedCornerShape(8.dp))
+            .border(1.dp, GRID_COLOR, RoundedCornerShape(8.dp))
+    ) {
+        val W = size.width
+        val H = size.height
+        val w = W - mL - mR   // plot area width
+        val h = H - mB - mT   // plot area height
+
+        fun px(dataVal: Float) = mL + dataVal / maxX * w
+        fun py(dataVal: Float) = mT + h - dataVal / maxY * h
+
+        // Grid lines
+        for (i in 1..4) {
+            val gy = mT + h * (1f - i / 4f)
+            drawLine(gridColor, Offset(mL, gy), Offset(mL + w, gy), strokeWidth = 1f)
+            val gx = mL + w * i / 4f
+            drawLine(gridColor, Offset(gx, mT), Offset(gx, mT + h), strokeWidth = 1f)
+        }
+
+        // Axes
+        drawLine(axisColor, Offset(mL, mT + h), Offset(mL + w, mT + h), strokeWidth = 2f)
+        drawLine(axisColor, Offset(mL, mT), Offset(mL, mT + h), strokeWidth = 2f)
+
+        // Labels
+        drawContext.canvas.nativeCanvas.apply {
+            val paint = android.graphics.Paint().apply {
+                color = android.graphics.Color.DKGRAY
+                textSize = 22f
+            }
+            // X axis label
+            drawText("Predicted (min)", mL + w / 2f - 65f, H - 4f, paint)
+            // Y axis label rotated
+            withSave {
+                rotate(-90f, 14f, mT + h / 2f)
+                drawText("Overtime (min)", 14f - 55f, mT + h / 2f + 6f, paint)
+            }
+            // X tick values
+            for (i in 0..4) {
+                val xVal = (maxX * i / 4f).toInt()
+                drawText(xVal.toString(), mL + w * i / 4f - 10f, mT + h + 22f, paint)
+            }
+            // Y tick values
+            for (i in 0..4) {
+                val yVal = (maxY * i / 4f).toInt()
+                drawText(yVal.toString(), 2f, mT + h * (1f - i / 4f) + 6f, paint)
+            }
+        }
+
+        // Regression line — only when 2+ points
+        if (dataPoints.size >= 2 && (slope != 0f || intercept != 0f)) {
+            drawLine(
+                lineColor,
+                Offset(px(0f), py((intercept).coerceIn(0f, maxY))),
+                Offset(px(maxX), py((slope * maxX + intercept).coerceIn(0f, maxY))),
+                strokeWidth = 2f
+            )
+        }
+
+        // Data points
+        dataPoints.forEach { (x, y) ->
+            drawCircle(dotColor, radius = 8f, center = Offset(px(x), py(y)))
+        }
+    }
+
+    Spacer(Modifier.height(4.dp))
+    Text(
+        if (dataPoints.size >= 2)
+            "y = ${"%.2f".format(slope)}x + ${"%.2f".format(intercept)}  (${dataPoints.size} points)"
+        else
+            "${dataPoints.size} data point${if (dataPoints.size != 1) "s" else ""} — need 2+ for regression line",
+        fontSize = 12.sp,
+        color = Color.Gray
+    )
+
+    Spacer(Modifier.height(32.dp))
 }
