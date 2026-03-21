@@ -14,7 +14,6 @@ import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.Refresh
 import kotlinx.coroutines.launch
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.*
@@ -96,12 +95,6 @@ fun AppNavigation(db: AppDatabase) {
                     onCreateClick = {
                         currentScreen = "Creation"
                         if (isDrawerOpen) isDrawerOpen = false
-                    },
-                    onRefreshClick = {
-                        coroutineScope.launch {
-                            generateTaskIntervals(db)
-                            calendarResetTrigger++
-                        }
                     }
                 )
             },
@@ -339,8 +332,7 @@ fun Header(
     currentView: String,
     onViewSelected: (String) -> Unit,
     onMenuClick: () -> Unit,
-    onCreateClick: () -> Unit,
-    onRefreshClick: () -> Unit
+    onCreateClick: () -> Unit
 ) {
     Column(modifier = Modifier.background(BackgroundColor)) {
         CenterAlignedTopAppBar(
@@ -386,10 +378,6 @@ fun Header(
                     }
 
                     Spacer(modifier = Modifier.width(8.dp))
-
-                    IconButton(onClick = onRefreshClick) {
-                        Icon(Icons.Filled.Refresh, contentDescription = "Refresh Schedule", modifier = Modifier.size(30.dp))
-                    }
 
                     IconButton(onClick = onCreateClick) {
                         Icon(Icons.Filled.Add, contentDescription = "Create", modifier = Modifier.size(32.dp))

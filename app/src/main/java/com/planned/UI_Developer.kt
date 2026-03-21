@@ -224,7 +224,7 @@ fun DeveloperMainView(
                     Spacer(modifier = Modifier.width(12.dp))
 
                     Button(
-                        onClick = { if (generationMonths < 24) generationMonths++ },
+                        onClick = { if (generationMonths < 6) generationMonths++ },
                         shape = CircleShape,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = PrimaryColor,

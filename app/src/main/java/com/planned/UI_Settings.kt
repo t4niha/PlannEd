@@ -65,6 +65,23 @@ fun Settings(db: AppDatabase) {
             .background(BackgroundColor)
             .padding(12.dp)
     ) {
+        // Refresh Schedule
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color(CardColor), RoundedCornerShape(12.dp))
+                .clickable {
+                    scope.launch {
+                        generateTaskIntervals(db)
+                    }
+                }
+                .padding(16.dp)
+        ) {
+            Text("Refresh Schedule", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
         // Week start switch
         Box(
             modifier = Modifier
