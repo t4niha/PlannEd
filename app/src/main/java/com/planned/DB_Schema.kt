@@ -323,7 +323,8 @@ data class AppSetting(
     val primaryColor: String = "#FF205898",
     val showDeveloper: Boolean = true,
     val breakDuration: Int = 5,
-    val breakEvery: Int = 30
+    val breakEvery: Int = 30,
+    val atiPaddingEnabled: Boolean = false
 )
 //</editor-fold>
 
@@ -595,6 +596,8 @@ interface SettingsDao {
     suspend fun updateBreakDuration(minutes: Int)
     @Query("UPDATE AppSetting SET breakEvery = :minutes WHERE id = 0")
     suspend fun updateBreakEvery(minutes: Int)
+    @Query("UPDATE AppSetting SET atiPaddingEnabled = :value WHERE id = 0")
+    suspend fun updateAtiPaddingEnabled(value: Boolean)
 
     // Fetch all settings
     @Query("SELECT * FROM AppSetting WHERE id = 0")

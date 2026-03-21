@@ -27,7 +27,8 @@ object SettingsManager {
                 primaryColor = Converters.fromColor(Preset19),
                 showDeveloper = false,
                 breakDuration = 5,
-                breakEvery = 25
+                breakEvery = 25,
+                atiPaddingEnabled = false
             )
             db.settingsDao().insert(s)
         }
@@ -55,6 +56,10 @@ object SettingsManager {
     suspend fun setBreakEvery(db: AppDatabase, minutes: Int) {
         db.settingsDao().updateBreakEvery(minutes)
         settings = settings?.copy(breakEvery = minutes)
+    }
+    suspend fun setAtiPaddingEnabled(db: AppDatabase, enabled: Boolean) {
+        db.settingsDao().updateAtiPaddingEnabled(enabled)
+        settings = settings?.copy(atiPaddingEnabled = enabled)
     }
 }
 

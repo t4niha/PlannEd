@@ -835,7 +835,7 @@ fun ATIScatterPlot(
             .background(Color(CardColor), RoundedCornerShape(8.dp))
             .padding(10.dp)
     ) {
-        Text(if (atiRecord.isNotEmpty()) atiRecord else "Stats Missing", fontSize = 16.sp, color = Color.Black)
+        Text(if (atiRecord.isNotEmpty()) atiRecord else "Stats Unavailable", fontSize = 16.sp, color = Color.Black)
     }
 
     Spacer(Modifier.height(8.dp))

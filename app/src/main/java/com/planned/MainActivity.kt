@@ -54,7 +54,7 @@ class MainActivity : ComponentActivity() {
 [?] On creation don't allow duplicate titles for events, categories?
 [?] Warning when tasks scheduled after deadline / impossible to meet deadline?
 [/] Kanban board?
-[?] notifications
+[?] Notifications
 [?] Status indicators and overtime warnings for task elements on calendar?
  **/
 

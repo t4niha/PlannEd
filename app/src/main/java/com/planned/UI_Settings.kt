@@ -32,6 +32,8 @@ val PrimaryColor: Color
     } ?: Preset19
 val showDeveloper: Boolean
     get() = SettingsManager.settings?.showDeveloper ?: true
+val atiPaddingEnabled: Boolean
+    get() = SettingsManager.settings?.atiPaddingEnabled ?: true
 val colorPresets = listOf(
     Preset13, Preset14, Preset15, Preset16,
     Preset17, Preset18, Preset19, Preset20,
@@ -54,6 +56,7 @@ fun Settings(db: AppDatabase) {
     // Local state for UI
     settings?.startWeekOnMonday ?: false
     val localDeveloper = settings?.showDeveloper ?: true
+    val localAtiPadding = settings?.atiPaddingEnabled ?: true
     val localPrimary = settings?.let { Converters.toColor(it.primaryColor) } ?: Preset19
 
     Column(
@@ -271,6 +274,37 @@ fun Settings(db: AppDatabase) {
                         }
                     }
                 }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // ATI padding switch
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color(CardColor), RoundedCornerShape(12.dp))
+                .padding(16.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("Add Predicted Overtime", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                Spacer(modifier = Modifier.width(16.dp))
+
+                Switch(
+                    checked = localAtiPadding,
+                    onCheckedChange = {
+                        scope.launch {
+                            SettingsManager.setAtiPaddingEnabled(db, it)
+                            generateTaskIntervals(db)
+                        }
+                    },
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = BackgroundColor,
+                        checkedTrackColor = localPrimary,
+                        uncheckedTrackColor = Color.LightGray,
+                        uncheckedThumbColor = BackgroundColor
+                    )
+                )
             }
         }
 
