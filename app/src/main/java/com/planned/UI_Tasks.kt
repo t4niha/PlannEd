@@ -1838,7 +1838,7 @@ fun getCurrentIntervalData(
         cumulativeDuration += intervalDuration
     }
 
-    val intervalDuration = calculateIntervalDuration(currentInterval)
+    val intervalDuration = calculateIntervalDuration(currentInterval) - currentInterval.atiPadding
     val durationIntoInterval = totalActualDuration - cumulativeDuration
     val timeLeft = maxOf(0, intervalDuration - durationIntoInterval)
     val overtime = if (currentInterval.intervalNo == task.noIntervals && task.predictedDuration < totalActualDuration) {
@@ -1874,7 +1874,7 @@ suspend fun updateTaskProgress(
 
     var cumulativeDuration = 0
     for (interval in intervals.sortedBy { it.intervalNo }) {
-        val intervalDuration = calculateIntervalDuration(interval)
+        val intervalDuration = calculateIntervalDuration(interval) - interval.atiPadding
 
         if (newActualDuration >= cumulativeDuration + intervalDuration) {
             if (interval.intervalNo < task.noIntervals) {

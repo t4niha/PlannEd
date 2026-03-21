@@ -54,8 +54,8 @@ class MainActivity : ComponentActivity() {
 [-] DB Sample ATI
 [-] Developer cards to separate tables, ATI Visualization, Task schedule order viewing
 [-] Extend sample another future week
-[ ] POMODORO TIME LEFT: PREDICTED + PADDING
-[ ] Task fetch order alphabetically, but ID needed to get last for creation success message
+[-] POMODORO TIME LEFT: PREDICTED + PADDING
+[-] Task fetch order alphabetically, but ID needed to get last for creation success message
 [?] On creation don't allow duplicate titles for events, categories?
 [?] Warning when tasks scheduled after deadline / impossible to meet deadline?
 [/] Kanban board?
