@@ -396,6 +396,8 @@ fun runSample(db: AppDatabase) = runBlocking {
             deadlineMissCount = 3,
             avgOvertime = 20.83f,
             predictedPadding = 25,
+            paddingSlope = 0.28f,
+            paddingIntercept = 2.5f,
             score = 0.319f
         ))
     }
@@ -405,6 +407,8 @@ fun runSample(db: AppDatabase) = runBlocking {
             deadlineMissCount = 0,
             avgOvertime = 5.0f,
             predictedPadding = 5,
+            paddingSlope = 0.18f,
+            paddingIntercept = 0.0f,
             score = 0.033f
         ))
     }
@@ -414,6 +418,8 @@ fun runSample(db: AppDatabase) = runBlocking {
             deadlineMissCount = 0,
             avgOvertime = 11.67f,
             predictedPadding = 15,
+            paddingSlope = 0.22f,
+            paddingIntercept = 1.0f,
             score = 0.078f
         ))
     }
@@ -425,6 +431,8 @@ fun runSample(db: AppDatabase) = runBlocking {
             deadlineMissCount = 2,
             avgOvertime = 26.67f,
             predictedPadding = 30,
+            paddingSlope = 0.35f,
+            paddingIntercept = 5.0f,
             score = 0.298f
         ))
     }
@@ -434,6 +442,8 @@ fun runSample(db: AppDatabase) = runBlocking {
             deadlineMissCount = 1,
             avgOvertime = 15.0f,
             predictedPadding = 15,
+            paddingSlope = 0.18f,
+            paddingIntercept = 1.5f,
             score = 0.160f
         ))
     }
@@ -443,6 +453,8 @@ fun runSample(db: AppDatabase) = runBlocking {
             deadlineMissCount = 0,
             avgOvertime = 5.0f,
             predictedPadding = 5,
+            paddingSlope = 0.18f,
+            paddingIntercept = 0.0f,
             score = 0.033f
         ))
     }

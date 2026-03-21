@@ -640,13 +640,14 @@ fun DeveloperDatabasePage(
                 data    = categoryATIList,
                 headers = listOf(
                     "Category ID", "Score", "Deadline Misses",
-                    "Avg Overtime", "Tasks Completed", "Predicted Padding"
+                    "Avg Overtime", "Tasks Completed", "Predicted Padding", "Slope", "Intercept"
                 )
             ) { a ->
                 listOf(
                     a.categoryId.toString(), "%.3f".format(a.score),
                     a.deadlineMissCount.toString(), "%.1f".format(a.avgOvertime),
-                    a.tasksCompleted.toString(), a.predictedPadding.toString()
+                    a.tasksCompleted.toString(), a.predictedPadding.toString(),
+                    "%.3f".format(a.paddingSlope), "%.3f".format(a.paddingIntercept)
                 )
             }
 
@@ -655,13 +656,14 @@ fun DeveloperDatabasePage(
                 data    = eventATIList,
                 headers = listOf(
                     "Event ID", "Score", "Deadline Misses",
-                    "Avg Overtime", "Tasks Completed", "Predicted Padding"
+                    "Avg Overtime", "Tasks Completed", "Predicted Padding", "Slope", "Intercept"
                 )
             ) { a ->
                 listOf(
                     a.eventId.toString(), "%.3f".format(a.score),
                     a.deadlineMissCount.toString(), "%.1f".format(a.avgOvertime),
-                    a.tasksCompleted.toString(), a.predictedPadding.toString()
+                    a.tasksCompleted.toString(), a.predictedPadding.toString(),
+                    "%.3f".format(a.paddingSlope), "%.3f".format(a.paddingIntercept)
                 )
             }
 
@@ -842,6 +844,8 @@ fun ATIScatterPlot(
                         "Misses: ${ati?.deadlineMissCount ?: 0},  " +
                         "Avg OT: ${"%.1f".format(ati?.avgOvertime ?: 0f)}min,  " +
                         "Padding: ${ati?.predictedPadding ?: 0}min,  " +
+                        "Slope: ${"%.3f".format(ati?.paddingSlope ?: 0f)},  " +
+                        "Intercept: ${"%.3f".format(ati?.paddingIntercept ?: 0f)},  " +
                         "Tasks: ${ati?.tasksCompleted ?: 0}"
             } else if (selectedType == "Event" && masterEvents.isNotEmpty()) {
                 val evt = masterEvents.getOrNull(selectedEntityIndex) ?: return@launch
@@ -854,6 +858,8 @@ fun ATIScatterPlot(
                         "Misses: ${ati?.deadlineMissCount ?: 0},  " +
                         "Avg OT: ${"%.1f".format(ati?.avgOvertime ?: 0f)}min,  " +
                         "Padding: ${ati?.predictedPadding ?: 0}min,  " +
+                        "Slope: ${"%.3f".format(ati?.paddingSlope ?: 0f)},  " +
+                        "Intercept: ${"%.3f".format(ati?.paddingIntercept ?: 0f)},  " +
                         "Tasks: ${ati?.tasksCompleted ?: 0}"
             }
 

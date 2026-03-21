@@ -19,11 +19,14 @@ fun roundUpToNearest5(minutes: Float): Int {
     return if (remainder == 0) intMinutes else intMinutes + (5 - remainder)
 }
 
+/* Result of linear regression for padding prediction */
+data class PaddingResult(val slope: Float, val intercept: Float, val predictedPadding: Int)
+
 /* Linear regression: given a list of completed tasks, predict overtime for a new task
  * X = predictedDuration, Y = overTime
- * Returns predicted padding in minutes, rounded up to nearest 5, maximum 1 hour */
-fun calculatePadding(tasks: List<MasterTask>): Int {
-    if (tasks.size < 2) return 0
+ * Returns slope, intercept, and predicted padding evaluated at avgX (rounded up to nearest 5, maximum 1 hour) */
+fun calculatePadding(tasks: List<MasterTask>): PaddingResult {
+    if (tasks.size < 2) return PaddingResult(0f, 0f, 0)
 
     val n = tasks.size.toFloat()
     val xs = tasks.map { it.predictedDuration.toFloat() }
@@ -38,7 +41,8 @@ fun calculatePadding(tasks: List<MasterTask>): Int {
 
     // All X values identical — slope undefined, use average Y instead
     if (denominator == 0f) {
-        return roundUpToNearest5(sumY / n).coerceAtMost(60)
+        val avgY = sumY / n
+        return PaddingResult(0f, avgY, roundUpToNearest5(avgY).coerceAtMost(60))
     }
 
     val slope     = (n * sumXY - sumX * sumY) / denominator
@@ -46,7 +50,7 @@ fun calculatePadding(tasks: List<MasterTask>): Int {
     val avgX      = sumX / n
     val predicted = slope * avgX + intercept
 
-    return roundUpToNearest5(predicted).coerceAtMost(60)
+    return PaddingResult(slope, intercept, roundUpToNearest5(predicted).coerceAtMost(60))
 }
 
 /* Weighted scoring formula.
@@ -76,7 +80,7 @@ private suspend fun updateCategoryATI(db: AppDatabase, categoryId: Int) {
 
     val avgOvertime       = completedTasks.map { (it.overTime ?: 0).toFloat() }.average().toFloat()
     val deadlineMissCount = countDeadlineMisses(completedTasks)
-    val predictedPadding  = calculatePadding(completedTasks)
+    val paddingResult     = calculatePadding(completedTasks)
     val score             = calculateScore(deadlineMissCount, avgOvertime)
     val tasksCompleted    = db.taskDao().getAllMasterTasks()
         .count { it.categoryId == categoryId && it.status == 3 && it.allDay == null }
@@ -88,7 +92,9 @@ private suspend fun updateCategoryATI(db: AppDatabase, categoryId: Int) {
             deadlineMissCount = deadlineMissCount,
             avgOvertime = avgOvertime,
             tasksCompleted = tasksCompleted,
-            predictedPadding = predictedPadding
+            predictedPadding = paddingResult.predictedPadding,
+            paddingSlope = paddingResult.slope,
+            paddingIntercept = paddingResult.intercept
         ))
     } else {
         db.categoryATIDao().insert(CategoryATI(
@@ -97,7 +103,9 @@ private suspend fun updateCategoryATI(db: AppDatabase, categoryId: Int) {
             deadlineMissCount = deadlineMissCount,
             avgOvertime = avgOvertime,
             tasksCompleted = tasksCompleted,
-            predictedPadding = predictedPadding
+            predictedPadding = paddingResult.predictedPadding,
+            paddingSlope = paddingResult.slope,
+            paddingIntercept = paddingResult.intercept
         ))
     }
 }
@@ -112,7 +120,7 @@ private suspend fun updateEventATI(db: AppDatabase, eventId: Int) {
 
     val avgOvertime       = completedTasks.map { (it.overTime ?: 0).toFloat() }.average().toFloat()
     val deadlineMissCount = countDeadlineMisses(completedTasks)
-    val predictedPadding  = calculatePadding(completedTasks)
+    val paddingResult     = calculatePadding(completedTasks)
     val score             = calculateScore(deadlineMissCount, avgOvertime)
     val tasksCompleted    = db.taskDao().getAllMasterTasks()
         .count { it.eventId == eventId && it.status == 3 && it.allDay == null }
@@ -124,7 +132,9 @@ private suspend fun updateEventATI(db: AppDatabase, eventId: Int) {
             deadlineMissCount = deadlineMissCount,
             avgOvertime = avgOvertime,
             tasksCompleted = tasksCompleted,
-            predictedPadding = predictedPadding
+            predictedPadding = paddingResult.predictedPadding,
+            paddingSlope = paddingResult.slope,
+            paddingIntercept = paddingResult.intercept
         ))
     } else {
         db.eventATIDao().insert(EventATI(
@@ -133,7 +143,9 @@ private suspend fun updateEventATI(db: AppDatabase, eventId: Int) {
             deadlineMissCount = deadlineMissCount,
             avgOvertime = avgOvertime,
             tasksCompleted = tasksCompleted,
-            predictedPadding = predictedPadding
+            predictedPadding = paddingResult.predictedPadding,
+            paddingSlope = paddingResult.slope,
+            paddingIntercept = paddingResult.intercept
         ))
     }
 }

@@ -299,7 +299,9 @@ data class CategoryATI(
     val deadlineMissCount: Int = 0,     // out of last 10 completed tasks
     val avgOvertime: Float = 0f,        // average overtime in minutes, last 10 tasks
     val tasksCompleted: Int = 0,        // total completed tasks for this category
-    val predictedPadding: Int = 0       // in minutes, rounded up to nearest 5
+    val predictedPadding: Int = 0,      // evaluated at avgX, for display only
+    val paddingSlope: Float = 0f,       // regression slope
+    val paddingIntercept: Float = 0f    // regression intercept
 )
 
 @Entity
@@ -309,7 +311,9 @@ data class EventATI(
     val deadlineMissCount: Int = 0,     // out of last 10 completed tasks
     val avgOvertime: Float = 0f,        // average overtime in minutes, last 10 tasks
     val tasksCompleted: Int = 0,        // total completed tasks for this event
-    val predictedPadding: Int = 0       // in minutes, rounded up to nearest 5
+    val predictedPadding: Int = 0,      // evaluated at avgX, for display only
+    val paddingSlope: Float = 0f,       // regression slope
+    val paddingIntercept: Float = 0f    // regression intercept
 )
 //</editor-fold>
 

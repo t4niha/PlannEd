@@ -335,8 +335,13 @@ private suspend fun assignAutoScheduledTasks(
 
         // Look up ATI padding once per task — take max of category and event padding
         val atiPaddingEnabled = SettingsManager.settings?.atiPaddingEnabled ?: true
-        val categoryPadding = if (atiPaddingEnabled) task.categoryId?.let { db.categoryATIDao().getById(it)?.predictedPadding } ?: 0 else 0
-        val eventPadding = if (atiPaddingEnabled) task.eventId?.let { db.eventATIDao().getById(it)?.predictedPadding } ?: 0 else 0
+        val dur = task.predictedDuration.toFloat()
+        val categoryPadding = if (atiPaddingEnabled) task.categoryId?.let { id ->
+            db.categoryATIDao().getById(id)?.let { roundUpToNearest5(it.paddingSlope * dur + it.paddingIntercept).coerceAtMost(60) }
+        } ?: 0 else 0
+        val eventPadding = if (atiPaddingEnabled) task.eventId?.let { id ->
+            db.eventATIDao().getById(id)?.let { roundUpToNearest5(it.paddingSlope * dur + it.paddingIntercept).coerceAtMost(60) }
+        } ?: 0 else 0
         val atiPadding = maxOf(categoryPadding, eventPadding)
 
         for (i in availableSlots.indices) {
