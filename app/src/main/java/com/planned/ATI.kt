@@ -7,8 +7,8 @@ Adaptive Time Intelligence:
  **/
 
 // Scoring weights
-private const val WEIGHT_DEADLINE_MISS = 0.4f
-private const val WEIGHT_AVG_OVERTIME  = 0.35f
+private const val WEIGHT_DEADLINE_MISS = 0.6f
+private const val WEIGHT_AVG_OVERTIME  = 0.4f
 private const val ROLLING_WINDOW       = 10
 
 /* Round a float number of minutes up to the nearest 5 */
@@ -55,7 +55,7 @@ fun calculatePadding(tasks: List<MasterTask>): Int {
  * Returns a score float — higher means more struggle, needs earlier scheduling */
 fun calculateScore(deadlineMissCount: Int, avgOvertime: Float): Float {
     val missRate    = deadlineMissCount / ROLLING_WINDOW.toFloat()
-    val overtimeNorm = (avgOvertime / 120f).coerceIn(0f, 1f)
+    val overtimeNorm = (avgOvertime / 60f).coerceIn(0f, 1f)
     return (WEIGHT_DEADLINE_MISS * missRate) + (WEIGHT_AVG_OVERTIME * overtimeNorm)
 }
 
