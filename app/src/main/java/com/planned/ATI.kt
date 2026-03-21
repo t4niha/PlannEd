@@ -74,6 +74,7 @@ suspend fun updateATIOnTaskComplete(db: AppDatabase, task: MasterTask) {
 private suspend fun updateCategoryATI(db: AppDatabase, categoryId: Int) {
     val completedTasks = db.taskDao().getAllMasterTasks()
         .filter { it.categoryId == categoryId && it.status == 3 && it.allDay == null }
+        .sortedBy { it.id }
         .takeLast(ROLLING_WINDOW)
 
     if (completedTasks.isEmpty()) return
@@ -114,6 +115,7 @@ private suspend fun updateCategoryATI(db: AppDatabase, categoryId: Int) {
 private suspend fun updateEventATI(db: AppDatabase, eventId: Int) {
     val completedTasks = db.taskDao().getAllMasterTasks()
         .filter { it.eventId == eventId && it.status == 3 && it.allDay == null }
+        .sortedBy { it.id }
         .takeLast(ROLLING_WINDOW)
 
     if (completedTasks.isEmpty()) return

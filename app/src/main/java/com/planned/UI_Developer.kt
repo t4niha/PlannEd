@@ -132,12 +132,15 @@ fun Developer(db: AppDatabase) {
             onScheduleClick = { currentView = "schedule" },
             refreshData   = { refreshData() }
         )
-        "ati" -> DeveloperATIPage(
-            db           = database,
-            categories   = categories,
-            masterEvents = masterEvents,
-            onBack       = { currentView = "main" }
-        )
+        "ati" -> {
+            LaunchedEffect(Unit) { refreshData() }
+            DeveloperATIPage(
+                db           = database,
+                categories   = categories,
+                masterEvents = masterEvents,
+                onBack       = { currentView = "main" }
+            )
+        }
         "database" -> DeveloperDatabasePage(
             categories        = categories,
             masterEvents      = masterEvents,
@@ -838,6 +841,7 @@ fun ATIScatterPlot(
                 val ati = db.categoryATIDao().getById(cat.id)
                 allTasks
                     .filter { it.categoryId == cat.id && it.status == 3 && it.allDay == null }
+                    .sortedBy { it.id }
                     .takeLast(10)
                     .forEach { t -> points.add(Pair(t.predictedDuration.toFloat(), (t.overTime ?: 0).toFloat())) }
                 atiRecord = "Score: ${"%.3f".format(ati?.score ?: 0f)},  " +
@@ -852,6 +856,7 @@ fun ATIScatterPlot(
                 val ati = db.eventATIDao().getById(evt.id)
                 allTasks
                     .filter { it.eventId == evt.id && it.status == 3 && it.allDay == null }
+                    .sortedBy { it.id }
                     .takeLast(10)
                     .forEach { t -> points.add(Pair(t.predictedDuration.toFloat(), (t.overTime ?: 0).toFloat())) }
                 atiRecord = "Score: ${"%.3f".format(ati?.score ?: 0f)},  " +
@@ -1074,12 +1079,16 @@ fun ATIScatterPlot(
 
             // Regression line
             if (dataPoints.size >= 2 && (slope != 0f || intercept != 0f)) {
-                drawLine(
-                    lineColor,
-                    Offset(px(0f), py(intercept.coerceIn(0f, maxY))),
-                    Offset(px(maxX), py((slope * maxX + intercept).coerceIn(0f, maxY))),
-                    strokeWidth = 2f
-                )
+                val startX = if (intercept < 0f && slope > 0f) -intercept / slope else 0f
+                val endY = slope * maxX + intercept
+                if (startX < maxX && endY > 0f) {
+                    drawLine(
+                        lineColor,
+                        Offset(px(startX), py(slope * startX + intercept)),
+                        Offset(px(maxX), py(endY.coerceAtMost(maxY))),
+                        strokeWidth = 2f
+                    )
+                }
             }
 
             // Data points
