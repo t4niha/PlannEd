@@ -1839,7 +1839,7 @@ fun getCurrentIntervalData(
     if (intervals.isEmpty()) return IntervalData(0, 0, 0)
 
     var cumulativeDuration = 0
-    var currentInterval = intervals.first()
+    var currentInterval: TaskInterval? = null
 
     for (interval in intervals) {
         val intervalDuration = calculateIntervalDuration(interval)
@@ -1848,6 +1848,14 @@ fun getCurrentIntervalData(
             break
         }
         cumulativeDuration += intervalDuration
+    }
+
+    if (currentInterval == null) {
+        return IntervalData(
+            currentIntervalNo = intervals.last().intervalNo,
+            timeLeft = 0,
+            overtime = if (task.predictedDuration < totalActualDuration) totalActualDuration - task.predictedDuration else 0
+        )
     }
 
     val intervalDuration = calculateIntervalDuration(currentInterval) - currentInterval.atiPadding
