@@ -394,11 +394,11 @@ fun runSample(db: AppDatabase) = runBlocking {
         db.categoryATIDao().update(it.copy(
             tasksCompleted = 6,
             deadlineMissCount = 3,
-            avgOvertime = 20.83f,
-            predictedPadding = 25,
-            paddingSlope = 0.28f,
-            paddingIntercept = 2.5f,
-            score = 0.319f
+            avgOvertime = 20.8333f,
+            predictedPadding = 20,
+            paddingSlope = -0.009524f,
+            paddingIntercept = 21.5f,
+            score = 0.3189f
         ))
     }
     db.categoryATIDao().getById(ecCatId)?.let {
@@ -407,20 +407,20 @@ fun runSample(db: AppDatabase) = runBlocking {
             deadlineMissCount = 0,
             avgOvertime = 5.0f,
             predictedPadding = 5,
-            paddingSlope = 0.18f,
-            paddingIntercept = 0.0f,
-            score = 0.033f
+            paddingSlope = -0.5f,
+            paddingIntercept = 17.5f,
+            score = 0.0333f
         ))
     }
     db.categoryATIDao().getById(homeCatId)?.let {
         db.categoryATIDao().update(it.copy(
             tasksCompleted = 3,
             deadlineMissCount = 0,
-            avgOvertime = 11.67f,
+            avgOvertime = 11.6667f,
             predictedPadding = 15,
-            paddingSlope = 0.22f,
-            paddingIntercept = 1.0f,
-            score = 0.078f
+            paddingSlope = 0.6667f,
+            paddingIntercept = -18.3333f,
+            score = 0.0778f
         ))
     }
 
@@ -429,11 +429,11 @@ fun runSample(db: AppDatabase) = runBlocking {
         db.eventATIDao().update(it.copy(
             tasksCompleted = 3,
             deadlineMissCount = 2,
-            avgOvertime = 26.67f,
+            avgOvertime = 26.6667f,
             predictedPadding = 30,
-            paddingSlope = 0.35f,
-            paddingIntercept = 5.0f,
-            score = 0.298f
+            paddingSlope = 0.3333f,
+            paddingIntercept = 11.6667f,
+            score = 0.2978f
         ))
     }
     db.eventATIDao().getById(englishEventId)?.let {
@@ -442,9 +442,9 @@ fun runSample(db: AppDatabase) = runBlocking {
             deadlineMissCount = 1,
             avgOvertime = 15.0f,
             predictedPadding = 15,
-            paddingSlope = 0.18f,
-            paddingIntercept = 1.5f,
-            score = 0.160f
+            paddingSlope = 0.6429f,
+            paddingIntercept = -46.0714f,
+            score = 0.16f
         ))
     }
     db.eventATIDao().getById(pianoLessonEventId)?.let {
@@ -453,9 +453,9 @@ fun runSample(db: AppDatabase) = runBlocking {
             deadlineMissCount = 0,
             avgOvertime = 5.0f,
             predictedPadding = 5,
-            paddingSlope = 0.18f,
-            paddingIntercept = 0.0f,
-            score = 0.033f
+            paddingSlope = -0.5f,
+            paddingIntercept = 17.5f,
+            score = 0.0333f
         ))
     }
 }
