@@ -733,7 +733,7 @@ fun ATIScatterPlot(
 
     Spacer(Modifier.height(16.dp))
     Text(
-        "ATI Regression Model Visualizer",
+        "Overtime Predicting Model",
         style = MaterialTheme.typography.titleMedium,
         color = Color.Black
     )
@@ -835,20 +835,20 @@ fun ATIScatterPlot(
             .background(Color(CardColor), RoundedCornerShape(8.dp))
             .padding(10.dp)
     ) {
-        Text(if (atiRecord.isNotEmpty()) atiRecord else "—", fontSize = 15.sp, color = Color.Black)
+        Text(if (atiRecord.isNotEmpty()) atiRecord else "—", fontSize = 16.sp, color = Color.Black)
     }
 
     Spacer(Modifier.height(8.dp))
 
     // Scatter plot
-    val maxX = (dataPoints.maxOfOrNull { it.first } ?: 0f).let { (it * 1.2f).coerceAtLeast(60f) }
-    val maxY = (dataPoints.maxOfOrNull { it.second } ?: 0f).let { (it * 1.2f).coerceAtLeast(30f) }
+    val maxX = (dataPoints.maxOfOrNull { it.first } ?: 0f).let { (it * 1.2f).coerceAtLeast(120f) }
+    val maxY = (dataPoints.maxOfOrNull { it.second } ?: 0f).let { (it * 1.2f).coerceAtLeast(60f) }
     val dotColor = Color.Gray
     val lineColor = PrimaryColor
     val axisColor = Color.DarkGray
-    val gridColor = BackgroundColor
-    val mL = 44f   // margin left for Y labels
-    val mB = 44f   // margin bottom for X labels
+    val gridColor = Color(0xFFE0E0E0)
+    val mL = 124f   // margin left
+    val mB = 64f   // margin bottom
     val mT = 12f   // margin top
     val mR = 12f   // margin right
 
@@ -856,13 +856,12 @@ fun ATIScatterPlot(
         modifier = Modifier
             .width(378.dp)
             .height(280.dp)
-            .background(Color.White, RoundedCornerShape(8.dp))
-            .border(1.dp, GRID_COLOR, RoundedCornerShape(8.dp))
+            .background(BackgroundColor)
     ) {
         val W = size.width
         val H = size.height
-        val w = W - mL - mR   // plot area width
-        val h = H - mB - mT   // plot area height
+        val w = W - mL - mR
+        val h = H - mB - mT
 
         fun px(dataVal: Float) = mL + dataVal / maxX * w
         fun py(dataVal: Float) = mT + h - dataVal / maxY * h
@@ -881,30 +880,45 @@ fun ATIScatterPlot(
 
         // Labels
         drawContext.canvas.nativeCanvas.apply {
-            val paint = android.graphics.Paint().apply {
+            val textPx = 14.dp.toPx()
+            val tickPaint = android.graphics.Paint().apply {
                 color = android.graphics.Color.DKGRAY
-                textSize = 22f
+                textSize = textPx
+                textAlign = android.graphics.Paint.Align.CENTER
             }
-            // X axis label
-            drawText("Predicted (min)", mL + w / 2f - 65f, H - 4f, paint)
-            // Y axis label rotated
-            withSave {
-                rotate(-90f, 14f, mT + h / 2f)
-                drawText("Overtime (min)", 14f - 55f, mT + h / 2f + 6f, paint)
+            val labelPaint = android.graphics.Paint().apply {
+                color = android.graphics.Color.DKGRAY
+                textSize = textPx
+                textAlign = android.graphics.Paint.Align.CENTER
             }
+
             // X tick values
+            val xTickY = mT + h + textPx + 6f
             for (i in 0..4) {
                 val xVal = (maxX * i / 4f).toInt()
-                drawText(xVal.toString(), mL + w * i / 4f - 10f, mT + h + 22f, paint)
+                drawText(xVal.toString(), mL + w * i / 4f, xTickY, tickPaint)
             }
-            // Y tick values
+
+            // X axis label — below ticks
+            drawText("Predicted (min)", mL + w / 2f, xTickY + textPx + 8f, labelPaint)
+
+            // Y tick values — right-aligned, flush to axis
+            tickPaint.textAlign = android.graphics.Paint.Align.RIGHT
             for (i in 0..4) {
                 val yVal = (maxY * i / 4f).toInt()
-                drawText(yVal.toString(), 2f, mT + h * (1f - i / 4f) + 6f, paint)
+                drawText(yVal.toString(), mL - 28f, mT + h * (1f - i / 4f) + textPx / 2f, tickPaint)
+            }
+
+            // Y axis label — rotated, in far left of margin
+            withSave {
+                val pivotX = 16f
+                rotate(-90f, pivotX, mT + h / 2f)
+                labelPaint.textAlign = android.graphics.Paint.Align.CENTER
+                drawText("Overtime (min)", pivotX, mT + h / 2f + textPx / 2f, labelPaint)
             }
         }
 
-        // Regression line — only when 2+ points
+        // Regression line
         if (dataPoints.size >= 2 && (slope != 0f || intercept != 0f)) {
             drawLine(
                 lineColor,
@@ -919,16 +933,6 @@ fun ATIScatterPlot(
             drawCircle(dotColor, radius = 8f, center = Offset(px(x), py(y)))
         }
     }
-
-    Spacer(Modifier.height(4.dp))
-    Text(
-        if (dataPoints.size >= 2)
-            "y = ${"%.2f".format(slope)}x + ${"%.2f".format(intercept)}  (${dataPoints.size} points)"
-        else
-            "${dataPoints.size} data point${if (dataPoints.size != 1) "s" else ""} — need 2+ for regression line",
-        fontSize = 12.sp,
-        color = Color.Gray
-    )
 
     Spacer(Modifier.height(32.dp))
 }
