@@ -962,6 +962,7 @@ fun PomodoroPage(
 
     var intervals by remember { mutableStateOf<List<TaskInterval>>(emptyList()) }
     var currentTask by remember { mutableStateOf(task) }
+    var isCompleted by remember { mutableStateOf(false) }
 
     val breakEvery = SettingsManager.settings?.breakEvery ?: 30
     val breakDuration = SettingsManager.settings?.breakDuration ?: 5
@@ -983,7 +984,7 @@ fun PomodoroPage(
 
     DisposableEffect(Unit) {
         onDispose {
-            if (isRunning) {
+            if (isRunning && !isCompleted) {
                 kotlinx.coroutines.runBlocking {
                     updateTaskProgress(db, currentTask, intervals, sessionSeconds / 60)
                 }
@@ -1110,6 +1111,7 @@ fun PomodoroPage(
 
                         db.taskDao().update(currentTask.copy(status = 3, noIntervals = 0, deadlineMissed = missedDeadline))
                         updateATIOnTaskComplete(db, currentTask)
+                        isCompleted = true
                         onComplete()
                     }
                 },

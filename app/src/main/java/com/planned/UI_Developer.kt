@@ -643,7 +643,7 @@ fun DeveloperDatabasePage(
                 data    = categoryATIList,
                 headers = listOf(
                     "Category ID", "Score", "Deadline Misses",
-                    "Avg Overtime", "Tasks Completed", "Predicted Padding", "Slope", "Intercept"
+                    "Avg Overtime", "Tasks Completed", "Avg Padding", "Slope", "Intercept"
                 )
             ) { a ->
                 listOf(
@@ -659,7 +659,7 @@ fun DeveloperDatabasePage(
                 data    = eventATIList,
                 headers = listOf(
                     "Event ID", "Score", "Deadline Misses",
-                    "Avg Overtime", "Tasks Completed", "Predicted Padding", "Slope", "Intercept"
+                    "Avg Overtime", "Tasks Completed", "Avg Padding", "Slope", "Intercept"
                 )
             ) { a ->
                 listOf(
