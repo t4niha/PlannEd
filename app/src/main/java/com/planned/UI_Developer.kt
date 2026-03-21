@@ -851,6 +851,8 @@ fun ATIScatterPlot(
                         "Slope: ${"%.3f".format(ati?.paddingSlope ?: 0f)},  " +
                         "Intercept: ${"%.3f".format(ati?.paddingIntercept ?: 0f)},  " +
                         "Tasks: ${ati?.tasksCompleted ?: 0}"
+                slope     = ati?.paddingSlope ?: 0f
+                intercept = ati?.paddingIntercept ?: 0f
             } else if (selectedType == "Event" && masterEvents.isNotEmpty()) {
                 val evt = masterEvents.getOrNull(selectedEntityIndex) ?: return@launch
                 val ati = db.eventATIDao().getById(evt.id)
@@ -866,17 +868,8 @@ fun ATIScatterPlot(
                         "Slope: ${"%.3f".format(ati?.paddingSlope ?: 0f)},  " +
                         "Intercept: ${"%.3f".format(ati?.paddingIntercept ?: 0f)},  " +
                         "Tasks: ${ati?.tasksCompleted ?: 0}"
-            }
-
-            if (points.size >= 2) {
-                val n     = points.size.toFloat()
-                val sumX  = points.sumOf { it.first.toDouble() }.toFloat()
-                val sumY  = points.sumOf { it.second.toDouble() }.toFloat()
-                val sumXY = points.sumOf { (x, y) -> (x * y).toDouble() }.toFloat()
-                val sumX2 = points.sumOf { (x, _) -> (x * x).toDouble() }.toFloat()
-                val denom = n * sumX2 - sumX * sumX
-                slope     = if (denom != 0f) (n * sumXY - sumX * sumY) / denom else 0f
-                intercept = (sumY - slope * sumX) / n
+                slope     = ati?.paddingSlope ?: 0f
+                intercept = ati?.paddingIntercept ?: 0f
             } else {
                 slope     = 0f
                 intercept = 0f
