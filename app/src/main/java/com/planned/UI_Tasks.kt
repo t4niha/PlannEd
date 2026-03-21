@@ -139,14 +139,26 @@ fun Tasks(db: AppDatabase) {
             PomodoroPage(
                 db = db,
                 task = task,
-                onBack = { currentView = "info" }
+                onBack = { currentView = "info" },
+                onComplete = {
+                    val returnTo = if (selectedInterval != null) "scheduled" else "unscheduled"
+                    selectedTask = null
+                    selectedInterval = null
+                    updateFormData = null
+                    currentView = returnTo
+                }
             )
         }
         "alldaypomodoro" -> selectedTask?.let { task ->
             AllDayPomodoroPage(
                 db = db,
                 task = task,
-                onBack = { currentView = "alldayinfo" }
+                onBack = { currentView = "alldayinfo" },
+                onComplete = {
+                    selectedTask = null
+                    updateFormData = null
+                    currentView = "allday"
+                }
             )
         }
     }
