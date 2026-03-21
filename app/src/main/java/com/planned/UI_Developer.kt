@@ -850,7 +850,7 @@ fun ATIScatterPlot(
                         "Padding: ${ati?.predictedPadding ?: 0}min,  " +
                         "Slope: ${"%.3f".format(ati?.paddingSlope ?: 0f)},  " +
                         "Intercept: ${"%.3f".format(ati?.paddingIntercept ?: 0f)},  " +
-                        "Tasks: ${ati?.tasksCompleted ?: 0}"
+                        "Tasks: ${points.size}/${ati?.tasksCompleted ?: 0}"
                 slope     = ati?.paddingSlope ?: 0f
                 intercept = ati?.paddingIntercept ?: 0f
             } else if (selectedType == "Event" && masterEvents.isNotEmpty()) {
@@ -867,7 +867,7 @@ fun ATIScatterPlot(
                         "Padding: ${ati?.predictedPadding ?: 0}min,  " +
                         "Slope: ${"%.3f".format(ati?.paddingSlope ?: 0f)},  " +
                         "Intercept: ${"%.3f".format(ati?.paddingIntercept ?: 0f)},  " +
-                        "Tasks: ${ati?.tasksCompleted ?: 0}"
+                        "Tasks: ${points.size}/${ati?.tasksCompleted ?: 0}"
                 slope     = ati?.paddingSlope ?: 0f
                 intercept = ati?.paddingIntercept ?: 0f
             } else {
