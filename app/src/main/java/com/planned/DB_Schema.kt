@@ -335,7 +335,7 @@ data class AppSetting(
 @Dao
 interface CategoryDao {
     // Insert new category
-    @Insert suspend fun insert(category: Category)
+    @Insert suspend fun insert(category: Category): Long
 
     // Fetch all categories
     @Query("SELECT * FROM Category ORDER BY title ASC") suspend fun getAll(): List<Category>

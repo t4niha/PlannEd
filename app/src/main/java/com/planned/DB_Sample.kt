@@ -31,18 +31,13 @@ fun runSample(db: AppDatabase) = runBlocking {
 
     // CATEGORIES
 
-    CategoryManager.insert(db, "School", "Academic classes and coursework", Preset12)
-    val schoolCatId = db.categoryDao().getAll().last().id
-
-    CategoryManager.insert(db, "Extracurricular", "Band, piano, and other activities", Preset5)
-    val ecCatId = db.categoryDao().getAll().last().id
-
-    CategoryManager.insert(db, "Home", "Household tasks and personal errands", Preset9)
-    val homeCatId = db.categoryDao().getAll().last().id
+    val schoolCatId = CategoryManager.insert(db, "School", "Academic classes and coursework", Preset12)
+    val ecCatId     = CategoryManager.insert(db, "Extracurricular", "Band, piano, and other activities", Preset5)
+    val homeCatId   = CategoryManager.insert(db, "Home", "Household tasks and personal errands", Preset9)
 
     // EVENTS
 
-    EventManager.insert(
+    val englishEventId = EventManager.insert(
         db = db,
         title = "English Class",
         notes = "Prof. Harrison — Room 204",
@@ -55,9 +50,8 @@ fun runSample(db: AppDatabase) = runBlocking {
         recurRule = RecurrenceRule(daysOfWeek = listOf(DayOfWeek.SUNDAY.value, DayOfWeek.TUESDAY.value)),
         categoryId = schoolCatId
     )
-    val englishEventId = db.eventDao().getAllMasterEvents().last().id
 
-    EventManager.insert(
+    val chemistryEventId = EventManager.insert(
         db = db,
         title = "Chemistry Class",
         notes = "Prof. Chen — Room 114",
@@ -70,9 +64,8 @@ fun runSample(db: AppDatabase) = runBlocking {
         recurRule = RecurrenceRule(daysOfWeek = listOf(DayOfWeek.SUNDAY.value, DayOfWeek.TUESDAY.value)),
         categoryId = schoolCatId
     )
-    val chemistryEventId = db.eventDao().getAllMasterEvents().last().id
 
-    EventManager.insert(
+    val biologyEventId = EventManager.insert(
         db = db,
         title = "Biology Class",
         notes = "Prof. Kamal — Room 125",
@@ -85,9 +78,8 @@ fun runSample(db: AppDatabase) = runBlocking {
         recurRule = RecurrenceRule(daysOfWeek = listOf(DayOfWeek.MONDAY.value, DayOfWeek.WEDNESDAY.value)),
         categoryId = schoolCatId
     )
-    val biologyEventId = db.eventDao().getAllMasterEvents().last().id
 
-    EventManager.insert(
+    val physicsEventId = EventManager.insert(
         db = db,
         title = "Physics Class",
         notes = "Prof. Anne — Room 112",
@@ -100,9 +92,8 @@ fun runSample(db: AppDatabase) = runBlocking {
         recurRule = RecurrenceRule(daysOfWeek = listOf(DayOfWeek.MONDAY.value, DayOfWeek.WEDNESDAY.value)),
         categoryId = schoolCatId
     )
-    val physicsEventId = db.eventDao().getAllMasterEvents().last().id
 
-    EventManager.insert(
+    val mathEventId = EventManager.insert(
         db = db,
         title = "Math Class",
         notes = "Prof. Williams — Room 308",
@@ -115,7 +106,6 @@ fun runSample(db: AppDatabase) = runBlocking {
         recurRule = RecurrenceRule(daysOfWeek = listOf(DayOfWeek.SUNDAY.value, DayOfWeek.TUESDAY.value)),
         categoryId = schoolCatId
     )
-    val mathEventId = db.eventDao().getAllMasterEvents().last().id
 
     EventManager.insert(
         db = db,
@@ -145,7 +135,7 @@ fun runSample(db: AppDatabase) = runBlocking {
         categoryId = ecCatId
     )
 
-    EventManager.insert(
+    val pianoLessonEventId = EventManager.insert(
         db = db,
         title = "Piano Lesson",
         notes = "Music Room 3",
@@ -158,7 +148,6 @@ fun runSample(db: AppDatabase) = runBlocking {
         recurRule = RecurrenceRule(daysOfWeek = listOf(DayOfWeek.THURSDAY.value)),
         categoryId = ecCatId
     )
-    val pianoLessonEventId = db.eventDao().getAllMasterEvents().last().id
 
     EventManager.insert(
         db = db,

@@ -71,17 +71,18 @@ object CategoryManager {
         title: String,
         notes: String?,
         color: Color
-    ) {
+    ): Int {
         val category = Category(
             title = title,
             notes = notes,
             color = Converters.fromColor(color)
         )
-        db.categoryDao().insert(category)
+        val insertedId = db.categoryDao().insert(category).toInt()
 
         // Create initialized ATI record
-        val insertedId = db.categoryDao().getAll().last().id
         db.categoryATIDao().insert(CategoryATI(categoryId = insertedId))
+
+        return insertedId
     }
 
     // Get all categories
@@ -119,7 +120,7 @@ object EventManager {
         recurFreq: RecurrenceFrequency,
         recurRule: RecurrenceRule,
         categoryId: Int?
-    ) {
+    ): Int {
         val event = MasterEvent(
             title = title,
             notes = notes,
@@ -152,6 +153,8 @@ object EventManager {
 
         // Rerun scheduler since event times affect available slots
         onTaskChanged(db)
+
+        return insertedId
     }
 
     // Get all master events
