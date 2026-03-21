@@ -14,7 +14,7 @@ private const val ROLLING_WINDOW       = 10
 /* Round a float number of minutes up to the nearest 5 */
 fun roundUpToNearest5(minutes: Float): Int {
     if (minutes <= 0f) return 0
-    val intMinutes = minutes.toInt()
+    val intMinutes = kotlin.math.ceil(minutes).toInt()
     val remainder = intMinutes % 5
     return if (remainder == 0) intMinutes else intMinutes + (5 - remainder)
 }
