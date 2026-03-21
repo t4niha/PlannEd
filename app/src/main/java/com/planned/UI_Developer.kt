@@ -41,6 +41,15 @@ import androidx.compose.animation.shrinkVertically
 // Occurrence generation months
 var generationMonths by mutableIntStateOf(1)
 
+data class ScheduleOrderRow(
+    val masterTaskId: Int,
+    val title: String,
+    val dependencyTaskId: Int?,
+    val urgency: Int?,
+    val categoryScore: Float,
+    val eventScore: Float
+)
+
 /* DATABASE PREVIEW */
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
@@ -67,6 +76,7 @@ fun Developer(db: AppDatabase) {
     var settings by remember { mutableStateOf(listOf<AppSetting>()) }
     var categoryATIList by remember { mutableStateOf(listOf<CategoryATI>()) }
     var eventATIList by remember { mutableStateOf(listOf<EventATI>()) }
+    var scheduleOrderRows by remember { mutableStateOf(listOf<ScheduleOrderRow>()) }
 
     // Load DB
     fun refreshData() {
@@ -84,6 +94,36 @@ fun Developer(db: AppDatabase) {
             db.settingsDao().getAll()?.let { settings = listOf(it) } ?: run { settings = emptyList() }
             categoryATIList = db.categoryATIDao().getAll()
             eventATIList = db.eventATIDao().getAll()
+
+            // Build schedule order rows
+            val today = java.time.LocalDate.now()
+            val allDeadlines = db.deadlineDao().getAll()
+            val autoTasks = db.taskDao().getAllMasterTasks().filter {
+                it.status != 3 && it.allDay == null && it.startDate == null && it.startTime == null
+            }
+            val rows = mutableListOf<ScheduleOrderRow>()
+            for (task in autoTasks) {
+                val deadline = task.deadlineId?.let { id -> allDeadlines.find { it.id == id } }
+                val urgency = deadline?.let {
+                    java.time.temporal.ChronoUnit.DAYS.between(today, it.date).toInt()
+                }
+                val categoryScore = task.categoryId?.let { id -> categoryATIList.find { it.categoryId == id }?.score } ?: 0f
+                val eventScore = task.eventId?.let { id -> eventATIList.find { it.eventId == id }?.score } ?: 0f
+                rows.add(ScheduleOrderRow(
+                    masterTaskId = task.id,
+                    title = task.title,
+                    dependencyTaskId = task.dependencyTaskId,
+                    urgency = urgency,
+                    categoryScore = categoryScore,
+                    eventScore = eventScore
+                ))
+            }
+            scheduleOrderRows = rows.sortedWith(compareBy(
+                { it.urgency ?: Int.MAX_VALUE },
+                { -(it.categoryScore) },
+                { -(it.eventScore) },
+                { it.masterTaskId }
+            ))
         }
     }
     LaunchedEffect(Unit) { refreshData() }
@@ -237,6 +277,81 @@ fun Developer(db: AppDatabase) {
                 categories = categories,
                 masterEvents = masterEvents
             )
+
+            // Schedule order view
+            Spacer(Modifier.height(16.dp))
+            Text("Schedule Order View", style = MaterialTheme.typography.titleMedium, color = Color.Black)
+            Spacer(Modifier.height(8.dp))
+            Column(modifier = Modifier.border(1.dp, GRID_COLOR)) {
+                // Header
+                Row(
+                    modifier = Modifier.background(HEADER_BG).fillMaxWidth().height(IntrinsicSize.Min)
+                ) {
+                    listOf("Task ID", "Title", "Dependency", "Urgency", "Cat. Score", "Event Score")
+                        .forEachIndexed { index, header ->
+                            Box(
+                                modifier = Modifier
+                                    .width(COLUMN_WIDTH)
+                                    .fillMaxHeight()
+                                    .drawWithContent {
+                                        drawContent()
+                                        if (index < 5) drawLine(
+                                            color = GRID_COLOR,
+                                            start = Offset(size.width, 0f),
+                                            end = Offset(size.width, size.height),
+                                            strokeWidth = 1.dp.toPx()
+                                        )
+                                    }
+                                    .padding(8.dp)
+                            ) { Text(header, color = Color.Black) }
+                        }
+                }
+                // Rows
+                val displayRows = scheduleOrderRows.ifEmpty { listOf(null) }
+                displayRows.forEach { row ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(IntrinsicSize.Min)
+                            .drawWithContent {
+                                drawContent()
+                                drawLine(
+                                    color = GRID_COLOR,
+                                    start = Offset(0f, size.height),
+                                    end = Offset(size.width, size.height),
+                                    strokeWidth = 1.dp.toPx()
+                                )
+                            }
+                    ) {
+                        val values = if (row != null) listOf(
+                            row.masterTaskId.toString(),
+                            row.title,
+                            row.dependencyTaskId?.toString() ?: "",
+                            row.urgency?.toString() ?: "—",
+                            "%.3f".format(row.categoryScore),
+                            "%.3f".format(row.eventScore)
+                        ) else List(6) { "" }
+                        values.forEachIndexed { index, value ->
+                            Box(
+                                modifier = Modifier
+                                    .width(COLUMN_WIDTH)
+                                    .fillMaxHeight()
+                                    .drawWithContent {
+                                        drawContent()
+                                        if (index < 5) drawLine(
+                                            color = GRID_COLOR,
+                                            start = Offset(size.width, 0f),
+                                            end = Offset(size.width, size.height),
+                                            strokeWidth = 1.dp.toPx()
+                                        )
+                                    }
+                                    .padding(8.dp)
+                            ) { Text(value, color = Color.Black) }
+                        }
+                    }
+                }
+            }
+            Spacer(Modifier.height(16.dp))
 
             // Database table
             @Composable
