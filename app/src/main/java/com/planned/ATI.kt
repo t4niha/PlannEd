@@ -19,9 +19,9 @@ fun roundUpToNearest5(minutes: Float): Int {
     return if (remainder == 0) intMinutes else intMinutes + (5 - remainder)
 }
 
-/* Linear regression: given a list of completed tasks, predict overtime for a new task.
+/* Linear regression: given a list of completed tasks, predict overtime for a new task
  * X = predictedDuration, Y = overTime
- * Returns predicted padding in minutes, rounded up to nearest 5. */
+ * Returns predicted padding in minutes, rounded up to nearest 5, maximum 1 hour */
 fun calculatePadding(tasks: List<MasterTask>): Int {
     if (tasks.size < 2) return 0
 
@@ -38,7 +38,7 @@ fun calculatePadding(tasks: List<MasterTask>): Int {
 
     // All X values identical — slope undefined, use average Y instead
     if (denominator == 0f) {
-        return roundUpToNearest5(sumY / n)
+        return roundUpToNearest5(sumY / n).coerceAtMost(60)
     }
 
     val slope     = (n * sumXY - sumX * sumY) / denominator
@@ -46,7 +46,7 @@ fun calculatePadding(tasks: List<MasterTask>): Int {
     val avgX      = sumX / n
     val predicted = slope * avgX + intercept
 
-    return roundUpToNearest5(predicted)
+    return roundUpToNearest5(predicted).coerceAtMost(60)
 }
 
 /* Weighted scoring formula.
