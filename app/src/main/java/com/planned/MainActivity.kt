@@ -53,9 +53,7 @@ class MainActivity : ComponentActivity() {
 /**
 [ ] Validate regression model
 [?] On creation don't allow duplicate titles for events, categories?
-[?] Warning when tasks scheduled after deadline / impossible to meet deadline?
 [?] Notifications
-[?] Status indicators and overtime warnings for task elements on calendar?
  **/
 
 /*  */

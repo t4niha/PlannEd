@@ -67,10 +67,6 @@ const val ELEMENT_TEXT_PADDING = 12
 //<editor-fold desc="Navigation">
 val DrawerWidth: Dp = 200.dp
 const val AnimationDuration = 300
-//</editor-fold>
-
-/* DEVELOPER */
-//<editor-fold desc="Developer">
 val COLUMN_WIDTH = 120.dp
 val HEADER_BG = Color.LightGray
 val GRID_COLOR = Color.LightGray

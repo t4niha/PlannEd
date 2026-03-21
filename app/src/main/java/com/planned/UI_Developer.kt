@@ -1054,7 +1054,7 @@ fun ATIScatterPlot(
                     val xVal = (maxX * i / 4f).toInt()
                     drawText(xVal.toString(), mL + w * i / 4f, xTickY, tickPaint)
                 }
-                drawText("Predicted (min)", mL + w / 2f, xTickY + textPx + 8f, labelPaint)
+                drawText("Duration (min)", mL + w / 2f, xTickY + textPx + 8f, labelPaint)
 
                 tickPaint.textAlign = android.graphics.Paint.Align.RIGHT
                 for (i in 0..4) {
