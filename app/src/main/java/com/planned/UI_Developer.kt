@@ -231,6 +231,13 @@ fun Developer(db: AppDatabase) {
                 .horizontalScroll(scrollStateHorizontal)
                 .padding(8.dp)
         ) {
+            // ATI Scatter Plot
+            ATIScatterPlot(
+                db = db,
+                categories = categories,
+                masterEvents = masterEvents
+            )
+
             // Database table
             @Composable
             fun <T> Table(
@@ -633,13 +640,6 @@ fun Developer(db: AppDatabase) {
                     s.breakEvery.toString()
                 )
             }
-
-            // ATI Scatter Plot
-            ATIScatterPlot(
-                db = db,
-                categories = categories,
-                masterEvents = masterEvents
-            )
         }
     }
 }
@@ -732,7 +732,6 @@ fun ATIScatterPlot(
         loadData()
     }
 
-    Spacer(Modifier.height(16.dp))
     Text(
         "Overtime Predicting Model",
         style = MaterialTheme.typography.titleMedium,
