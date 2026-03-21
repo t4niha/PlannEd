@@ -157,6 +157,7 @@ fun runSample(db: AppDatabase) = runBlocking {
         recurRule = RecurrenceRule(daysOfWeek = listOf(DayOfWeek.THURSDAY.value)),
         categoryId = ecCatId
     )
+    val pianoLessonEventId = db.eventDao().getAllMasterEvents().last().id
 
     EventManager.insert(
         db = db,
@@ -325,4 +326,134 @@ fun runSample(db: AppDatabase) = runBlocking {
         deadlineId = null,
         dependencyTaskId = null
     )
+
+    // HISTORICAL COMPLETED TASKS (for ATI seeding)
+
+    // Math Class tasks
+    db.taskDao().insert(MasterTask(
+        title = "Math Homework 1", noIntervals = 0,
+        predictedDuration = 45, overTime = 20, deadlineMissed = false,
+        status = 3, categoryId = schoolCatId, eventId = mathEventId
+    ))
+    db.taskDao().insert(MasterTask(
+        title = "Math Homework 2", noIntervals = 0,
+        predictedDuration = 60, overTime = 35, deadlineMissed = true,
+        status = 3, categoryId = schoolCatId, eventId = mathEventId
+    ))
+    db.taskDao().insert(MasterTask(
+        title = "Math Homework 3", noIntervals = 0,
+        predictedDuration = 30, overTime = 25, deadlineMissed = true,
+        status = 3, categoryId = schoolCatId, eventId = mathEventId
+    ))
+
+    // English Class tasks
+    db.taskDao().insert(MasterTask(
+        title = "English Essay 1", noIntervals = 0,
+        predictedDuration = 90, overTime = 15, deadlineMissed = false,
+        status = 3, categoryId = schoolCatId, eventId = englishEventId
+    ))
+    db.taskDao().insert(MasterTask(
+        title = "English Essay 2", noIntervals = 0,
+        predictedDuration = 75, overTime = 0, deadlineMissed = false,
+        status = 3, categoryId = schoolCatId, eventId = englishEventId
+    ))
+    db.taskDao().insert(MasterTask(
+        title = "English Essay 3", noIntervals = 0,
+        predictedDuration = 120, overTime = 30, deadlineMissed = true,
+        status = 3, categoryId = schoolCatId, eventId = englishEventId
+    ))
+
+    // Piano Lesson tasks
+    db.taskDao().insert(MasterTask(
+        title = "Piano Practice 1", noIntervals = 0,
+        predictedDuration = 30, overTime = 5, deadlineMissed = false,
+        status = 3, categoryId = ecCatId, eventId = pianoLessonEventId
+    ))
+    db.taskDao().insert(MasterTask(
+        title = "Piano Practice 2", noIntervals = 0,
+        predictedDuration = 25, overTime = 0, deadlineMissed = false,
+        status = 3, categoryId = ecCatId, eventId = pianoLessonEventId
+    ))
+    db.taskDao().insert(MasterTask(
+        title = "Piano Practice 3", noIntervals = 0,
+        predictedDuration = 20, overTime = 10, deadlineMissed = false,
+        status = 3, categoryId = ecCatId, eventId = pianoLessonEventId
+    ))
+
+    // Home tasks
+    db.taskDao().insert(MasterTask(
+        title = "Clean Kitchen", noIntervals = 0,
+        predictedDuration = 45, overTime = 15, deadlineMissed = false,
+        status = 3, categoryId = homeCatId, eventId = null
+    ))
+    db.taskDao().insert(MasterTask(
+        title = "Laundry", noIntervals = 0,
+        predictedDuration = 30, overTime = 0, deadlineMissed = false,
+        status = 3, categoryId = homeCatId, eventId = null
+    ))
+    db.taskDao().insert(MasterTask(
+        title = "Grocery Run", noIntervals = 0,
+        predictedDuration = 60, overTime = 20, deadlineMissed = false,
+        status = 3, categoryId = homeCatId, eventId = null
+    ))
+
+    // PATCH ATI RECORDS
+
+    // CategoryATI
+    db.categoryATIDao().getById(schoolCatId)?.let {
+        db.categoryATIDao().update(it.copy(
+            tasksCompleted = 6,
+            deadlineMissCount = 3,
+            avgOvertime = 20.83f,
+            predictedPadding = 25,
+            score = 0.319f
+        ))
+    }
+    db.categoryATIDao().getById(ecCatId)?.let {
+        db.categoryATIDao().update(it.copy(
+            tasksCompleted = 3,
+            deadlineMissCount = 0,
+            avgOvertime = 5.0f,
+            predictedPadding = 5,
+            score = 0.033f
+        ))
+    }
+    db.categoryATIDao().getById(homeCatId)?.let {
+        db.categoryATIDao().update(it.copy(
+            tasksCompleted = 3,
+            deadlineMissCount = 0,
+            avgOvertime = 11.67f,
+            predictedPadding = 15,
+            score = 0.078f
+        ))
+    }
+
+    // EventATI
+    db.eventATIDao().getById(mathEventId)?.let {
+        db.eventATIDao().update(it.copy(
+            tasksCompleted = 3,
+            deadlineMissCount = 2,
+            avgOvertime = 26.67f,
+            predictedPadding = 30,
+            score = 0.298f
+        ))
+    }
+    db.eventATIDao().getById(englishEventId)?.let {
+        db.eventATIDao().update(it.copy(
+            tasksCompleted = 3,
+            deadlineMissCount = 1,
+            avgOvertime = 15.0f,
+            predictedPadding = 15,
+            score = 0.160f
+        ))
+    }
+    db.eventATIDao().getById(pianoLessonEventId)?.let {
+        db.eventATIDao().update(it.copy(
+            tasksCompleted = 3,
+            deadlineMissCount = 0,
+            avgOvertime = 5.0f,
+            predictedPadding = 5,
+            score = 0.033f
+        ))
+    }
 }
