@@ -451,7 +451,7 @@ fun datePickerField(
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(label, fontSize = 16.sp, fontWeight = FontWeight.Medium)
-            Spacer(modifier = Modifier.width(16.dp))
+            Spacer(modifier = Modifier.weight(1f))
             Button(
                 onClick = { showDatePicker = true },
                 colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
@@ -576,7 +576,7 @@ fun timePickerField(
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(label, fontSize = 16.sp, fontWeight = FontWeight.Medium)
-            Spacer(modifier = Modifier.width(16.dp))
+            Spacer(modifier = Modifier.weight(1f))
             Button(
                 onClick = { showTimePicker = true },
                 colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
@@ -857,12 +857,14 @@ fun recurrencePickerField(
             if (recurrenceFreq != RecurrenceFrequency.NONE) {
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Repeat Forever checkbox
+                // Repeat Forever toggle
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Checkbox(
+                    Text("Repeat Forever", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                    Spacer(modifier = Modifier.weight(1f))
+                    Switch(
                         checked = repeatForever,
                         onCheckedChange = {
                             repeatForever = it
@@ -871,10 +873,13 @@ fun recurrencePickerField(
                             }
                             onEndDateChange?.invoke(if (it) null else endDate)
                         },
-                        colors = CheckboxDefaults.colors(checkedColor = PrimaryColor)
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = BackgroundColor,
+                            checkedTrackColor = PrimaryColor,
+                            uncheckedTrackColor = Color.LightGray,
+                            uncheckedThumbColor = BackgroundColor
+                        )
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Repeat Forever", fontSize = 16.sp, fontWeight = FontWeight.Medium)
                 }
 
                 // End date picker
@@ -889,7 +894,7 @@ fun recurrencePickerField(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Text("End Date", fontSize = 16.sp, fontWeight = FontWeight.Medium)
-                            Spacer(modifier = Modifier.width(16.dp))
+                            Spacer(modifier = Modifier.weight(1f))
 
                             var showEndDatePicker by remember { mutableStateOf(false) }
                             val dateFormatter = DateTimeFormatter.ofPattern("MMM d, yyyy")
@@ -989,7 +994,7 @@ fun durationPickerField(
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(label, fontSize = 16.sp, fontWeight = FontWeight.Medium)
-            Spacer(modifier = Modifier.width(16.dp))
+            Spacer(modifier = Modifier.weight(1f))
             Button(
                 onClick = {
                     tempHours = durationHours
@@ -1189,12 +1194,18 @@ fun schedulePickerField(
     ) {
         Column {
 
-            // Auto schedule checkbox
+            // Auto schedule toggle
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Checkbox(
+                Text(
+                    "Auto Schedule",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium
+                )
+                Spacer(modifier = Modifier.weight(1f))
+                Switch(
                     checked = effectiveAutoSchedule,
                     onCheckedChange = {
                         if (!autoScheduleLocked) {
@@ -1210,18 +1221,14 @@ fun schedulePickerField(
                         }
                     },
                     enabled = !autoScheduleLocked,
-                    colors = CheckboxDefaults.colors(
-                        checkedColor = PrimaryColor,
-                        disabledCheckedColor = Color.LightGray
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = BackgroundColor,
+                        checkedTrackColor = PrimaryColor,
+                        uncheckedTrackColor = Color.LightGray,
+                        uncheckedThumbColor = BackgroundColor,
+                        disabledCheckedThumbColor = BackgroundColor,
+                        disabledCheckedTrackColor = Color.LightGray
                     )
-                )
-
-                Spacer(modifier = Modifier.width(8.dp))
-
-                Text(
-                    "Auto Schedule",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Medium
                 )
             }
 
@@ -1240,7 +1247,7 @@ fun schedulePickerField(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text("Date", fontSize = 16.sp, fontWeight = FontWeight.Medium)
-                        Spacer(modifier = Modifier.width(16.dp))
+                        Spacer(modifier = Modifier.weight(1f))
 
                         var showDatePicker by remember { mutableStateOf(false) }
                         val dateFormatter = DateTimeFormatter.ofPattern("MMM d, yyyy")
@@ -1309,7 +1316,7 @@ fun schedulePickerField(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text("Start Time", fontSize = 16.sp, fontWeight = FontWeight.Medium)
-                        Spacer(modifier = Modifier.width(16.dp))
+                        Spacer(modifier = Modifier.weight(1f))
 
                         var showTimePicker by remember { mutableStateOf(false) }
                         val timeFormatter = DateTimeFormatter.ofPattern("h:mm a")
@@ -1424,24 +1431,29 @@ fun checkboxField(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Checkbox(
-                checked = displayChecked,
-                onCheckedChange = {
-                    if (!locked && !forceChecked) isChecked = it
-                },
-                enabled = !locked && !forceChecked,
-                colors = CheckboxDefaults.colors(
-                    checkedColor = PrimaryColor,
-                    disabledCheckedColor = Color.LightGray,
-                    disabledUncheckedColor = Color.LightGray
-                )
-            )
-            Spacer(modifier = Modifier.width(8.dp))
             Text(
                 label,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Medium,
                 color = Color.Black
+            )
+            Spacer(modifier = Modifier.weight(1f))
+            Switch(
+                checked = displayChecked,
+                onCheckedChange = {
+                    if (!locked && !forceChecked) isChecked = it
+                },
+                enabled = !locked && !forceChecked,
+                colors = SwitchDefaults.colors(
+                    checkedThumbColor = BackgroundColor,
+                    checkedTrackColor = PrimaryColor,
+                    uncheckedTrackColor = Color.LightGray,
+                    uncheckedThumbColor = BackgroundColor,
+                    disabledCheckedThumbColor = BackgroundColor,
+                    disabledCheckedTrackColor = Color.LightGray,
+                    disabledUncheckedThumbColor = BackgroundColor,
+                    disabledUncheckedTrackColor = Color.LightGray
+                )
             )
         }
     }
@@ -1477,7 +1489,9 @@ fun allDayPickerField(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Checkbox(
+                Text("All Day", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                Spacer(modifier = Modifier.weight(1f))
+                Switch(
                     checked = isAllDay,
                     onCheckedChange = {
                         isAllDay = it
@@ -1485,10 +1499,13 @@ fun allDayPickerField(
                             time = LocalTime.of(10, 0)
                         }
                     },
-                    colors = CheckboxDefaults.colors(checkedColor = PrimaryColor)
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = BackgroundColor,
+                        checkedTrackColor = PrimaryColor,
+                        uncheckedTrackColor = Color.LightGray,
+                        uncheckedThumbColor = BackgroundColor
+                    )
                 )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("All Day", fontSize = 16.sp, fontWeight = FontWeight.Medium)
             }
 
             // Time picker
@@ -1503,7 +1520,7 @@ fun allDayPickerField(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text("Time", fontSize = 16.sp, fontWeight = FontWeight.Medium)
-                        Spacer(modifier = Modifier.width(16.dp))
+                        Spacer(modifier = Modifier.weight(1f))
 
                         var showTimePicker by remember { mutableStateOf(false) }
                         val timeFormatter = DateTimeFormatter.ofPattern("h:mm a")
@@ -1719,13 +1736,18 @@ fun allDayTaskPickerField(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Checkbox(
+                Text("All Day", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                Spacer(modifier = Modifier.weight(1f))
+                Switch(
                     checked = isAllDay,
                     onCheckedChange = { isAllDay = it },
-                    colors = CheckboxDefaults.colors(checkedColor = PrimaryColor)
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = BackgroundColor,
+                        checkedTrackColor = PrimaryColor,
+                        uncheckedTrackColor = Color.LightGray,
+                        uncheckedThumbColor = BackgroundColor
+                    )
                 )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("All Day", fontSize = 16.sp, fontWeight = FontWeight.Medium)
             }
 
             // When ALL DAY is checked: show date picker
@@ -1743,7 +1765,7 @@ fun allDayTaskPickerField(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text("Date", fontSize = 16.sp, fontWeight = FontWeight.Medium)
-                        Spacer(modifier = Modifier.width(16.dp))
+                        Spacer(modifier = Modifier.weight(1f))
                         Button(
                             onClick = { showDatePicker = true },
                             colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
@@ -1834,15 +1856,20 @@ fun autoScheduleTaskPickerField(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Checkbox(
+                Text("Auto Schedule Task", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                Spacer(modifier = Modifier.weight(1f))
+                Switch(
                     checked = autoScheduleTask,
                     onCheckedChange = {
                         autoScheduleTask = it
                     },
-                    colors = CheckboxDefaults.colors(checkedColor = PrimaryColor)
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = BackgroundColor,
+                        checkedTrackColor = PrimaryColor,
+                        uncheckedTrackColor = Color.LightGray,
+                        uncheckedThumbColor = BackgroundColor
+                    )
                 )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Auto Schedule Task", fontSize = 16.sp, fontWeight = FontWeight.Medium)
             }
 
             // Expandable task fields
@@ -1858,7 +1885,7 @@ fun autoScheduleTaskPickerField(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text("Duration", fontSize = 16.sp, fontWeight = FontWeight.Medium)
-                        Spacer(modifier = Modifier.width(16.dp))
+                        Spacer(modifier = Modifier.weight(1f))
 
                         var showDurationPicker by remember { mutableStateOf(false) }
                         var tempHours by remember { mutableIntStateOf(durationHours) }
@@ -1961,31 +1988,36 @@ fun autoScheduleTaskPickerField(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Breakable checkbox
+                    // Breakable toggle
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         val displayChecked = if (breakableLockedByDuration) true else isBreakable
 
-                        Checkbox(
-                            checked = displayChecked,
-                            onCheckedChange = {
-                                if (!breakableLockedByDuration) isBreakable = it
-                            },
-                            enabled = !breakableLockedByDuration,
-                            colors = CheckboxDefaults.colors(
-                                checkedColor = PrimaryColor,
-                                disabledCheckedColor = Color.LightGray,
-                                disabledUncheckedColor = Color.LightGray
-                            )
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             "Breakable",
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Medium,
                             color = Color.Black
+                        )
+                        Spacer(modifier = Modifier.weight(1f))
+                        Switch(
+                            checked = displayChecked,
+                            onCheckedChange = {
+                                if (!breakableLockedByDuration) isBreakable = it
+                            },
+                            enabled = !breakableLockedByDuration,
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = BackgroundColor,
+                                checkedTrackColor = PrimaryColor,
+                                uncheckedTrackColor = Color.LightGray,
+                                uncheckedThumbColor = BackgroundColor,
+                                disabledCheckedThumbColor = BackgroundColor,
+                                disabledCheckedTrackColor = Color.LightGray,
+                                disabledUncheckedThumbColor = BackgroundColor,
+                                disabledUncheckedTrackColor = Color.LightGray
+                            )
                         )
                     }
                 }

@@ -119,7 +119,7 @@ fun EventForm(
         Spacer(modifier = Modifier.height(12.dp))
 
         val startDateValue = datePickerField(
-            label = "Start Date",
+            label = "Date",
             initialDate = startDate,
             isOptional = false,
             key = resetTrigger,
@@ -365,7 +365,7 @@ fun TaskBucketForm(
 ) {
     Column {
         val startDateValue = datePickerField(
-            label = "Start Date",
+            label = "Date",
             initialDate = startDate,
             isOptional = false,
             key = resetTrigger,
@@ -796,7 +796,7 @@ fun ReminderForm(
         Spacer(modifier = Modifier.height(12.dp))
 
         val startDateValue = datePickerField(
-            label = "Start Date",
+            label = "Date",
             initialDate = startDate,
             isOptional = false,
             key = resetTrigger,
