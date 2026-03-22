@@ -2,6 +2,7 @@ package com.planned
 
 import androidx.room.*
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.LocalTime
 
 /* ENTITIES */
@@ -197,6 +198,7 @@ data class MasterTask(
     val timeLeft: Int? = null,              // auto calculated
     val overTime: Int? = null,              // auto-calculated
     val deadlineMissed: Boolean = false,    // set at completion time
+    val completedAt: LocalDateTime? = null, // set at completion time
 
     val dependencyTaskId: Int? = null,      // task that must be completed before this one
     val eventId: Int? = null,
@@ -730,7 +732,7 @@ data class CategoryWithMasterReminders(
         AppSetting::class,
         CategoryATI::class, EventATI::class
     ],
-    version = 15
+    version = 16
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {

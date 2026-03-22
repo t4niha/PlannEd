@@ -8,7 +8,9 @@ import androidx.core.graphics.toColorInt
 import androidx.room.TypeConverter
 import com.google.gson.Gson
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.LocalTime
+import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 
 /* TYPE CONVERTERS */
@@ -32,6 +34,16 @@ object Converters {
     @TypeConverter
     // Int -> LocalTime
     fun toLocalTime(seconds: Int?): LocalTime? = seconds?.let { LocalTime.ofSecondOfDay(it.toLong()) }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    @TypeConverter
+    // LocalDateTime -> Long (epoch seconds UTC)
+    fun fromLocalDateTime(dateTime: LocalDateTime?): Long? = dateTime?.toEpochSecond(ZoneOffset.UTC)
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    @TypeConverter
+    // Long -> LocalDateTime
+    fun toLocalDateTime(seconds: Long?): LocalDateTime? = seconds?.let { LocalDateTime.ofEpochSecond(it, 0, ZoneOffset.UTC) }
 
     @TypeConverter
     // RecurrenceFrequency -> String

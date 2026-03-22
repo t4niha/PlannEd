@@ -7,6 +7,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
@@ -381,12 +382,17 @@ object TaskManager {
     // Update master task
     @RequiresApi(Build.VERSION_CODES.O)
     suspend fun update(db: AppDatabase, task: MasterTask) {
-        db.taskDao().update(task)
+        // Stamp completedAt when task is being marked complete
+        val taskToWrite = if (task.status == 3 && task.completedAt == null)
+            task.copy(completedAt = LocalDateTime.now())
+        else
+            task
+        db.taskDao().update(taskToWrite)
 
         // Delete all-day tasks immediately on completion — they have no ATI use
-        if (task.allDay != null && task.status == 3) {
-            onTaskDeleted(db, task.id)
-            db.taskDao().deleteMasterTask(task.id)
+        if (taskToWrite.allDay != null && taskToWrite.status == 3) {
+            onTaskDeleted(db, taskToWrite.id)
+            db.taskDao().deleteMasterTask(taskToWrite.id)
             return
         }
 

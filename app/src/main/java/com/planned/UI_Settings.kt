@@ -909,7 +909,7 @@ fun DatabasePage(
                 headers = listOf(
                     "ID", "Title", "Notes", "All Day", "Breakable", "No. Intervals",
                     "Start Date", "Start Time", "Duration", "Actual Duration",
-                    "Status", "Time Left", "Overtime",
+                    "Status", "Time Left", "Overtime", "Deadline Missed", "Completed At",
                     "Category ID", "Event ID", "Deadline ID", "Dependency Task ID"
                 )
             ) { t ->
@@ -920,7 +920,8 @@ fun DatabasePage(
                     t.startDate?.toString() ?: "", t.startTime?.toString() ?: "",
                     t.predictedDuration.toString(), t.actualDuration?.toString() ?: "",
                     t.status?.toString() ?: "", t.timeLeft?.toString() ?: "",
-                    t.overTime?.toString() ?: "",
+                    t.overTime?.toString() ?: "", t.deadlineMissed.toString(),
+                    t.completedAt?.toString() ?: "",
                     t.categoryId?.toString() ?: "", t.eventId?.toString() ?: "",
                     t.deadlineId?.toString() ?: "", t.dependencyTaskId?.toString() ?: ""
                 )
@@ -1184,7 +1185,7 @@ fun ATIScatterPlot(
                 }
 
                 filteredTasks
-                    .sortedBy { it.id }
+                    .sortedBy { it.completedAt }
                     .takeLast(10)
                     .forEach { t -> points.add(Pair(t.predictedDuration.toFloat(), (t.overTime ?: 0).toFloat())) }
 
@@ -1215,7 +1216,7 @@ fun ATIScatterPlot(
                 }
 
                 filteredTasks
-                    .sortedBy { it.id }
+                    .sortedBy { it.completedAt }
                     .takeLast(10)
                     .forEach { t -> points.add(Pair(t.predictedDuration.toFloat(), (t.overTime ?: 0).toFloat())) }
 

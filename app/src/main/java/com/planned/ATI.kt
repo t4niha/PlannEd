@@ -85,10 +85,7 @@ suspend fun pruneCompletedTasks(db: AppDatabase, eventId: Int) {
                     && it.status == 3
                     && it.allDay == null
         }
-        .sortedBy { it.id }
-
-    // If within the window, nothing to do
-    if (completed.size <= ROLLING_WINDOW) return
+        .sortedBy { it.completedAt }
 
     // Delete everything beyond the last ROLLING_WINDOW tasks
     val toDelete = completed.dropLast(ROLLING_WINDOW)
@@ -105,7 +102,7 @@ private suspend fun updateCategoryATI(db: AppDatabase, categoryId: Int) {
             (if (categoryId == 0) it.categoryId == null else it.categoryId == categoryId)
                     && it.status == 3 && it.allDay == null
         }
-        .sortedBy { it.id }
+        .sortedBy { it.completedAt }
         .takeLast(ROLLING_WINDOW)
 
     if (completedTasks.isEmpty()) return
@@ -154,7 +151,7 @@ private suspend fun updateEventATI(db: AppDatabase, eventId: Int) {
             (if (eventId == 0) it.eventId == null else it.eventId == eventId)
                     && it.status == 3 && it.allDay == null
         }
-        .sortedBy { it.id }
+        .sortedBy { it.completedAt }
         .takeLast(ROLLING_WINDOW)
 
     if (completedTasks.isEmpty()) return
