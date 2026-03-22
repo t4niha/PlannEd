@@ -624,11 +624,17 @@ fun ATIPage(
                 .size(40.dp)
         )
 
-        ATIScatterPlot(
-            db           = db,
-            categories   = categories,
-            masterEvents = masterEvents
-        )
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+        ) {
+            ATIScatterPlot(
+                db           = db,
+                categories   = categories,
+                masterEvents = masterEvents
+            )
+        }
     }
 }
 
