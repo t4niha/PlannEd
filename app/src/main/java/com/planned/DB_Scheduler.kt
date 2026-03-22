@@ -102,6 +102,10 @@ private suspend fun orderAutoScheduledTasks(db: AppDatabase, autoTasks: List<Mas
     val today = LocalDate.now()
     val allDeadlines = db.deadlineDao().getAll()
 
+    // Pre-fetch None ATI records once
+    val noneCategoryScore = db.categoryATIDao().getById(0)?.score ?: 0f
+    val noneEventScore    = db.eventATIDao().getById(0)?.score    ?: 0f
+
     return autoTasks.map { task ->
         val deadline = task.deadlineId?.let { deadlineId ->
             allDeadlines.find { it.id == deadlineId }
@@ -113,9 +117,13 @@ private suspend fun orderAutoScheduledTasks(db: AppDatabase, autoTasks: List<Mas
             daysUntil.toInt()
         }
 
-        // ATI scores — category score first, then event score as secondary
-        val categoryScore = task.categoryId?.let { db.categoryATIDao().getById(it)?.score } ?: 0f
-        val eventScore = task.eventId?.let { db.eventATIDao().getById(it)?.score } ?: 0f
+        // ATI scores — use None record (id=0) when category/event is null
+        val categoryScore = task.categoryId
+            ?.let { db.categoryATIDao().getById(it)?.score }
+            ?: noneCategoryScore
+        val eventScore = task.eventId
+            ?.let { db.eventATIDao().getById(it)?.score }
+            ?: noneEventScore
 
         Triple(task, urgency, Triple(categoryScore, eventScore, task.id))
     }.sortedWith(compareBy(
@@ -323,6 +331,10 @@ private suspend fun assignAutoScheduledTasks(
     orderedTasks: MutableList<OrderedTask>,
     availableSlots: MutableList<AvailableTimeSlot>
 ) {
+    // Pre-fetch None ATI records once
+    val noneCategoryATI = db.categoryATIDao().getById(0)
+    val noneEventATI    = db.eventATIDao().getById(0)
+
     val tasksToProcess = orderedTasks.toMutableList()
 
     while (tasksToProcess.isNotEmpty() && availableSlots.isNotEmpty()) {
@@ -333,17 +345,31 @@ private suspend fun assignAutoScheduledTasks(
         // Find slot that fits this task
         var assigned = false
 
-        // Look up ATI padding once per task — take max of category and event padding
+        // Look up ATI padding once per task — event padding takes priority over category padding;
+        // fall back to the None record (id=0) when event/category is null.
         val atiPaddingEnabled = SettingsManager.settings?.atiPaddingEnabled ?: true
         val dur = task.predictedDuration.toFloat()
         val atiPadding = if (atiPaddingEnabled) {
-            val eventPadding = task.eventId?.let { id ->
-                db.eventATIDao().getById(id)?.let { roundUpToNearest5(it.paddingSlope * dur + it.paddingIntercept).coerceAtMost(60) }
+            // Resolve the event ATI record: real event first, then None
+            val eventATI = task.eventId
+                ?.let { id -> db.eventATIDao().getById(id) }
+                ?: noneEventATI
+
+            val eventPadding = eventATI
+                ?.let { roundUpToNearest5(it.paddingSlope * dur + it.paddingIntercept).coerceAtMost(60) }
+
+            if (eventPadding != null) {
+                eventPadding
+            } else {
+                // Resolve the category ATI record: real category first, then None
+                val categoryATI = task.categoryId
+                    ?.let { id -> db.categoryATIDao().getById(id) }
+                    ?: noneCategoryATI
+
+                categoryATI
+                    ?.let { roundUpToNearest5(it.paddingSlope * dur + it.paddingIntercept).coerceAtMost(60) }
+                    ?: 0
             }
-            if (eventPadding != null) eventPadding
-            else task.categoryId?.let { id ->
-                db.categoryATIDao().getById(id)?.let { roundUpToNearest5(it.paddingSlope * dur + it.paddingIntercept).coerceAtMost(60) }
-            } ?: 0
         } else 0
 
         for (i in availableSlots.indices) {

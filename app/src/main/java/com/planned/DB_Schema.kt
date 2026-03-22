@@ -552,6 +552,10 @@ interface CategoryATIDao {
     @Query("SELECT * FROM CategoryATI WHERE categoryId = :categoryId")
     suspend fun getById(categoryId: Int): CategoryATI?
 
+    // Fetch the None record (categoryId = 0)
+    @Query("SELECT * FROM CategoryATI WHERE categoryId = 0")
+    suspend fun getNoneRecord(): CategoryATI?
+
     @Query("SELECT * FROM CategoryATI")
     suspend fun getAll(): List<CategoryATI>
 
@@ -570,6 +574,10 @@ interface EventATIDao {
 
     @Query("SELECT * FROM EventATI WHERE eventId = :eventId")
     suspend fun getById(eventId: Int): EventATI?
+
+    // Fetch the None record (eventId = 0)
+    @Query("SELECT * FROM EventATI WHERE eventId = 0")
+    suspend fun getNoneRecord(): EventATI?
 
     @Query("SELECT * FROM EventATI")
     suspend fun getAll(): List<EventATI>
@@ -722,7 +730,7 @@ data class CategoryWithMasterReminders(
         AppSetting::class,
         CategoryATI::class, EventATI::class
     ],
-    version = 14
+    version = 15
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {

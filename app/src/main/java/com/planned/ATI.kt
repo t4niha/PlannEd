@@ -64,16 +64,24 @@ fun calculateScore(deadlineMissCount: Int, avgOvertime: Float): Float {
 }
 
 /* Main ATI update function — called every time a task is marked as complete.
- * Updates CategoryATI and/or EventATI records associated with the task. */
+ * Uses categoryId 0 for "None" category, eventId 0 for "None" event. */
 suspend fun updateATIOnTaskComplete(db: AppDatabase, task: MasterTask) {
-    task.categoryId?.let { updateCategoryATI(db, it) }
-    task.eventId?.let { updateEventATI(db, it) }
+    val categoryTarget = task.categoryId ?: 0
+    val eventTarget    = task.eventId    ?: 0
+    updateCategoryATI(db, categoryTarget)
+    updateEventATI(db, eventTarget)
 }
 
-/* Update CategoryATI for a given category */
+/* Update CategoryATI for a given category (0 = None) */
 private suspend fun updateCategoryATI(db: AppDatabase, categoryId: Int) {
-    val completedTasks = db.taskDao().getAllMasterTasks()
-        .filter { it.categoryId == categoryId && it.status == 3 && it.allDay == null }
+    val allTasks = db.taskDao().getAllMasterTasks()
+
+    // For the None record (id=0), match tasks where categoryId IS null
+    val completedTasks = allTasks
+        .filter {
+            (if (categoryId == 0) it.categoryId == null else it.categoryId == categoryId)
+                    && it.status == 3 && it.allDay == null
+        }
         .sortedBy { it.id }
         .takeLast(ROLLING_WINDOW)
 
@@ -83,38 +91,46 @@ private suspend fun updateCategoryATI(db: AppDatabase, categoryId: Int) {
     val deadlineMissCount = countDeadlineMisses(completedTasks)
     val paddingResult     = calculatePadding(completedTasks)
     val score             = calculateScore(deadlineMissCount, avgOvertime)
-    val tasksCompleted    = db.taskDao().getAllMasterTasks()
-        .count { it.categoryId == categoryId && it.status == 3 && it.allDay == null }
+    val tasksCompleted    = allTasks.count {
+        (if (categoryId == 0) it.categoryId == null else it.categoryId == categoryId)
+                && it.status == 3 && it.allDay == null
+    }
 
     val existing = db.categoryATIDao().getById(categoryId)
     if (existing != null) {
         db.categoryATIDao().update(existing.copy(
-            score = score,
+            score             = score,
             deadlineMissCount = deadlineMissCount,
-            avgOvertime = avgOvertime,
-            tasksCompleted = tasksCompleted,
-            predictedPadding = paddingResult.predictedPadding,
-            paddingSlope = paddingResult.slope,
-            paddingIntercept = paddingResult.intercept
+            avgOvertime       = avgOvertime,
+            tasksCompleted    = tasksCompleted,
+            predictedPadding  = paddingResult.predictedPadding,
+            paddingSlope      = paddingResult.slope,
+            paddingIntercept  = paddingResult.intercept
         ))
     } else {
         db.categoryATIDao().insert(CategoryATI(
-            categoryId = categoryId,
-            score = score,
+            categoryId        = categoryId,
+            score             = score,
             deadlineMissCount = deadlineMissCount,
-            avgOvertime = avgOvertime,
-            tasksCompleted = tasksCompleted,
-            predictedPadding = paddingResult.predictedPadding,
-            paddingSlope = paddingResult.slope,
-            paddingIntercept = paddingResult.intercept
+            avgOvertime       = avgOvertime,
+            tasksCompleted    = tasksCompleted,
+            predictedPadding  = paddingResult.predictedPadding,
+            paddingSlope      = paddingResult.slope,
+            paddingIntercept  = paddingResult.intercept
         ))
     }
 }
 
-/* Update EventATI for a given event */
+/* Update EventATI for a given event (0 = None) */
 private suspend fun updateEventATI(db: AppDatabase, eventId: Int) {
-    val completedTasks = db.taskDao().getAllMasterTasks()
-        .filter { it.eventId == eventId && it.status == 3 && it.allDay == null }
+    val allTasks = db.taskDao().getAllMasterTasks()
+
+    // For the None record (id=0), match tasks where eventId IS null
+    val completedTasks = allTasks
+        .filter {
+            (if (eventId == 0) it.eventId == null else it.eventId == eventId)
+                    && it.status == 3 && it.allDay == null
+        }
         .sortedBy { it.id }
         .takeLast(ROLLING_WINDOW)
 
@@ -124,30 +140,32 @@ private suspend fun updateEventATI(db: AppDatabase, eventId: Int) {
     val deadlineMissCount = countDeadlineMisses(completedTasks)
     val paddingResult     = calculatePadding(completedTasks)
     val score             = calculateScore(deadlineMissCount, avgOvertime)
-    val tasksCompleted    = db.taskDao().getAllMasterTasks()
-        .count { it.eventId == eventId && it.status == 3 && it.allDay == null }
+    val tasksCompleted    = allTasks.count {
+        (if (eventId == 0) it.eventId == null else it.eventId == eventId)
+                && it.status == 3 && it.allDay == null
+    }
 
     val existing = db.eventATIDao().getById(eventId)
     if (existing != null) {
         db.eventATIDao().update(existing.copy(
-            score = score,
+            score             = score,
             deadlineMissCount = deadlineMissCount,
-            avgOvertime = avgOvertime,
-            tasksCompleted = tasksCompleted,
-            predictedPadding = paddingResult.predictedPadding,
-            paddingSlope = paddingResult.slope,
-            paddingIntercept = paddingResult.intercept
+            avgOvertime       = avgOvertime,
+            tasksCompleted    = tasksCompleted,
+            predictedPadding  = paddingResult.predictedPadding,
+            paddingSlope      = paddingResult.slope,
+            paddingIntercept  = paddingResult.intercept
         ))
     } else {
         db.eventATIDao().insert(EventATI(
-            eventId = eventId,
-            score = score,
+            eventId           = eventId,
+            score             = score,
             deadlineMissCount = deadlineMissCount,
-            avgOvertime = avgOvertime,
-            tasksCompleted = tasksCompleted,
-            predictedPadding = paddingResult.predictedPadding,
-            paddingSlope = paddingResult.slope,
-            paddingIntercept = paddingResult.intercept
+            avgOvertime       = avgOvertime,
+            tasksCompleted    = tasksCompleted,
+            predictedPadding  = paddingResult.predictedPadding,
+            paddingSlope      = paddingResult.slope,
+            paddingIntercept  = paddingResult.intercept
         ))
     }
 }

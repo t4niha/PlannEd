@@ -111,12 +111,21 @@ fun Settings(db: AppDatabase) {
             val autoTasks    = db.taskDao().getAllMasterTasks().filter {
                 it.status != 3 && it.allDay == null && it.startDate == null && it.startTime == null
             }
+
+            // Pre-fetch None scores for schedule order display
+            val noneCategoryScore = categoryATIList.find { it.categoryId == 0 }?.score ?: 0f
+            val noneEventScore    = eventATIList.find    { it.eventId    == 0 }?.score ?: 0f
+
             val rows = mutableListOf<ScheduleOrderRow>()
             for (task in autoTasks) {
                 val deadline      = task.deadlineId?.let { id -> allDeadlines.find { it.id == id } }
                 val urgency       = deadline?.let { java.time.temporal.ChronoUnit.DAYS.between(today, it.date).toInt() }
-                val categoryScore = task.categoryId?.let { id -> categoryATIList.find { it.categoryId == id }?.score } ?: 0f
-                val eventScore    = task.eventId?.let { id -> eventATIList.find { it.eventId == id }?.score } ?: 0f
+                val categoryScore = task.categoryId
+                    ?.let { id -> categoryATIList.find { it.categoryId == id }?.score }
+                    ?: noneCategoryScore
+                val eventScore    = task.eventId
+                    ?.let { id -> eventATIList.find { it.eventId == id }?.score }
+                    ?: noneEventScore
                 rows.add(ScheduleOrderRow(
                     masterTaskId     = task.id,
                     title            = task.title,
@@ -554,6 +563,7 @@ fun WeekButton(label: String, selected: Boolean, color: Color, onClick: () -> Un
         )
     }
 }
+
 /* Settings Nav Item */
 @Composable
 fun SettingsNavItem(label: String, onClick: () -> Unit) {
@@ -690,10 +700,16 @@ fun DatabasePage(
                                     .forEach { db.eventDao().deleteMasterEvent(it.id) }
                                 db.categoryDao().getAll()
                                     .forEach { db.categoryDao().deleteById(it.id) }
+                                // Skip id=0 — None records are permanent like the settings row
                                 db.categoryATIDao().getAll()
+                                    .filter { it.categoryId != 0 }
                                     .forEach { db.categoryATIDao().deleteById(it.categoryId) }
                                 db.eventATIDao().getAll()
+                                    .filter { it.eventId != 0 }
                                     .forEach { db.eventATIDao().deleteById(it.eventId) }
+                                // Reset None records to defaults instead of deleting them
+                                db.categoryATIDao().update(CategoryATI(categoryId = 0))
+                                db.eventATIDao().update(EventATI(eventId = 0))
                                 onRefresh()
                             }
                         },
@@ -1142,24 +1158,36 @@ fun ATIScatterPlot(
     var slope               by remember { mutableFloatStateOf(0f) }
     var intercept           by remember { mutableFloatStateOf(0f) }
 
+    // Index 0 is always "None"; real entities start at index 1
     val entityNames = if (selectedType == "Category")
-        categories.map { it.title }
+        listOf("None") + categories.map { it.title }
     else
-        masterEvents.map { it.title }
+        listOf("None") + masterEvents.map { it.title }
 
     fun loadData() {
         scope.launch(Dispatchers.IO) {
             val allTasks = db.taskDao().getAllMasterTasks()
             val points   = mutableListOf<Pair<Float, Float>>()
 
-            if (selectedType == "Category" && categories.isNotEmpty()) {
-                val cat = categories.getOrNull(selectedEntityIndex) ?: return@launch
-                val ati = db.categoryATIDao().getById(cat.id)
-                allTasks
-                    .filter { it.categoryId == cat.id && it.status == 3 && it.allDay == null }
+            if (selectedType == "Category") {
+                val ati: CategoryATI?
+                val filteredTasks: List<MasterTask>
+
+                if (selectedEntityIndex == 0) {
+                    // None record — tasks with no category
+                    ati           = db.categoryATIDao().getById(0)
+                    filteredTasks = allTasks.filter { it.categoryId == null && it.status == 3 && it.allDay == null }
+                } else {
+                    val cat = categories.getOrNull(selectedEntityIndex - 1) ?: return@launch
+                    ati           = db.categoryATIDao().getById(cat.id)
+                    filteredTasks = allTasks.filter { it.categoryId == cat.id && it.status == 3 && it.allDay == null }
+                }
+
+                filteredTasks
                     .sortedBy { it.id }
                     .takeLast(10)
                     .forEach { t -> points.add(Pair(t.predictedDuration.toFloat(), (t.overTime ?: 0).toFloat())) }
+
                 atiRecord =
                     "Priority Score: ${"%.3f".format(ati?.score ?: 0f)}\n" +
                             "Deadline Misses: ${ati?.deadlineMissCount ?: 0}\n" +
@@ -1170,28 +1198,39 @@ fun ATIScatterPlot(
                             "Tasks: ${points.size}"
                 slope     = ati?.paddingSlope ?: 0f
                 intercept = ati?.paddingIntercept ?: 0f
-            } else if (selectedType == "Event" && masterEvents.isNotEmpty()) {
-                val evt = masterEvents.getOrNull(selectedEntityIndex) ?: return@launch
-                val ati = db.eventATIDao().getById(evt.id)
-                allTasks
-                    .filter { it.eventId == evt.id && it.status == 3 && it.allDay == null }
+
+            } else {
+                // Event branch
+                val ati: EventATI?
+                val filteredTasks: List<MasterTask>
+
+                if (selectedEntityIndex == 0) {
+                    // None record — tasks with no event
+                    ati           = db.eventATIDao().getById(0)
+                    filteredTasks = allTasks.filter { it.eventId == null && it.status == 3 && it.allDay == null }
+                } else {
+                    val evt = masterEvents.getOrNull(selectedEntityIndex - 1) ?: return@launch
+                    ati           = db.eventATIDao().getById(evt.id)
+                    filteredTasks = allTasks.filter { it.eventId == evt.id && it.status == 3 && it.allDay == null }
+                }
+
+                filteredTasks
                     .sortedBy { it.id }
                     .takeLast(10)
                     .forEach { t -> points.add(Pair(t.predictedDuration.toFloat(), (t.overTime ?: 0).toFloat())) }
+
                 atiRecord =
                     "Priority Score: ${"%.3f".format(ati?.score ?: 0f)}\n" +
                             "Deadline Misses: ${ati?.deadlineMissCount ?: 0}\n" +
-                            "Avg Overtime: ${"%.1f".format(ati?.avgOvertime ?: 0f)}min\n" +
-                            "Avg Padding: ${ati?.predictedPadding ?: 0}min\n" +
+                            "Avg Overtime: ${"%.1f".format(ati?.avgOvertime ?: 0f)} min\n" +
+                            "Avg Padding: ${ati?.predictedPadding ?: 0} min\n" +
                             "Slope: ${"%.3f".format(ati?.paddingSlope ?: 0f)}\n" +
                             "Intercept: ${"%.3f".format(ati?.paddingIntercept ?: 0f)}\n" +
-                            "Tasks: ${points.size}/${ati?.tasksCompleted ?: 0}"
+                            "Tasks: ${points.size}"
                 slope     = ati?.paddingSlope ?: 0f
                 intercept = ati?.paddingIntercept ?: 0f
-            } else {
-                slope     = 0f
-                intercept = 0f
             }
+
             dataPoints = points
         }
     }
@@ -1232,66 +1271,63 @@ fun ATIScatterPlot(
 
                 Spacer(Modifier.height(12.dp))
 
-                if (entityNames.isNotEmpty()) {
-                    var showDropdown by remember(selectedType) { mutableStateOf(false) }
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication        = null
-                            ) { showDropdown = !showDropdown }
-                    ) {
-                        Column {
-                            Box(
+                // entityNames always has at least "None", so the list is never empty
+                var showDropdown by remember(selectedType) { mutableStateOf(false) }
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication        = null
+                        ) { showDropdown = !showDropdown }
+                ) {
+                    Column {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(BackgroundColor, RoundedCornerShape(8.dp))
+                                .border(1.dp, Color.LightGray, RoundedCornerShape(8.dp))
+                                .padding(12.dp)
+                        ) {
+                            Text(entityNames.getOrNull(selectedEntityIndex) ?: "None", color = Color.Black)
+                        }
+                        AnimatedVisibility(
+                            visible = showDropdown,
+                            enter   = fadeIn() + expandVertically(),
+                            exit    = fadeOut() + shrinkVertically()
+                        ) {
+                            Column(
                                 modifier = Modifier
-                                    .fillMaxWidth()
-                                    .background(BackgroundColor, RoundedCornerShape(8.dp))
-                                    .border(1.dp, Color.LightGray, RoundedCornerShape(8.dp))
-                                    .padding(12.dp)
+                                    .padding(top = 8.dp)
+                                    .heightIn(max = 180.dp)
+                                    .verticalScroll(rememberScrollState())
                             ) {
-                                Text(entityNames.getOrNull(selectedEntityIndex) ?: "None", color = Color.Black)
-                            }
-                            AnimatedVisibility(
-                                visible = showDropdown,
-                                enter   = fadeIn() + expandVertically(),
-                                exit    = fadeOut() + shrinkVertically()
-                            ) {
-                                Column(
-                                    modifier = Modifier
-                                        .padding(top = 8.dp)
-                                        .heightIn(max = 180.dp)
-                                        .verticalScroll(rememberScrollState())
-                                ) {
-                                    entityNames.forEachIndexed { index, name ->
-                                        val isSelected = selectedEntityIndex == index
-                                        Box(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(vertical = 4.dp)
-                                                .background(
-                                                    if (isSelected) PrimaryColor else Color.LightGray,
-                                                    RoundedCornerShape(8.dp)
-                                                )
-                                                .clickable {
-                                                    selectedEntityIndex = index
-                                                    showDropdown        = false
-                                                }
-                                                .padding(12.dp)
-                                        ) {
-                                            Text(
-                                                name,
-                                                color      = if (isSelected) BackgroundColor else Color.Black,
-                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                entityNames.forEachIndexed { index, name ->
+                                    val isSelected = selectedEntityIndex == index
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 4.dp)
+                                            .background(
+                                                if (isSelected) PrimaryColor else Color.LightGray,
+                                                RoundedCornerShape(8.dp)
                                             )
-                                        }
+                                            .clickable {
+                                                selectedEntityIndex = index
+                                                showDropdown        = false
+                                            }
+                                            .padding(12.dp)
+                                    ) {
+                                        Text(
+                                            name,
+                                            color      = if (isSelected) BackgroundColor else Color.Black,
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                        )
                                     }
                                 }
                             }
                         }
                     }
-                } else {
-                    Text("No ${selectedType.lowercase()} found", color = Color.Gray, fontSize = 14.sp)
                 }
             }
         }

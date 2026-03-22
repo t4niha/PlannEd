@@ -32,6 +32,14 @@ object SettingsManager {
             db.settingsDao().insert(s)
         }
         settings = s
+
+        // Seed None ATI records if absent — these are permanent like the settings row
+        if (db.categoryATIDao().getById(0) == null) {
+            db.categoryATIDao().insert(CategoryATI(categoryId = 0))
+        }
+        if (db.eventATIDao().getById(0) == null) {
+            db.eventATIDao().insert(EventATI(eventId = 0))
+        }
     }
 
     // Update fields
