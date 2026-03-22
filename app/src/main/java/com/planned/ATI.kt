@@ -64,12 +64,35 @@ fun calculateScore(deadlineMissCount: Int, avgOvertime: Float): Float {
 }
 
 /* Main ATI update function — called every time a task is marked as complete.
+ * Updates ATI records then prunes the completed task history for that event group.
  * Uses categoryId 0 for "None" category, eventId 0 for "None" event. */
 suspend fun updateATIOnTaskComplete(db: AppDatabase, task: MasterTask) {
     val categoryTarget = task.categoryId ?: 0
     val eventTarget    = task.eventId    ?: 0
     updateCategoryATI(db, categoryTarget)
     updateEventATI(db, eventTarget)
+    pruneCompletedTasks(db, eventTarget)
+}
+
+/* Prune completed tasks for the given event group.
+ * Keeps only the last ROLLING_WINDOW completed non-allDay tasks per event group
+ * (eventId 0 = None). Deletes any older ones beyond that window.
+ * Called after ATI has already been updated, so the model is never affected. */
+suspend fun pruneCompletedTasks(db: AppDatabase, eventId: Int) {
+    val completed = db.taskDao().getAllMasterTasks()
+        .filter {
+            (if (eventId == 0) it.eventId == null else it.eventId == eventId)
+                    && it.status == 3
+                    && it.allDay == null
+        }
+        .sortedBy { it.id }
+
+    // If within the window, nothing to do
+    if (completed.size <= ROLLING_WINDOW) return
+
+    // Delete everything beyond the last ROLLING_WINDOW tasks
+    val toDelete = completed.dropLast(ROLLING_WINDOW)
+    toDelete.forEach { db.taskDao().deleteMasterTask(it.id) }
 }
 
 /* Update CategoryATI for a given category (0 = None) */
