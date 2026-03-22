@@ -325,7 +325,6 @@ data class AppSetting(
     @PrimaryKey val id: Int = 0,
     val startWeekOnMonday: Boolean = false,
     val primaryColor: String = "#FF205898",
-    val showDeveloper: Boolean = true,
     val breakDuration: Int = 5,
     val breakEvery: Int = 30,
     val atiPaddingEnabled: Boolean = false
@@ -594,8 +593,6 @@ interface SettingsDao {
     suspend fun updatePrimaryColor(color: String)
     @Query("UPDATE AppSetting SET startWeekOnMonday = :value WHERE id = 0")
     suspend fun updateStartWeekOnMonday(value: Boolean)
-    @Query("UPDATE AppSetting SET showDeveloper = :value WHERE id = 0")
-    suspend fun updateShowDeveloper(value: Boolean)
     @Query("UPDATE AppSetting SET breakDuration = :minutes WHERE id = 0")
     suspend fun updateBreakDuration(minutes: Int)
     @Query("UPDATE AppSetting SET breakEvery = :minutes WHERE id = 0")

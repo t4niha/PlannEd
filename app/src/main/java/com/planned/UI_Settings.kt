@@ -41,8 +41,6 @@ val PrimaryColor: Color
     get() = SettingsManager.settings?.let {
         Converters.toColor(it.primaryColor)
     } ?: Preset19
-val showDeveloper: Boolean
-    get() = SettingsManager.settings?.showDeveloper ?: true
 val atiPaddingEnabled: Boolean
     get() = SettingsManager.settings?.atiPaddingEnabled ?: true
 val colorPresets = listOf(
@@ -136,7 +134,6 @@ fun Settings(db: AppDatabase) {
     }
     LaunchedEffect(Unit) { refreshData() }
 
-    // Route to sub-pages — return early so main settings UI doesn't render
     when (currentView) {
         "ati" -> {
             LaunchedEffect(Unit) { refreshData() }
@@ -183,7 +180,6 @@ fun Settings(db: AppDatabase) {
 
     // Local state for UI
     settings?.startWeekOnMonday ?: false
-    val localDeveloper  = settings?.showDeveloper ?: true
     val localAtiPadding = settings?.atiPaddingEnabled ?: true
     val localPrimary    = settings?.let { Converters.toColor(it.primaryColor) } ?: Preset19
     val scrollState     = androidx.compose.foundation.rememberScrollState()
@@ -290,7 +286,7 @@ fun Settings(db: AppDatabase) {
             modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 4.dp)
         )
 
-        // Break Every + Break Duration in one card
+        // Break Every, Break Duration
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -490,36 +486,6 @@ fun Settings(db: AppDatabase) {
                         scope.launch {
                             SettingsManager.setAtiPaddingEnabled(db, it)
                             generateTaskIntervals(db)
-                        }
-                    },
-                    colors = SwitchDefaults.colors(
-                        checkedThumbColor = BackgroundColor,
-                        checkedTrackColor = localPrimary,
-                        uncheckedTrackColor = Color.LightGray,
-                        uncheckedThumbColor = BackgroundColor
-                    )
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // Developer mode switch
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color(CardColor), RoundedCornerShape(12.dp))
-                .padding(16.dp)
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Developer Mode", fontSize = 16.sp, fontWeight = FontWeight.Medium)
-                Spacer(modifier = Modifier.weight(1f))
-
-                Switch(
-                    checked = localDeveloper,
-                    onCheckedChange = {
-                        scope.launch {
-                            SettingsManager.setDeveloperMode(db, it)
                         }
                     },
                     colors = SwitchDefaults.colors(
@@ -1009,12 +975,12 @@ fun DatabasePage(
                 data    = settings,
                 headers = listOf(
                     "ID", "Start Week On Monday", "Primary Color",
-                    "Show Developer", "Break Duration", "Break Every"
+                    "Break Duration", "Break Every"
                 )
             ) { s ->
                 listOf(
                     s.id.toString(), s.startWeekOnMonday.toString(),
-                    s.primaryColor, s.showDeveloper.toString(),
+                    s.primaryColor,
                     s.breakDuration.toString(), s.breakEvery.toString()
                 )
             }

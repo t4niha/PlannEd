@@ -332,7 +332,7 @@ suspend fun trimAndExtendOccurrences(db: AppDatabase) {
 @RequiresApi(Build.VERSION_CODES.O)
 private fun maxOfDate(a: LocalDate, b: LocalDate): LocalDate = if (a.isAfter(b)) a else b
 
-/* Regenerate all occurrences (kept for manual full-reset use e.g. Developer page) */
+/* Regenerate all occurrences */
 @RequiresApi(Build.VERSION_CODES.O)
 suspend fun regenerateAllOccurrences(db: AppDatabase) {
     val today = LocalDate.now()

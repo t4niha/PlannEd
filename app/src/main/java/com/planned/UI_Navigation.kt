@@ -31,7 +31,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Android
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.ui.graphics.graphicsLayer
 
@@ -527,15 +526,7 @@ fun NavigationDrawer(
                         tint = PrimaryColor
                     )
                 }
-                @Composable
-                fun AndroidIcon() {
-                    Icon(
-                        Icons.Filled.Android,
-                        contentDescription = "Developer",
-                        modifier = Modifier.size(24.dp),
-                        tint = PrimaryColor
-                    )
-                }
+
 
                 DrawerRow("Categories", { CalendarIcon() }) {
                     currentScreen = "Categories"
