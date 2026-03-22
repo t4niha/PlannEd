@@ -200,7 +200,7 @@ fun Settings(db: AppDatabase) {
             fontSize = 16.sp,
             fontWeight = FontWeight.Bold,
             color = Color.Gray,
-            modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 4.dp)
+            modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 12.dp)
         )
 
         // Week start switch
@@ -287,7 +287,7 @@ fun Settings(db: AppDatabase) {
             fontSize = 16.sp,
             fontWeight = FontWeight.Bold,
             color = Color.Gray,
-            modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 4.dp)
+            modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 12.dp)
         )
 
         // Break Every, Break Duration
@@ -412,7 +412,7 @@ fun Settings(db: AppDatabase) {
             fontSize = 16.sp,
             fontWeight = FontWeight.Bold,
             color = Color.Gray,
-            modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 4.dp)
+            modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 12.dp)
         )
 
         // App accent
@@ -428,7 +428,7 @@ fun Settings(db: AppDatabase) {
         ) {
             Column {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("App Accent", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                    Text("Accent", fontSize = 16.sp, fontWeight = FontWeight.Medium)
                     Spacer(modifier = Modifier.weight(1f))
                     Box(
                         modifier = Modifier
@@ -508,7 +508,7 @@ fun Settings(db: AppDatabase) {
             fontSize = 16.sp,
             fontWeight = FontWeight.Bold,
             color = Color.Gray,
-            modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 4.dp)
+            modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 12.dp)
         )
 
         // Refresh Schedule
