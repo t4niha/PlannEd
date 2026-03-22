@@ -6,6 +6,7 @@ import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -14,6 +15,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
@@ -288,16 +290,18 @@ fun UnscheduledTasksList(
             if (grouped.containsKey(null)) listOf(null) else emptyList()
 
     Column(modifier = Modifier.fillMaxSize().background(BackgroundColor)) {
-        Box(
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+            contentDescription = "Back",
+            tint = PrimaryColor,
             modifier = Modifier
                 .padding(16.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(PrimaryColor)
-                .clickable { onBack() }
-                .padding(horizontal = 16.dp, vertical = 8.dp)
-        ) {
-            Text("Back", fontSize = 16.sp, color = Color.White)
-        }
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null
+                ) { onBack() }
+                .size(40.dp)
+        )
 
         Column(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
             Text("Unscheduled Tasks", fontSize = 24.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 16.dp, top = 4.dp))
@@ -406,16 +410,18 @@ fun ScheduledTasksList(
             if (grouped.containsKey(null)) listOf(null) else emptyList()
 
     Column(modifier = Modifier.fillMaxSize().background(BackgroundColor)) {
-        Box(
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+            contentDescription = "Back",
+            tint = PrimaryColor,
             modifier = Modifier
                 .padding(16.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(PrimaryColor)
-                .clickable { onBack() }
-                .padding(horizontal = 16.dp, vertical = 8.dp)
-        ) {
-            Text("Back", fontSize = 16.sp, color = Color.White)
-        }
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null
+                ) { onBack() }
+                .size(40.dp)
+        )
 
         Column(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
             Text("Scheduled Tasks", fontSize = 24.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 16.dp, top = 4.dp))
@@ -595,15 +601,17 @@ fun TaskInfoPage(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                contentDescription = "Back",
+                tint = PrimaryColor,
                 modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(PrimaryColor)
-                    .clickable { onBack() }
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-            ) {
-                Text("Back", fontSize = 16.sp, color = Color.White)
-            }
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null
+                    ) { onBack() }
+                    .size(40.dp)
+            )
             Box(
                 modifier = Modifier
                     .size(40.dp)
@@ -620,8 +628,6 @@ fun TaskInfoPage(
                 )
             }
         }
-
-        Spacer(modifier = Modifier.height(16.dp))
 
         Column(modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(scrollState)) {
             Box(modifier = Modifier.fillMaxWidth().padding(18.dp)) {
@@ -812,15 +818,17 @@ fun TaskUpdateForm(
                 .background(BackgroundColor)
                 .padding(16.dp)
         ) {
-            Box(
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                contentDescription = "Back",
+                tint = PrimaryColor,
                 modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(PrimaryColor)
-                    .clickable { onBack() }
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-            ) {
-                Text("Back", fontSize = 16.sp, color = Color.White)
-            }
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null
+                    ) { onBack() }
+                    .size(40.dp)
+            )
             Spacer(modifier = Modifier.height(16.dp))
 
             Column(modifier = Modifier.weight(1f).verticalScroll(scrollState)) {
@@ -1003,18 +1011,18 @@ fun PomodoroPage(
 
     Column(modifier = Modifier.fillMaxSize().background(BackgroundColor).padding(16.dp)) {
         Row(modifier = Modifier.fillMaxWidth()) {
-            Box(
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                contentDescription = "Back",
+                tint = PrimaryColor,
                 modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(PrimaryColor)
-                    .clickable { onBack() }
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-            ) {
-                Text("Back", fontSize = 16.sp, color = Color.White)
-            }
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null
+                    ) { onBack() }
+                    .size(40.dp)
+            )
         }
-
-        Spacer(modifier = Modifier.height(16.dp))
 
         Column(
             modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(scrollState),
@@ -1225,16 +1233,18 @@ fun AllDayTasksList(
             if (grouped.containsKey(null)) listOf(null) else emptyList()
 
     Column(modifier = Modifier.fillMaxSize().background(BackgroundColor)) {
-        Box(
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+            contentDescription = "Back",
+            tint = PrimaryColor,
             modifier = Modifier
                 .padding(16.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(PrimaryColor)
-                .clickable { onBack() }
-                .padding(horizontal = 16.dp, vertical = 8.dp)
-        ) {
-            Text("Back", fontSize = 16.sp, color = Color.White)
-        }
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null
+                ) { onBack() }
+                .size(40.dp)
+        )
 
         Column(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
             Text("All-Day Tasks", fontSize = 24.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 16.dp, top = 4.dp))
@@ -1351,15 +1361,17 @@ fun AllDayTaskInfoPage(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                contentDescription = "Back",
+                tint = PrimaryColor,
                 modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(PrimaryColor)
-                    .clickable { onBack() }
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-            ) {
-                Text("Back", fontSize = 16.sp, color = Color.White)
-            }
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null
+                    ) { onBack() }
+                    .size(40.dp)
+            )
             Box(
                 modifier = Modifier
                     .size(40.dp)
@@ -1376,8 +1388,6 @@ fun AllDayTaskInfoPage(
                 )
             }
         }
-
-        Spacer(modifier = Modifier.height(16.dp))
 
         Column(modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(scrollState)) {
             Box(modifier = Modifier.fillMaxWidth().padding(18.dp)) {
@@ -1499,15 +1509,17 @@ fun AllDayTaskUpdateForm(
         Column(
             modifier = Modifier.fillMaxSize().background(BackgroundColor).padding(16.dp)
         ) {
-            Box(
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                contentDescription = "Back",
+                tint = PrimaryColor,
                 modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(PrimaryColor)
-                    .clickable { onBack() }
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-            ) {
-                Text("Back", fontSize = 16.sp, color = Color.White)
-            }
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null
+                    ) { onBack() }
+                    .size(40.dp)
+            )
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -1738,18 +1750,18 @@ fun AllDayPomodoroPage(
 
     Column(modifier = Modifier.fillMaxSize().background(BackgroundColor).padding(16.dp)) {
         Row(modifier = Modifier.fillMaxWidth()) {
-            Box(
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                contentDescription = "Back",
+                tint = PrimaryColor,
                 modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(PrimaryColor)
-                    .clickable { onBack() }
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-            ) {
-                Text("Back", fontSize = 16.sp, color = Color.White)
-            }
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null
+                    ) { onBack() }
+                    .size(40.dp)
+            )
         }
-
-        Spacer(modifier = Modifier.height(16.dp))
 
         Column(
             modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(scrollState),

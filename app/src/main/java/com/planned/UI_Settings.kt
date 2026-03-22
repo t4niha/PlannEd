@@ -30,6 +30,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.core.graphics.withSave
 import kotlinx.coroutines.CoroutineScope
@@ -610,16 +611,18 @@ fun ATIPage(
             .fillMaxSize()
             .background(BackgroundColor)
     ) {
-        Box(
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+            contentDescription = "Back",
+            tint = PrimaryColor,
             modifier = Modifier
                 .padding(16.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(PrimaryColor)
-                .clickable { onBack() }
-                .padding(horizontal = 16.dp, vertical = 8.dp)
-        ) {
-            Text("Back", fontSize = 16.sp, color = Color.White)
-        }
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null
+                ) { onBack() }
+                .size(40.dp)
+        )
 
         ATIScatterPlot(
             db           = db,
@@ -659,16 +662,18 @@ fun DatabasePage(
             .fillMaxSize()
             .background(BackgroundColor)
     ) {
-        Box(
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+            contentDescription = "Back",
+            tint = PrimaryColor,
             modifier = Modifier
                 .padding(16.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(PrimaryColor)
-                .clickable { onBack() }
-                .padding(horizontal = 16.dp, vertical = 8.dp)
-        ) {
-            Text("Back", fontSize = 16.sp, color = Color.White)
-        }
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null
+                ) { onBack() }
+                .size(40.dp)
+        )
 
         // Database State
         Box(
@@ -1040,23 +1045,25 @@ fun SchedulePage(
             .fillMaxSize()
             .background(BackgroundColor)
     ) {
-        Box(
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+            contentDescription = "Back",
+            tint = PrimaryColor,
             modifier = Modifier
                 .padding(16.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(PrimaryColor)
-                .clickable { onBack() }
-                .padding(horizontal = 16.dp, vertical = 8.dp)
-        ) {
-            Text("Back", fontSize = 16.sp, color = Color.White)
-        }
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null
+                ) { onBack() }
+                .size(40.dp)
+        )
 
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(scrollV)
                 .horizontalScroll(scrollH)
-                .padding(8.dp)
+                .padding(start = 8.dp, end = 8.dp, bottom = 8.dp)
         ) {
             Text(
                 "Task Schedule Order",
@@ -1241,7 +1248,7 @@ fun ATIScatterPlot(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 8.dp)
+            .padding(start = 12.dp, end = 12.dp, bottom = 8.dp, top = 0.dp)
     ) {
         Text(
             "Overtime Regression Model",

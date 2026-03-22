@@ -6,6 +6,7 @@ import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -23,6 +24,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
@@ -195,17 +197,17 @@ fun CategoryInfoPage(
             .background(BackgroundColor)
             .padding(16.dp)
     ) {
-        Box(
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+            contentDescription = "Back",
+            tint = PrimaryColor,
             modifier = Modifier
-                .clip(RoundedCornerShape(8.dp))
-                .background(PrimaryColor)
-                .clickable { onBack() }
-                .padding(horizontal = 16.dp, vertical = 8.dp)
-        ) {
-            Text("Back", fontSize = 16.sp, color = Color.White)
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null
+                ) { onBack() }
+                .size(40.dp)
+        )
 
         Column(
             modifier = Modifier
@@ -342,15 +344,17 @@ fun CategoryUpdateForm(
                 .background(BackgroundColor)
                 .padding(16.dp)
         ) {
-            Box(
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                contentDescription = "Back",
+                tint = PrimaryColor,
                 modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(PrimaryColor)
-                    .clickable { onBack() }
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-            ) {
-                Text("Back", fontSize = 16.sp, color = Color.White)
-            }
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null
+                    ) { onBack() }
+                    .size(40.dp)
+            )
 
             Spacer(modifier = Modifier.height(16.dp))
 

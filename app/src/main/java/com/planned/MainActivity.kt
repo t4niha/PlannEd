@@ -51,12 +51,8 @@ class MainActivity : ComponentActivity() {
 }
 
 /**
-[-] Validate regression model
-[-] Analytics for user
-[-] Delete tasks completed before the last 10 completed tasks for any event (/ category?)
-[-] No event + No category get category ATI record NONE?
-[/] On creation don't allow duplicate titles for events, categories?
 [ ] Notifications
+[ ] Mansib's parts
  **/
 
 /*  */
