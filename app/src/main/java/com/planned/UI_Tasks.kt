@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
@@ -1114,7 +1115,7 @@ fun PomodoroPage(
                             }
                         } ?: false
 
-                        db.taskDao().update(currentTask.copy(status = 3, noIntervals = 0, deadlineMissed = missedDeadline))
+                        db.taskDao().update(currentTask.copy(status = 3, noIntervals = 0, deadlineMissed = missedDeadline, completedAt = LocalDateTime.now()))
                         updateATIOnTaskComplete(db, currentTask)
                         isCompleted = true
                         onComplete()
@@ -1820,13 +1821,17 @@ fun AllDayPomodoroPage(
             Button(
                 onClick = {
                     scope.launch {
-                        if (isRunning) {
+                        val completedTask = if (isRunning) {
                             val sessionMinutes = sessionSeconds / 60
                             val newActualDuration = (currentTask.actualDuration ?: 0) + sessionMinutes
-                            db.taskDao().update(currentTask.copy(actualDuration = newActualDuration, status = 3))
+                            currentTask.copy(actualDuration = newActualDuration, status = 3, completedAt = LocalDateTime.now())
                         } else {
-                            db.taskDao().update(currentTask.copy(status = 3))
+                            currentTask.copy(status = 3, completedAt = LocalDateTime.now())
                         }
+                        db.taskDao().update(completedTask)
+                        updateATIOnTaskComplete(db, completedTask)
+                        onTaskDeleted(db, completedTask.id)
+                        db.taskDao().deleteMasterTask(completedTask.id)
                         onComplete()
                     }
                 },
