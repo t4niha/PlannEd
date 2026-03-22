@@ -109,7 +109,6 @@ fun AppNavigation(db: AppDatabase) {
                         "Tasks" -> Tasks(db)
                         "Reminders" -> Reminders(db)
                         "Settings" -> Settings(db)
-                        "Developer" -> Developer(db)
                         "Creation" -> Creation(db)
 
                         // ── Task ──────────────────────────────────────────────────────────
@@ -575,12 +574,6 @@ fun NavigationDrawer(
                 DrawerRow("Settings", { GearIcon() }) {
                     currentScreen = "Settings"
                     onDrawerToggle()
-                }
-                if (showDeveloper) {
-                    DrawerRow("Developer", { AndroidIcon() }) {
-                        currentScreen = "Developer"
-                        onDrawerToggle()
-                    }
                 }
             }
         }
