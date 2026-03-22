@@ -326,7 +326,7 @@ data class EventATI(
 data class AppSetting(
     @PrimaryKey val id: Int = 0,
     val startWeekOnMonday: Boolean = false,
-    val primaryColor: String = "#FF205898",
+    val primaryColor: String = "#FF4D4D4D",
     val breakDuration: Int = 5,
     val breakEvery: Int = 30,
     val atiPaddingEnabled: Boolean = true

@@ -25,7 +25,7 @@ object SettingsManager {
             s = AppSetting(
                 id = 0,
                 startWeekOnMonday = false,
-                primaryColor = Converters.fromColor(Preset19),
+                primaryColor = Converters.fromColor(Preset23),
                 breakDuration = 5,
                 breakEvery = 25,
                 atiPaddingEnabled = true
