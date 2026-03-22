@@ -383,6 +383,13 @@ object TaskManager {
     suspend fun update(db: AppDatabase, task: MasterTask) {
         db.taskDao().update(task)
 
+        // Delete all-day tasks immediately on completion — they have no ATI use
+        if (task.allDay != null && task.status == 3) {
+            onTaskDeleted(db, task.id)
+            db.taskDao().deleteMasterTask(task.id)
+            return
+        }
+
         // Regenerate task intervals
         onTaskChanged(db)
     }
