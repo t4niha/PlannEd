@@ -28,7 +28,7 @@ object SettingsManager {
                 primaryColor = Converters.fromColor(Preset19),
                 breakDuration = 5,
                 breakEvery = 25,
-                atiPaddingEnabled = false
+                atiPaddingEnabled = true
             )
             db.settingsDao().insert(s)
         }

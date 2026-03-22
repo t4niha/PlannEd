@@ -329,7 +329,7 @@ data class AppSetting(
     val primaryColor: String = "#FF205898",
     val breakDuration: Int = 5,
     val breakEvery: Int = 30,
-    val atiPaddingEnabled: Boolean = false
+    val atiPaddingEnabled: Boolean = true
 )
 //</editor-fold>
 

@@ -52,7 +52,7 @@ class MainActivity : ComponentActivity() {
 
 /**
 [ ] Notifications
-[ ] Mansib's parts
+[ ] Pretrained model parts
  **/
 
 /*  */
