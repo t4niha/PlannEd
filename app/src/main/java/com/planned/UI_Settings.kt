@@ -68,22 +68,13 @@ fun Settings(db: AppDatabase) {
             .verticalScroll(scrollState)
             .padding(12.dp)
     ) {
-        // Refresh Schedule
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color(CardColor), RoundedCornerShape(12.dp))
-                .clickable {
-                    scope.launch {
-                        generateTaskIntervals(db)
-                    }
-                }
-                .padding(16.dp)
-        ) {
-            Text("Refresh Schedule", fontSize = 16.sp, fontWeight = FontWeight.Medium)
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
+        Text(
+            text = "Calendar",
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color.Gray,
+            modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 4.dp)
+        )
 
         // Week start switch
         Box(
@@ -92,30 +83,26 @@ fun Settings(db: AppDatabase) {
                 .background(Color(CardColor), RoundedCornerShape(12.dp))
                 .padding(16.dp)
         ) {
-            Column {
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                 Text("First Day of Week", fontSize = 16.sp, fontWeight = FontWeight.Medium)
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    WeekButton(
-                        label = "Sun",
-                        selected = !startWeekOnMonday,
-                        color = PrimaryColor
-                    ) {
-                        scope.launch {
-                            SettingsManager.setStartWeek(db, false)
-                        }
+                Spacer(modifier = Modifier.weight(1f))
+                WeekButton(
+                    label = "Sun",
+                    selected = !startWeekOnMonday,
+                    color = PrimaryColor
+                ) {
+                    scope.launch {
+                        SettingsManager.setStartWeek(db, false)
                     }
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    WeekButton(
-                        label = "Mon",
-                        selected = startWeekOnMonday,
-                        color = PrimaryColor
-                    ) {
-                        scope.launch {
-                            SettingsManager.setStartWeek(db, true)
-                        }
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                WeekButton(
+                    label = "Mon",
+                    selected = startWeekOnMonday,
+                    color = PrimaryColor
+                ) {
+                    scope.launch {
+                        SettingsManager.setStartWeek(db, true)
                     }
                 }
             }
@@ -130,46 +117,51 @@ fun Settings(db: AppDatabase) {
                 .background(Color(CardColor), RoundedCornerShape(12.dp))
                 .padding(16.dp)
         ) {
-            Column {
-                Text("Occurrence Window (Months)", fontSize = 16.sp, fontWeight = FontWeight.Medium)
-                Spacer(modifier = Modifier.height(12.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Button(
-                        onClick = { if (generationMonths > 1) generationMonths-- },
-                        shape = androidx.compose.foundation.shape.CircleShape,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = PrimaryColor,
-                            contentColor = BackgroundColor
-                        ),
-                        modifier = Modifier.size(40.dp),
-                        contentPadding = PaddingValues(0.dp)
-                    ) { Text("-", fontSize = 20.sp) }
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Box(
-                        modifier = Modifier
-                            .width(50.dp)
-                            .background(BackgroundColor, RoundedCornerShape(8.dp))
-                            .padding(vertical = 8.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(generationMonths.toString(), fontSize = 18.sp)
-                    }
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Button(
-                        onClick = { if (generationMonths < 6) generationMonths++ },
-                        shape = androidx.compose.foundation.shape.CircleShape,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = PrimaryColor,
-                            contentColor = BackgroundColor
-                        ),
-                        modifier = Modifier.size(40.dp),
-                        contentPadding = PaddingValues(0.dp)
-                    ) { Text("+", fontSize = 20.sp) }
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                Text("Generate Months", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                Spacer(modifier = Modifier.weight(1f))
+                Button(
+                    onClick = { if (generationMonths > 1) generationMonths-- },
+                    shape = androidx.compose.foundation.shape.CircleShape,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = PrimaryColor,
+                        contentColor = BackgroundColor
+                    ),
+                    modifier = Modifier.size(40.dp),
+                    contentPadding = PaddingValues(0.dp)
+                ) { Text("-", fontSize = 20.sp) }
+                Spacer(modifier = Modifier.width(12.dp))
+                Box(
+                    modifier = Modifier
+                        .width(50.dp)
+                        .background(BackgroundColor, RoundedCornerShape(8.dp))
+                        .padding(vertical = 8.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(generationMonths.toString(), fontSize = 18.sp)
                 }
+                Spacer(modifier = Modifier.width(12.dp))
+                Button(
+                    onClick = { if (generationMonths < 6) generationMonths++ },
+                    shape = androidx.compose.foundation.shape.CircleShape,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = PrimaryColor,
+                        contentColor = BackgroundColor
+                    ),
+                    modifier = Modifier.size(40.dp),
+                    contentPadding = PaddingValues(0.dp)
+                ) { Text("+", fontSize = 20.sp) }
             }
         }
 
         Spacer(modifier = Modifier.height(12.dp))
+        Text(
+            text = "Task Timer",
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color.Gray,
+            modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 4.dp)
+        )
 
         // Break Every + Break Duration in one card
         Box(
@@ -188,7 +180,7 @@ fun Settings(db: AppDatabase) {
 
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                     Text("Break Every", fontSize = 16.sp, fontWeight = FontWeight.Medium)
-                    Spacer(modifier = Modifier.width(16.dp))
+                    Spacer(modifier = Modifier.weight(1f))
                     Button(
                         onClick = { tempBreakEveryH = breakEveryHours; tempBreakEveryM = breakEveryMinutes; showBreakEveryPicker = true },
                         colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
@@ -242,7 +234,7 @@ fun Settings(db: AppDatabase) {
 
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                     Text("Break Duration", fontSize = 16.sp, fontWeight = FontWeight.Medium)
-                    Spacer(modifier = Modifier.width(16.dp))
+                    Spacer(modifier = Modifier.weight(1f))
                     Button(
                         onClick = { tempBreakDurH = breakDurationHours; tempBreakDurM = breakDurationMinutes; showBreakDurationPicker = true },
                         colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
@@ -288,6 +280,13 @@ fun Settings(db: AppDatabase) {
         }
 
         Spacer(modifier = Modifier.height(12.dp))
+        Text(
+            text = "App",
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color.Gray,
+            modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 4.dp)
+        )
 
         // App accent
         Box(
@@ -303,7 +302,7 @@ fun Settings(db: AppDatabase) {
             Column {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("App Accent", fontSize = 16.sp, fontWeight = FontWeight.Medium)
-                    Spacer(modifier = Modifier.width(16.dp))
+                    Spacer(modifier = Modifier.weight(1f))
                     Box(
                         modifier = Modifier
                             .size(40.dp)
@@ -356,7 +355,7 @@ fun Settings(db: AppDatabase) {
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("Predict Overtime", fontSize = 16.sp, fontWeight = FontWeight.Medium)
-                Spacer(modifier = Modifier.width(16.dp))
+                Spacer(modifier = Modifier.weight(1f))
 
                 Switch(
                     checked = localAtiPadding,
@@ -387,7 +386,7 @@ fun Settings(db: AppDatabase) {
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("Developer Mode", fontSize = 16.sp, fontWeight = FontWeight.Medium)
-                Spacer(modifier = Modifier.width(16.dp))
+                Spacer(modifier = Modifier.weight(1f))
 
                 Switch(
                     checked = localDeveloper,
@@ -405,6 +404,32 @@ fun Settings(db: AppDatabase) {
                 )
             }
         }
+
+        Spacer(modifier = Modifier.height(12.dp))
+        Text(
+            text = "Analytics",
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color.Gray,
+            modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 4.dp)
+        )
+
+        // Refresh Schedule
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color(CardColor), RoundedCornerShape(12.dp))
+                .clickable {
+                    scope.launch {
+                        generateTaskIntervals(db)
+                    }
+                }
+                .padding(16.dp)
+        ) {
+            Text("Refresh Schedule", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
     }
 }
 
