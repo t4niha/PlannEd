@@ -147,6 +147,7 @@ fun Settings(db: AppDatabase) {
         }
         "database" -> {
             DatabasePage(
+                db                  = db,
                 categories          = categories,
                 masterEvents        = masterEvents,
                 eventOccurrences    = eventOccurrences,
@@ -524,69 +525,8 @@ fun Settings(db: AppDatabase) {
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Database State
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color(CardColor), RoundedCornerShape(12.dp))
-                .padding(16.dp)
-        ) {
-            Column {
-                Text("Database State", fontSize = 16.sp, fontWeight = FontWeight.Medium, color = Color.Black)
-                Spacer(modifier = Modifier.height(12.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Button(
-                        onClick = {
-                            CoroutineScope(Dispatchers.IO).launch {
-                                db.reminderDao().getAllMasterReminders()
-                                    .forEach { db.reminderDao().deleteMasterReminder(it.id) }
-                                db.taskDao().getAllMasterTasks()
-                                    .forEach { db.taskDao().deleteMasterTask(it.id) }
-                                db.taskBucketDao().getAllMasterBuckets()
-                                    .forEach { db.taskBucketDao().deleteMasterBucket(it.id) }
-                                db.deadlineDao().getAll()
-                                    .forEach { db.deadlineDao().deleteById(it.id) }
-                                db.eventDao().getAllMasterEvents()
-                                    .forEach { db.eventDao().deleteMasterEvent(it.id) }
-                                db.categoryDao().getAll()
-                                    .forEach { db.categoryDao().deleteById(it.id) }
-                                db.categoryATIDao().getAll()
-                                    .forEach { db.categoryATIDao().deleteById(it.categoryId) }
-                                db.eventATIDao().getAll()
-                                    .forEach { db.eventATIDao().deleteById(it.eventId) }
-                                refreshData()
-                            }
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
-                        modifier = Modifier.weight(1f),
-                        contentPadding = PaddingValues(16.dp)
-                    ) { Text("Clear", fontSize = 16.sp) }
-
-                    Spacer(modifier = Modifier.width(12.dp))
-
-                    Button(
-                        onClick = {
-                            CoroutineScope(Dispatchers.IO).launch {
-                                runSample(db)
-                                trimAndExtendOccurrences(db)
-                                refreshData()
-                            }
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = localPrimary),
-                        modifier = Modifier.weight(1f),
-                        contentPadding = PaddingValues(16.dp)
-                    ) { Text("Sample", fontSize = 16.sp) }
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            SettingsNavItem(label = "ATI Model", onClick = { currentView = "ati" })
+            SettingsNavItem(label = "Overtime", onClick = { currentView = "ati" })
             SettingsNavItem(label = "Database",  onClick = { currentView = "database" })
             SettingsNavItem(label = "Schedule",  onClick = { currentView = "schedule" })
         }
@@ -668,6 +608,7 @@ fun ATIPage(
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun DatabasePage(
+    db: AppDatabase,
     categories: List<Category>,
     masterEvents: List<MasterEvent>,
     eventOccurrences: List<EventOccurrence>,
@@ -685,6 +626,7 @@ fun DatabasePage(
 ) {
     val scrollV = rememberScrollState()
     val scrollH = rememberScrollState()
+    val scope = rememberCoroutineScope()
 
     Column(
         modifier = Modifier
@@ -701,6 +643,66 @@ fun DatabasePage(
         ) {
             Text("Back", fontSize = 16.sp, color = Color.White)
         }
+
+        // Database State
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp)
+                .background(Color(CardColor), RoundedCornerShape(12.dp))
+                .padding(16.dp)
+        ) {
+            Column {
+                Text("Database State", fontSize = 16.sp, fontWeight = FontWeight.Medium, color = Color.Black)
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Button(
+                        onClick = {
+                            CoroutineScope(Dispatchers.IO).launch {
+                                db.reminderDao().getAllMasterReminders()
+                                    .forEach { db.reminderDao().deleteMasterReminder(it.id) }
+                                db.taskDao().getAllMasterTasks()
+                                    .forEach { db.taskDao().deleteMasterTask(it.id) }
+                                db.taskBucketDao().getAllMasterBuckets()
+                                    .forEach { db.taskBucketDao().deleteMasterBucket(it.id) }
+                                db.deadlineDao().getAll()
+                                    .forEach { db.deadlineDao().deleteById(it.id) }
+                                db.eventDao().getAllMasterEvents()
+                                    .forEach { db.eventDao().deleteMasterEvent(it.id) }
+                                db.categoryDao().getAll()
+                                    .forEach { db.categoryDao().deleteById(it.id) }
+                                db.categoryATIDao().getAll()
+                                    .forEach { db.categoryATIDao().deleteById(it.categoryId) }
+                                db.eventATIDao().getAll()
+                                    .forEach { db.eventATIDao().deleteById(it.eventId) }
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(16.dp)
+                    ) { Text("Clear", fontSize = 16.sp) }
+
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    Button(
+                        onClick = {
+                            CoroutineScope(Dispatchers.IO).launch {
+                                runSample(db)
+                                trimAndExtendOccurrences(db)
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(16.dp)
+                    ) { Text("Sample", fontSize = 16.sp) }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
 
         Column(
             modifier = Modifier
