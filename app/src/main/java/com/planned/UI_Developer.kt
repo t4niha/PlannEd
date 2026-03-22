@@ -180,7 +180,7 @@ fun DeveloperMainView(
             .background(BackgroundColor)
             .padding(12.dp)
     ) {
-        // ── Combined card ─────────────────────────────────────
+        // Database State
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -188,55 +188,6 @@ fun DeveloperMainView(
                 .padding(16.dp)
         ) {
             Column {
-                Text(
-                    "Occurrence Window (Months)",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = Color.Black
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Button(
-                        onClick = { if (generationMonths > 1) generationMonths-- },
-                        shape = CircleShape,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = PrimaryColor,
-                            contentColor   = BackgroundColor
-                        ),
-                        modifier = Modifier.size(40.dp),
-                        contentPadding = PaddingValues(0.dp)
-                    ) { Text("-", fontSize = 20.sp) }
-
-                    Spacer(modifier = Modifier.width(12.dp))
-
-                    Box(
-                        modifier = Modifier
-                            .width(50.dp)
-                            .background(BackgroundColor, RoundedCornerShape(8.dp))
-                            .padding(vertical = 8.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(generationMonths.toString(), fontSize = 18.sp, color = Color.Black)
-                    }
-
-                    Spacer(modifier = Modifier.width(12.dp))
-
-                    Button(
-                        onClick = { if (generationMonths < 6) generationMonths++ },
-                        shape = CircleShape,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = PrimaryColor,
-                            contentColor   = BackgroundColor
-                        ),
-                        modifier = Modifier.size(40.dp),
-                        contentPadding = PaddingValues(0.dp)
-                    ) { Text("+", fontSize = 20.sp) }
-                }
-
-                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), thickness = 1.dp, color = Color.LightGray)
-
                 Text(
                     "Database State",
                     fontSize = 16.sp,
@@ -297,7 +248,7 @@ fun DeveloperMainView(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // ── 3 nav items ───────────────────────────────────────
+        // 3 nav items
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             DeveloperNavItem(label = "ATI Model",  onClick = onATIClick)
             DeveloperNavItem(label = "Database",   onClick = onDatabaseClick)

@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -58,11 +59,13 @@ fun Settings(db: AppDatabase) {
     val localDeveloper = settings?.showDeveloper ?: true
     val localAtiPadding = settings?.atiPaddingEnabled ?: true
     val localPrimary = settings?.let { Converters.toColor(it.primaryColor) } ?: Preset19
+    val scrollState = androidx.compose.foundation.rememberScrollState()
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(BackgroundColor)
+            .verticalScroll(scrollState)
             .padding(12.dp)
     ) {
         // Refresh Schedule
@@ -114,6 +117,54 @@ fun Settings(db: AppDatabase) {
                             SettingsManager.setStartWeek(db, true)
                         }
                     }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Occurrence Window
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color(CardColor), RoundedCornerShape(12.dp))
+                .padding(16.dp)
+        ) {
+            Column {
+                Text("Occurrence Window (Months)", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Button(
+                        onClick = { if (generationMonths > 1) generationMonths-- },
+                        shape = androidx.compose.foundation.shape.CircleShape,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = PrimaryColor,
+                            contentColor = BackgroundColor
+                        ),
+                        modifier = Modifier.size(40.dp),
+                        contentPadding = PaddingValues(0.dp)
+                    ) { Text("-", fontSize = 20.sp) }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Box(
+                        modifier = Modifier
+                            .width(50.dp)
+                            .background(BackgroundColor, RoundedCornerShape(8.dp))
+                            .padding(vertical = 8.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(generationMonths.toString(), fontSize = 18.sp)
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Button(
+                        onClick = { if (generationMonths < 6) generationMonths++ },
+                        shape = androidx.compose.foundation.shape.CircleShape,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = PrimaryColor,
+                            contentColor = BackgroundColor
+                        ),
+                        modifier = Modifier.size(40.dp),
+                        contentPadding = PaddingValues(0.dp)
+                    ) { Text("+", fontSize = 20.sp) }
                 }
             }
         }

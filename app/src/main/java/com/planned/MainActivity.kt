@@ -52,6 +52,7 @@ class MainActivity : ComponentActivity() {
 
 /**
 [ ] Validate regression model
+[ ] Analytics for user
 [?] On creation don't allow duplicate titles for events, categories?
 [?] Notifications
  **/
