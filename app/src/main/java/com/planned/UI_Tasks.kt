@@ -259,7 +259,7 @@ fun TaskCategoryBox(
             Text(
                 text = title,
                 fontSize = 18.sp,
-                fontWeight = FontWeight.Normal,
+                fontWeight = FontWeight.Medium,
                 color = Color.Black
             )
         }
@@ -464,29 +464,26 @@ fun ScheduledTaskItem(
     val dateFormatter = DateTimeFormatter.ofPattern("MMMM d, yyyy")
     val timeFormatter = DateTimeFormatter.ofPattern("h:mm a")
 
-    Column(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
             .background(Color(CardColor))
             .clickable { onClick() }
-            .padding(12.dp)
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Box(modifier = Modifier.size(INNER_CIRCLE_SIZE).clip(CircleShape).background(innerColor))
-            Spacer(modifier = Modifier.width(12.dp))
+        Box(modifier = Modifier.size(INNER_CIRCLE_SIZE).clip(CircleShape).background(innerColor))
+        Spacer(modifier = Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = masterTask.title,
                 fontSize = 16.sp,
-                fontWeight = FontWeight.Normal,
+                fontWeight = FontWeight.Medium,
                 color = Color.Black,
-                modifier = Modifier.weight(1f),
                 maxLines = 1,
                 overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
             )
-            Spacer(modifier = Modifier.width(12.dp))
-        }
-        Column(modifier = Modifier.padding(start = 42.dp, top = 8.dp)) {
             intervals.sortedBy { it.intervalNo }.forEach { interval ->
                 Text(
                     text = "${interval.startTime.format(timeFormatter)} - ${interval.endTime.format(timeFormatter)}, ${interval.occurDate.format(dateFormatter)}",

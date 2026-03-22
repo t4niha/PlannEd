@@ -44,9 +44,9 @@ val PrimaryColor: Color
 val atiPaddingEnabled: Boolean
     get() = SettingsManager.settings?.atiPaddingEnabled ?: true
 val colorPresets = listOf(
-    Preset13, Preset14, Preset15, Preset16,
-    Preset17, Preset18, Preset19, Preset20,
-    Preset21, Preset22, Preset23, Preset24
+    Preset22, Preset13, Preset14, Preset15,
+    Preset16, Preset17, Preset18, Preset19,
+    Preset20, Preset21, Preset23, Preset24
 )
 
 // Occurrence generation months
@@ -161,7 +161,8 @@ fun Settings(db: AppDatabase) {
                 categoryATIList     = categoryATIList,
                 eventATIList        = eventATIList,
                 settings            = dbSettings,
-                onBack              = { currentView = "main" }
+                onBack              = { currentView = "main" },
+                onRefresh           = { refreshData() }
             )
             return
         }
@@ -280,7 +281,7 @@ fun Settings(db: AppDatabase) {
 
         Spacer(modifier = Modifier.height(12.dp))
         Text(
-            text = "Task Timer",
+            text = "Timer",
             fontSize = 16.sp,
             fontWeight = FontWeight.Bold,
             color = Color.Gray,
@@ -445,7 +446,7 @@ fun Settings(db: AppDatabase) {
                         columns = GridCells.Fixed(4),
                         modifier = Modifier
                             .padding(top = 12.dp)
-                            .wrapContentHeight()
+                            .height(183.dp)
                     ) {
                         items(colorPresets.size) { i ->
                             val c = colorPresets[i]
@@ -622,7 +623,8 @@ fun DatabasePage(
     categoryATIList: List<CategoryATI>,
     eventATIList: List<EventATI>,
     settings: List<AppSetting>,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onRefresh: () -> Unit = {}
 ) {
     val scrollV = rememberScrollState()
     val scrollH = rememberScrollState()
@@ -678,6 +680,7 @@ fun DatabasePage(
                                     .forEach { db.categoryATIDao().deleteById(it.categoryId) }
                                 db.eventATIDao().getAll()
                                     .forEach { db.eventATIDao().deleteById(it.eventId) }
+                                onRefresh()
                             }
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
@@ -692,6 +695,7 @@ fun DatabasePage(
                             CoroutineScope(Dispatchers.IO).launch {
                                 runSample(db)
                                 trimAndExtendOccurrences(db)
+                                onRefresh()
                             }
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
