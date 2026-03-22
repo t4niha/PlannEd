@@ -20,6 +20,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import kotlinx.coroutines.launch
 
 fun formatBucketRecurrence(bucket: MasterTaskBucket, startWeekOnMonday: Boolean): String {
@@ -107,7 +109,7 @@ fun TaskBucketsList(
             "Task Buckets",
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = 16.dp)
+            modifier = Modifier.padding(bottom = 24.dp, top = 4.dp)
         )
 
         if (buckets.isEmpty()) {
@@ -168,6 +170,13 @@ fun TaskBucketListItem(
                 color = Color.Gray
             )
         }
+        Spacer(modifier = Modifier.width(8.dp))
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = null,
+            tint = Color.Gray,
+            modifier = Modifier.size(20.dp)
+        )
     }
 }
 

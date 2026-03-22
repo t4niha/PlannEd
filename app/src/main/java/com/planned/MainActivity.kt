@@ -51,7 +51,6 @@ class MainActivity : ComponentActivity() {
 }
 
 /**
-[ ] Fields layout
 [ ] Validate regression model
 [ ] Analytics for user
 [ ] Delete tasks completed before the last 10 completed tasks for any event (/ category?)

@@ -14,6 +14,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -297,30 +298,34 @@ fun UnscheduledTasksList(
             Text("Back", fontSize = 16.sp, color = Color.White)
         }
 
-        if (tasks.isEmpty()) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(text = "No unscheduled tasks", fontSize = 18.sp, color = Color.Gray)
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier.weight(1f).fillMaxWidth().padding(12.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                sortedCategoryIds.forEach { catId ->
-                    val categoryName = if (catId == null) "No Category"
-                    else categories.find { it.id == catId }?.title ?: "No Category"
-                    val categoryTasks = grouped[catId] ?: emptyList()
-                    item {
-                        Text(
-                            text = categoryName,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.Gray,
-                            modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 4.dp)
-                        )
-                    }
-                    items(categoryTasks) { task ->
-                        UnscheduledTaskItem(db = db, task = task, onClick = { onTaskClick(task) })
+        Column(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
+            Text("Unscheduled Tasks", fontSize = 24.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 16.dp, top = 4.dp))
+
+            if (tasks.isEmpty()) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text(text = "No unscheduled tasks", fontSize = 18.sp, color = Color.Gray)
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    sortedCategoryIds.forEach { catId ->
+                        val categoryName = if (catId == null) "No Category"
+                        else categories.find { it.id == catId }?.title ?: "No Category"
+                        val categoryTasks = grouped[catId] ?: emptyList()
+                        item {
+                            Text(
+                                text = categoryName,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.Gray,
+                                modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 4.dp)
+                            )
+                        }
+                        items(categoryTasks) { task ->
+                            UnscheduledTaskItem(db = db, task = task, onClick = { onTaskClick(task) })
+                        }
                     }
                 }
             }
@@ -360,7 +365,13 @@ fun UnscheduledTaskItem(
             fontWeight = FontWeight.Medium,
             modifier = Modifier.weight(1f)
         )
-        Spacer(modifier = Modifier.width(12.dp))
+        Spacer(modifier = Modifier.width(8.dp))
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = null,
+            tint = Color.Gray,
+            modifier = Modifier.size(20.dp)
+        )
     }
 }
 
@@ -405,37 +416,41 @@ fun ScheduledTasksList(
             Text("Back", fontSize = 16.sp, color = Color.White)
         }
 
-        if (groupedByTask.isEmpty()) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(text = "No scheduled tasks", fontSize = 18.sp, color = Color.Gray)
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier.weight(1f).fillMaxWidth().padding(12.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                sortedCategoryIds.forEach { catId ->
-                    val categoryName = if (catId == null) "No Category"
-                    else categories.find { it.id == catId }?.title ?: "No Category"
-                    val categoryEntries = grouped[catId] ?: emptyList()
-                    item {
-                        Text(
-                            text = categoryName,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.Gray,
-                            modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 4.dp)
-                        )
-                    }
-                    categoryEntries.forEach { (masterTaskId, taskIntervals) ->
+        Column(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
+            Text("Scheduled Tasks", fontSize = 24.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 16.dp, top = 4.dp))
+
+            if (groupedByTask.isEmpty()) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text(text = "No scheduled tasks", fontSize = 18.sp, color = Color.Gray)
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    sortedCategoryIds.forEach { catId ->
+                        val categoryName = if (catId == null) "No Category"
+                        else categories.find { it.id == catId }?.title ?: "No Category"
+                        val categoryEntries = grouped[catId] ?: emptyList()
                         item {
-                            masterTasks[masterTaskId]?.let { masterTask ->
-                                ScheduledTaskItem(
-                                    db = db,
-                                    masterTask = masterTask,
-                                    intervals = taskIntervals,
-                                    onClick = { onTaskClick(taskIntervals.first(), masterTask) }
-                                )
+                            Text(
+                                text = categoryName,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.Gray,
+                                modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 4.dp)
+                            )
+                        }
+                        categoryEntries.forEach { (masterTaskId, taskIntervals) ->
+                            item {
+                                masterTasks[masterTaskId]?.let { masterTask ->
+                                    ScheduledTaskItem(
+                                        db = db,
+                                        masterTask = masterTask,
+                                        intervals = taskIntervals,
+                                        onClick = { onTaskClick(taskIntervals.first(), masterTask) }
+                                    )
+                                }
                             }
                         }
                     }
@@ -492,6 +507,13 @@ fun ScheduledTaskItem(
                 )
             }
         }
+        Spacer(modifier = Modifier.width(8.dp))
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = null,
+            tint = Color.Gray,
+            modifier = Modifier.size(20.dp)
+        )
     }
 }
 
@@ -707,20 +729,6 @@ fun TaskInfoPage(
                 }
             )
         }
-    }
-}
-
-@Composable
-fun InfoField(label: String, value: String) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Color(CardColor), RoundedCornerShape(12.dp))
-            .padding(12.dp)
-    ) {
-        Text(text = label, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color.Gray)
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(text = value, fontSize = 16.sp)
     }
 }
 
@@ -1227,30 +1235,34 @@ fun AllDayTasksList(
             Text("Back", fontSize = 16.sp, color = Color.White)
         }
 
-        if (tasks.isEmpty()) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(text = "No all-day tasks", fontSize = 18.sp, color = Color.Gray)
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier.weight(1f).fillMaxWidth().padding(12.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                sortedCategoryIds.forEach { catId ->
-                    val categoryName = if (catId == null) "No Category"
-                    else categories.find { it.id == catId }?.title ?: "No Category"
-                    val categoryTasks = grouped[catId] ?: emptyList()
-                    item {
-                        Text(
-                            text = categoryName,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.Gray,
-                            modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 4.dp)
-                        )
-                    }
-                    items(categoryTasks) { task ->
-                        AllDayTaskItem(db = db, task = task, onClick = { onTaskClick(task) })
+        Column(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
+            Text("All-Day Tasks", fontSize = 24.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 16.dp, top = 4.dp))
+
+            if (tasks.isEmpty()) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text(text = "No all-day tasks", fontSize = 18.sp, color = Color.Gray)
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    sortedCategoryIds.forEach { catId ->
+                        val categoryName = if (catId == null) "No Category"
+                        else categories.find { it.id == catId }?.title ?: "No Category"
+                        val categoryTasks = grouped[catId] ?: emptyList()
+                        item {
+                            Text(
+                                text = categoryName,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.Gray,
+                                modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 4.dp)
+                            )
+                        }
+                        items(categoryTasks) { task ->
+                            AllDayTaskItem(db = db, task = task, onClick = { onTaskClick(task) })
+                        }
                     }
                 }
             }
@@ -1293,6 +1305,13 @@ fun AllDayTaskItem(
                 color = Color.Gray
             )
         }
+        Spacer(modifier = Modifier.width(8.dp))
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = null,
+            tint = Color.Gray,
+            modifier = Modifier.size(20.dp)
+        )
     }
 }
 

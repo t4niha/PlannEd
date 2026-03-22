@@ -22,6 +22,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 
@@ -87,7 +89,7 @@ fun CategoriesList(
             "Categories",
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = 16.dp)
+            modifier = Modifier.padding(bottom = 24.dp, top = 4.dp)
         )
 
         if (categories.isEmpty()) {
@@ -144,6 +146,13 @@ fun CategoryListItem(
             fontSize = 16.sp,
             fontWeight = FontWeight.Medium,
             modifier = Modifier.weight(1f)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = null,
+            tint = Color.Gray,
+            modifier = Modifier.size(20.dp)
         )
     }
 }
@@ -213,6 +222,8 @@ fun CategoryInfoPage(
                     Text(text = currentCategory.notes!!, fontSize = 16.sp)
                 }
                 Spacer(modifier = Modifier.height(18.dp))
+            } else {
+                Spacer(modifier = Modifier.height(18.dp))
             }
 
             // Color display
@@ -236,15 +247,12 @@ fun CategoryInfoPage(
             Spacer(modifier = Modifier.height(18.dp))
 
             // Usage statistics
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                InfoField("Events", eventCount.toString())
-                InfoField("Deadlines", deadlineCount.toString())
-                InfoField("Reminders", reminderCount.toString())
-                InfoField("Tasks", taskCount.toString())
-            }
+            InfoCard(listOf(
+                "Events" to eventCount.toString(),
+                "Deadlines" to deadlineCount.toString(),
+                "Reminders" to reminderCount.toString(),
+                "Tasks" to taskCount.toString()
+            ))
         }
 
         Spacer(modifier = Modifier.height(16.dp))
