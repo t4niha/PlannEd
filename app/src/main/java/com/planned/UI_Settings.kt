@@ -1160,13 +1160,14 @@ fun ATIScatterPlot(
                     .sortedBy { it.id }
                     .takeLast(10)
                     .forEach { t -> points.add(Pair(t.predictedDuration.toFloat(), (t.overTime ?: 0).toFloat())) }
-                atiRecord = "Score: ${"%.3f".format(ati?.score ?: 0f)},  " +
-                        "Misses: ${ati?.deadlineMissCount ?: 0},  " +
-                        "Avg OT: ${"%.1f".format(ati?.avgOvertime ?: 0f)}min,  " +
-                        "Padding: ${ati?.predictedPadding ?: 0}min,  " +
-                        "Slope: ${"%.3f".format(ati?.paddingSlope ?: 0f)},  " +
-                        "Intercept: ${"%.3f".format(ati?.paddingIntercept ?: 0f)},  " +
-                        "Tasks: ${points.size}"
+                atiRecord =
+                    "Priority Score: ${"%.3f".format(ati?.score ?: 0f)}\n" +
+                            "Deadline Misses: ${ati?.deadlineMissCount ?: 0}\n" +
+                            "Avg Overtime: ${"%.1f".format(ati?.avgOvertime ?: 0f)} min\n" +
+                            "Avg Padding: ${ati?.predictedPadding ?: 0} min\n" +
+                            "Slope: ${"%.3f".format(ati?.paddingSlope ?: 0f)}\n" +
+                            "Intercept: ${"%.3f".format(ati?.paddingIntercept ?: 0f)}\n" +
+                            "Tasks: ${points.size}"
                 slope     = ati?.paddingSlope ?: 0f
                 intercept = ati?.paddingIntercept ?: 0f
             } else if (selectedType == "Event" && masterEvents.isNotEmpty()) {
@@ -1177,13 +1178,14 @@ fun ATIScatterPlot(
                     .sortedBy { it.id }
                     .takeLast(10)
                     .forEach { t -> points.add(Pair(t.predictedDuration.toFloat(), (t.overTime ?: 0).toFloat())) }
-                atiRecord = "Score: ${"%.3f".format(ati?.score ?: 0f)},  " +
-                        "Misses: ${ati?.deadlineMissCount ?: 0},  " +
-                        "Avg OT: ${"%.1f".format(ati?.avgOvertime ?: 0f)}min,  " +
-                        "Padding: ${ati?.predictedPadding ?: 0}min,  " +
-                        "Slope: ${"%.3f".format(ati?.paddingSlope ?: 0f)},  " +
-                        "Intercept: ${"%.3f".format(ati?.paddingIntercept ?: 0f)},  " +
-                        "Tasks: ${points.size}/${ati?.tasksCompleted ?: 0}"
+                atiRecord =
+                    "Priority Score: ${"%.3f".format(ati?.score ?: 0f)}\n" +
+                            "Deadline Misses: ${ati?.deadlineMissCount ?: 0}\n" +
+                            "Avg Overtime: ${"%.1f".format(ati?.avgOvertime ?: 0f)}min\n" +
+                            "Avg Padding: ${ati?.predictedPadding ?: 0}min\n" +
+                            "Slope: ${"%.3f".format(ati?.paddingSlope ?: 0f)}\n" +
+                            "Intercept: ${"%.3f".format(ati?.paddingIntercept ?: 0f)}\n" +
+                            "Tasks: ${points.size}/${ati?.tasksCompleted ?: 0}"
                 slope     = ati?.paddingSlope ?: 0f
                 intercept = ati?.paddingIntercept ?: 0f
             } else {
@@ -1296,21 +1298,6 @@ fun ATIScatterPlot(
 
         Spacer(Modifier.height(12.dp))
 
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color(CardColor), RoundedCornerShape(8.dp))
-                .padding(10.dp)
-        ) {
-            Text(
-                if (atiRecord.isNotEmpty()) atiRecord else "Stats Unavailable",
-                fontSize = 16.sp,
-                color    = Color.Black
-            )
-        }
-
-        Spacer(Modifier.height(8.dp))
-
         val maxX      = (dataPoints.maxOfOrNull { it.first } ?: 0f).let { (it * 1.2f).coerceAtLeast(120f) }
         val maxY      = (dataPoints.maxOfOrNull { it.second } ?: 0f).let { (it * 1.2f).coerceAtLeast(60f) }
         val dotColor  = Color.Gray
@@ -1400,6 +1387,31 @@ fun ATIScatterPlot(
             }
         }
 
-        Spacer(Modifier.height(32.dp))
+        Spacer(Modifier.height(24.dp))
+
+        if (atiRecord.isEmpty()) {
+            Text("Stats Unavailable", fontSize = 16.sp, color = Color.DarkGray)
+        } else {
+            val rows = atiRecord.lines().filter { it.isNotBlank() }.map { line ->
+                val colon = line.indexOf(':')
+                if (colon >= 0) line.substring(0, colon + 1) to line.substring(colon + 1).trim()
+                else line to ""
+            }
+            Row(
+                modifier = Modifier.padding(start = 44.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Column {
+                    rows.forEach { (label, _) ->
+                        Text(label, fontSize = 16.sp, color = Color.DarkGray)
+                    }
+                }
+                Column {
+                    rows.forEach { (_, value) ->
+                        Text(value, fontSize = 16.sp, color = Color.DarkGray)
+                    }
+                }
+            }
+        }
     }
 }
