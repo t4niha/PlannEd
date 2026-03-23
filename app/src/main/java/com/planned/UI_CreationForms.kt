@@ -689,7 +689,7 @@ fun TaskForm(
 
             // Dependency Task dropdown locked if not auto-schedule
             val dependencyTaskValue = dropdownField(
-                label = "Dependency Task",
+                label = "Prerequisite Task",
                 items = dependencyTasks.map { it.title },
                 initialSelection = selectedDependencyTask,
                 key = resetTrigger,
