@@ -179,6 +179,7 @@ fun DeadlineItemView(
                 maxLines = 1,
                 overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
             )
+            Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = "${deadline.time.format(timeFormatter)}, ${deadline.date.format(dateFormatter)}",
                 fontSize = 14.sp,

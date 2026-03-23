@@ -540,6 +540,7 @@ fun ScheduledTaskItem(
                 maxLines = 1,
                 overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
             )
+            Spacer(modifier = Modifier.height(8.dp))
             intervals.sortedBy { it.intervalNo }.forEach { interval ->
                 Text(
                     text = "${interval.startTime.format(timeFormatter)} - ${interval.endTime.format(timeFormatter)}, ${interval.occurDate.format(dateFormatter)}",
@@ -784,7 +785,7 @@ fun InfoCard(fields: List<Pair<String, String>>) {
         fields.forEachIndexed { index, (label, value) ->
             Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
                 Text(text = label, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color.Gray)
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(8.dp))
                 Text(text = value, fontSize = 16.sp)
             }
             if (index < fields.lastIndex) {
@@ -1355,6 +1356,7 @@ fun AllDayTaskItem(
         Spacer(modifier = Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(text = task.title, fontSize = 16.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+            Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = task.allDay?.format(dateFormatter) ?: "",
                 fontSize = 14.sp,

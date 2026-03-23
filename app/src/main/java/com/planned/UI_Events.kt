@@ -169,6 +169,7 @@ fun EventListItem(
         Spacer(modifier = Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(text = event.title, fontSize = 16.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+            Spacer(modifier = Modifier.height(8.dp))
             Text(text = "$timeText, $recurrenceText", fontSize = 14.sp, color = Color.Gray)
         }
         Spacer(modifier = Modifier.width(8.dp))

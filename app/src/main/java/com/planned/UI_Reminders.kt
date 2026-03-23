@@ -167,6 +167,7 @@ fun ReminderItemView(
                 maxLines = 1,
                 overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
             )
+            Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = buildString {
                     append(if (reminder.allDay) "All Day" else reminder.time?.format(timeFormatter) ?: "")
