@@ -696,40 +696,58 @@ fun NavigationDrawer(
 
 
                 DrawerRow("Categories", { CalendarIcon() }) {
+                    categoriesCurrentView = "list"
+                    categoriesSelectedCategory = null
                     currentScreen = "Categories"
                     onDrawerToggle()
                 }
                 CheckableDrawerRow("Events", showEvents, {
                     showEvents = !showEvents
                 }) {
+                    eventsCurrentView = "list"
+                    eventsSelectedEvent = null
+                    eventsUpdateFormData = null
                     currentScreen = "Events"
                     onDrawerToggle()
                 }
                 CheckableDrawerRow("Deadlines", showDeadlines, {
                     showDeadlines = !showDeadlines
                 }) {
+                    deadlinesCurrentView = "list"
+                    deadlinesSelectedDeadline = null
+                    deadlinesUpdateFormData = null
                     currentScreen = "Deadlines"
                     onDrawerToggle()
                 }
                 CheckableDrawerRow("Reminders", showReminders, {
                     showReminders = !showReminders
                 }) {
+                    remindersCurrentView = "list"
+                    remindersSelectedReminder = null
+                    remindersUpdateFormData = null
                     currentScreen = "Reminders"
                     onDrawerToggle()
                 }
                 CheckableDrawerRow("Tasks", showTasks, {
                     showTasks = !showTasks
                 }) {
+                    tasksCurrentView = "main"
+                    tasksSelectedTask = null
+                    tasksSelectedInterval = null
+                    tasksUpdateFormData = null
                     currentScreen = "Tasks"
                     onDrawerToggle()
                 }
                 CheckableDrawerRow("Task Buckets", showTaskBuckets, {
                     showTaskBuckets = !showTaskBuckets
                 }) {
+                    taskBucketsCurrentView = "list"
+                    taskBucketsSelectedBucket = null
                     currentScreen = "TaskBuckets"
                     onDrawerToggle()
                 }
                 DrawerRow("Settings", { GearIcon() }) {
+                    settingsCurrentView = "main"
                     currentScreen = "Settings"
                     onDrawerToggle()
                 }
