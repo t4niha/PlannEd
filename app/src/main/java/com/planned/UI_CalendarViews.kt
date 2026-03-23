@@ -234,7 +234,7 @@ fun WeekView(
                         Spacer(modifier = Modifier.height(4.dp))
                         Box(
                             modifier = Modifier
-                                .size(40.dp)
+                                .size(36.dp)
                                 .background(
                                     if (isSelected) PrimaryColor else Color.Transparent,
                                     shape = CircleShape
@@ -253,7 +253,7 @@ fun WeekView(
                             )
                         }
 
-                        Spacer(modifier = Modifier.height(3.dp))
+                        Spacer(modifier = Modifier.height(5.dp))
 
                         // Indicators row
                         val hasRemindersWeek = remember(day, showReminders, calendarResetTrigger) {
@@ -479,7 +479,7 @@ fun MonthView(
                                     ) {
                                         Box(
                                             modifier = Modifier
-                                                .size(40.dp)
+                                                .size(36.dp)
                                                 .background(
                                                     if (isSelected) PrimaryColor else Color.Transparent,
                                                     shape = CircleShape
@@ -494,7 +494,7 @@ fun MonthView(
                                             )
                                         }
 
-                                        Spacer(modifier = Modifier.height(2.dp))
+                                        Spacer(modifier = Modifier.height(5.dp))
 
                                         // Indicators row
                                         Row(
