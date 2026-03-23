@@ -244,7 +244,7 @@ fun runSample(db: AppDatabase) = runBlocking {
         startDate = weekStart,
         endDate = nextWeekEnd,
         startTime = LocalTime.of(16, 0),
-        endTime = LocalTime.of(18, 0),
+        endTime = LocalTime.of(18, 45),
         recurFreq = RecurrenceFrequency.WEEKLY,
         recurRule = RecurrenceRule(daysOfWeek = listOf(
             DayOfWeek.SUNDAY.value,
@@ -260,7 +260,7 @@ fun runSample(db: AppDatabase) = runBlocking {
         startDate = weekStart,
         endDate = nextWeekEnd,
         startTime = LocalTime.of(14, 0),
-        endTime = LocalTime.of(17, 0),
+        endTime = LocalTime.of(17, 15),
         recurFreq = RecurrenceFrequency.WEEKLY,
         recurRule = RecurrenceRule(daysOfWeek = listOf(
             DayOfWeek.FRIDAY.value,
@@ -309,7 +309,7 @@ fun runSample(db: AppDatabase) = runBlocking {
         allDay = null,
         breakable = false,
         startDate = thisThursday,
-        startTime = LocalTime.of(20, 0),
+        startTime = LocalTime.of(17, 30),
         predictedDuration = 60,
         categoryId = schoolCatId,
         eventId = englishEventId,
@@ -622,4 +622,6 @@ fun runSample(db: AppDatabase) = runBlocking {
             score             = 0.0778f
         ))
     }
+
+    generateTaskIntervals(db)
 }
