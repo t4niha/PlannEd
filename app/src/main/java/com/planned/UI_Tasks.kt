@@ -589,7 +589,7 @@ fun TaskInfoPage(
         val categories = CategoryManager.getAll(db)
         val events = EventManager.getAll(db)
         val deadlines = DeadlineManager.getAll(db)
-        val dependencyTasks = TaskManager.getAll(db).filter {
+        val dependencyTasks = TaskManager.getAll(db).sortedBy { it.title }.filter {
             it.status == 1 && it.startDate == null && it.startTime == null && it.allDay == null && it.id != currentTask.id
         }
         val selectedCategory = currentTask.categoryId?.let { catId ->

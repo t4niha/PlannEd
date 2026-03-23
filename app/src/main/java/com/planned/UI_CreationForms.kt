@@ -462,7 +462,7 @@ fun TaskForm(
         deadlines = DeadlineManager.getAll(db)
 
         // Get tasks that can be dependencies
-        dependencyTasks = TaskManager.getAll(db).filter {
+        dependencyTasks = TaskManager.getAll(db).sortedBy { it.title }.filter {
             it.status == 1 &&
                     it.startDate == null &&
                     it.startTime == null &&
