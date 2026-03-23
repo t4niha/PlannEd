@@ -248,7 +248,7 @@ fun RenderEventBlock(
                 com.planned.selectedEventOccurrenceForInfo = event.occurrence
                 com.planned.currentScreen = "EventInfo"
             }
-            .padding(ELEMENT_TEXT_PADDING.dp)
+            .padding(vertical = ELEMENT_TEXT_PADDING.dp, horizontal = 10.dp)
     ) {
         if (showText) {
             Column(
@@ -342,7 +342,7 @@ fun RenderTaskBlock(
     ) {
         Box(
             modifier = Modifier
-                .width(8.dp)
+                .width(10.dp)
                 .fillMaxHeight()
                 .background(StripeColor)
         )
@@ -541,7 +541,7 @@ fun RenderTaskBlockWeek(
             .height(height)
             .padding(horizontal = ELEMENT_HORIZONTAL_PADDING.dp, vertical = ELEMENT_VERTICAL_PADDING.dp)
             .fillMaxWidth()
-            .padding(end = 8.dp)
+            .padding(end = 6.dp)
             .clip(RoundedCornerShape(ELEMENT_CORNER_RADIUS_WEEK.dp))
             .background(task.color)
             .clickable {
@@ -551,7 +551,7 @@ fun RenderTaskBlockWeek(
     ) {
         Box(
             modifier = Modifier
-                .width(2.dp)
+                .width(4.dp)
                 .fillMaxHeight()
                 .background(StripeColor)
         )
