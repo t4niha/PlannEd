@@ -553,7 +553,11 @@ fun Settings(db: AppDatabase) {
             modifier = Modifier
                 .fillMaxWidth()
                 .background(Color(CardColor), RoundedCornerShape(12.dp))
-                .clickable {
+                .clip(RoundedCornerShape(12.dp))
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = ripple(bounded = true)
+                ) {
                     scope.launch {
                         generateTaskIntervals(db)
                     }
