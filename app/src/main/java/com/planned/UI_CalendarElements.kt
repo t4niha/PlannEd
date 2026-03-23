@@ -436,6 +436,9 @@ fun RenderEventBlockWeek(
     val endMinutes = event.endTime.hour * 60 + event.endTime.minute
     val durationMinutes = endMinutes - startMinutes
     val showWeekText = durationMinutes >= 20
+    val showWeekTime = durationMinutes >= 30
+
+    val timeFormatter = DateTimeFormatter.ofPattern("h:mm a")
 
     Box(
         modifier = modifier
@@ -450,16 +453,29 @@ fun RenderEventBlockWeek(
                 com.planned.selectedEventOccurrenceForInfo = event.occurrence
                 com.planned.currentScreen = "EventInfo"
             }
-            .padding(horizontal = 2.dp)
+            .padding(4.dp)
     ) {
         if (showWeekText) {
-            Text(
-                text = event.title,
-                fontSize = 12.sp,
-                color = Color.DarkGray,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
+                Text(
+                    text = event.title,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                    lineHeight = 12.sp,
+                    color = Color.DarkGray,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                if (showWeekTime) {
+                    Text(
+                        text = event.startTime.format(timeFormatter),
+                        fontSize = 12.sp,
+                        lineHeight = 12.sp,
+                        color = Color.DarkGray,
+                        maxLines = 1
+                    )
+                }
+            }
         }
     }
 }
@@ -508,6 +524,9 @@ fun RenderTaskBlockWeek(
     val endMinutes = task.endTime.hour * 60 + task.endTime.minute
     val durationMinutes = endMinutes - startMinutes
     val showWeekText = durationMinutes >= 20
+    val showWeekTime = durationMinutes >= 30
+
+    val timeFormatter = DateTimeFormatter.ofPattern("h:mm a")
 
     Box(
         modifier = modifier
@@ -522,16 +541,29 @@ fun RenderTaskBlockWeek(
                 com.planned.selectedTaskForInfo = task.master
                 com.planned.currentScreen = "TaskInfo"
             }
-            .padding(horizontal = 4.dp, vertical = 2.dp)
+            .padding(4.dp)
     ) {
         if (showWeekText) {
-            Text(
-                text = task.title,
-                fontSize = 12.sp,
-                color = Color.DarkGray,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
+                Text(
+                    text = task.title,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                    lineHeight = 12.sp,
+                    color = Color.DarkGray,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                if (showWeekTime) {
+                    Text(
+                        text = task.startTime.format(timeFormatter),
+                        fontSize = 12.sp,
+                        lineHeight = 12.sp,
+                        color = Color.DarkGray,
+                        maxLines = 1
+                    )
+                }
+            }
         }
     }
 }
