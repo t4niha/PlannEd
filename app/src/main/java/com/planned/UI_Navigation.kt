@@ -15,6 +15,8 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.indication
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -464,8 +466,10 @@ fun Header(
     Column(modifier = Modifier.background(BackgroundColor)) {
         CenterAlignedTopAppBar(
             navigationIcon = {
-                IconButton(onClick = onMenuClick) {
-                    Icon(Icons.Filled.Menu, contentDescription = "Menu", modifier = Modifier.size(32.dp))
+                CompositionLocalProvider(LocalRippleConfiguration provides null) {
+                    IconButton(onClick = onMenuClick) {
+                        Icon(Icons.Filled.Menu, contentDescription = "Menu", modifier = Modifier.size(32.dp))
+                    }
                 }
             },
             title = {
@@ -473,34 +477,37 @@ fun Header(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    SingleChoiceSegmentedButtonRow(modifier = Modifier.weight(1.8f)) {
-                        val options = listOf("Month", "Week", "Day")
-                        options.forEachIndexed { index, view ->
-                            SegmentedButton(
-                                selected = currentView == view && currentScreen == "Calendars",
-                                onClick = {
-                                    currentScreen = "Calendars"
-                                    currentCalendarView = view
-                                    calendarResetTrigger++
-                                    onViewSelected(view)
-                                },
-                                shape = SegmentedButtonDefaults.itemShape(index, options.size),
-                                icon = {},
-                                border = BorderStroke(0.dp, Color.Transparent),
-                                colors = SegmentedButtonDefaults.colors(
-                                    activeContainerColor = PrimaryColor,
-                                    activeContentColor = BackgroundColor,
-                                    inactiveContainerColor = Color(CardColor),
-                                    inactiveContentColor = Color.Black,
-                                ),
-                                label = {
-                                    Text(
-                                        view,
-                                        fontSize = 14.sp,
-                                        fontWeight = if (currentView == view && currentScreen == "Calendars") FontWeight.Bold else FontWeight.Normal
-                                    )
-                                }
-                            )
+                    CompositionLocalProvider(LocalRippleConfiguration provides null) {
+                        SingleChoiceSegmentedButtonRow(modifier = Modifier.weight(1.8f)) {
+                            val options = listOf("Month", "Week", "Day")
+                            options.forEachIndexed { index, view ->
+                                SegmentedButton(
+                                    selected = currentView == view && currentScreen == "Calendars",
+                                    onClick = {
+                                        currentScreen = "Calendars"
+                                        currentCalendarView = view
+                                        calendarResetTrigger++
+                                        onViewSelected(view)
+                                    },
+                                    shape = SegmentedButtonDefaults.itemShape(index, options.size),
+                                    icon = {},
+                                    border = BorderStroke(0.dp, Color.Transparent),
+                                    colors = SegmentedButtonDefaults.colors(
+                                        activeContainerColor = PrimaryColor,
+                                        activeContentColor = BackgroundColor,
+                                        inactiveContainerColor = Color(CardColor),
+                                        inactiveContentColor = Color.Black,
+                                    ),
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    label = {
+                                        Text(
+                                            view,
+                                            fontSize = 14.sp,
+                                            fontWeight = if (currentView == view && currentScreen == "Calendars") FontWeight.Bold else FontWeight.Normal
+                                        )
+                                    }
+                                )
+                            }
                         }
                     }
 
@@ -512,40 +519,44 @@ fun Header(
                     ) {
                         Row {
                             Spacer(modifier = Modifier.width(8.dp))
-                            IconButton(
-                                onClick = {
-                                    val capturedScreen = currentScreen
-                                    coroutineScope.launch {
-                                        val taskId = PomodoroState.activeTaskId ?: return@launch
-                                        val task = db.taskDao().getMasterTaskById(taskId) ?: return@launch
-                                        pomodoroReturnScreen = capturedScreen
-                                        if (PomodoroState.isAllDay) {
-                                            previousAllDayTaskForInfo = selectedAllDayTaskForInfo
-                                            selectedAllDayTaskForInfo = task
-                                            currentScreen = "AllDayTaskPomodoro"
-                                        } else {
-                                            previousTaskForInfo = selectedTaskForInfo
-                                            previousTaskInfoReturnScreen = taskInfoReturnScreen
-                                            selectedTaskForInfo = task
-                                            currentScreen = "TaskPomodoro"
+                            CompositionLocalProvider(LocalRippleConfiguration provides null) {
+                                IconButton(
+                                    onClick = {
+                                        val capturedScreen = currentScreen
+                                        coroutineScope.launch {
+                                            val taskId = PomodoroState.activeTaskId ?: return@launch
+                                            val task = db.taskDao().getMasterTaskById(taskId) ?: return@launch
+                                            pomodoroReturnScreen = capturedScreen
+                                            if (PomodoroState.isAllDay) {
+                                                previousAllDayTaskForInfo = selectedAllDayTaskForInfo
+                                                selectedAllDayTaskForInfo = task
+                                                currentScreen = "AllDayTaskPomodoro"
+                                            } else {
+                                                previousTaskForInfo = selectedTaskForInfo
+                                                previousTaskInfoReturnScreen = taskInfoReturnScreen
+                                                selectedTaskForInfo = task
+                                                currentScreen = "TaskPomodoro"
+                                            }
                                         }
                                     }
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Timer,
+                                        contentDescription = "Running task",
+                                        tint = PrimaryColor,
+                                        modifier = Modifier
+                                            .size(28.dp)
+                                            .graphicsLayer { alpha = pulseAlpha }
+                                    )
                                 }
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Filled.Timer,
-                                    contentDescription = "Running task",
-                                    tint = PrimaryColor,
-                                    modifier = Modifier
-                                        .size(28.dp)
-                                        .graphicsLayer { alpha = pulseAlpha }
-                                )
                             }
                         }
                     }
 
-                    IconButton(onClick = onCreateClick) {
-                        Icon(Icons.Filled.Add, contentDescription = "Create", modifier = Modifier.size(32.dp))
+                    CompositionLocalProvider(LocalRippleConfiguration provides null) {
+                        IconButton(onClick = onCreateClick) {
+                            Icon(Icons.Filled.Add, contentDescription = "Create", modifier = Modifier.size(32.dp))
+                        }
                     }
                 }
             },
@@ -598,16 +609,19 @@ fun NavigationDrawer(
 
                 @Composable
                 fun DrawerItem(label: String, onClick: () -> Unit) {
-                    TextButton(
-                        onClick = onClick,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            label,
-                            color = Color.Black,
-                            style = MaterialTheme.typography.bodyLarge,
-                            modifier = Modifier.fillMaxWidth()
-                        )
+                    CompositionLocalProvider(LocalRippleConfiguration provides null) {
+                        TextButton(
+                            onClick = onClick,
+                            modifier = Modifier.fillMaxWidth(),
+                            interactionSource = remember { MutableInteractionSource() }
+                        ) {
+                            Text(
+                                label,
+                                color = Color.Black,
+                                style = MaterialTheme.typography.bodyLarge,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
                     }
                     HorizontalDivider(thickness = 1.dp, color = Color.LightGray)
                 }
@@ -619,7 +633,10 @@ fun NavigationDrawer(
                             .size(24.dp)
                             .border(1.dp, Color.Black, RoundedCornerShape(4.dp))
                             .background(BackgroundColor)
-                            .clickable { onToggle() },
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null
+                            ) { onToggle() },
                         contentAlignment = Alignment.Center
                     ) {
                         if (isChecked) {

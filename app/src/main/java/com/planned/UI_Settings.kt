@@ -1512,7 +1512,7 @@ fun ATIScatterPlot(
         Spacer(Modifier.height(24.dp))
 
         if (atiRecord.isEmpty()) {
-            Text("Stats Unavailable", fontSize = 16.sp, color = Color.DarkGray)
+            Text("Stats Unavailable", fontSize = 14.sp, color = Color.DarkGray)
         } else {
             val rows = atiRecord.lines().filter { it.isNotBlank() }.map { line ->
                 val colon = line.indexOf(':')
@@ -1521,16 +1521,16 @@ fun ATIScatterPlot(
             }
             Row(
                 modifier = Modifier.padding(start = 44.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 Column {
                     rows.forEach { (label, _) ->
-                        Text(label, fontSize = 16.sp, color = Color.DarkGray)
+                        Text(label, fontSize = 14.sp, color = Color.DarkGray)
                     }
                 }
                 Column {
                     rows.forEach { (_, value) ->
-                        Text(value, fontSize = 16.sp, color = Color.DarkGray)
+                        Text(value, fontSize = 14.sp, color = Color.DarkGray)
                     }
                 }
             }
