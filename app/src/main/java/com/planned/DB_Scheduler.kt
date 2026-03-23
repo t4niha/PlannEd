@@ -99,7 +99,7 @@ private suspend fun processManuallyScheduledTasks(db: AppDatabase, manualTasks: 
 /* Order auto-scheduled tasks */
 @RequiresApi(Build.VERSION_CODES.O)
 private suspend fun orderAutoScheduledTasks(db: AppDatabase, autoTasks: List<MasterTask>): MutableList<OrderedTask> {
-    val today = LocalDate.now()
+    val today = java.time.LocalDateTime.now()
     val allDeadlines = db.deadlineDao().getAll()
 
     // Pre-fetch None ATI records once
@@ -113,8 +113,10 @@ private suspend fun orderAutoScheduledTasks(db: AppDatabase, autoTasks: List<Mas
 
         // Calculate urgency
         val urgency = deadline?.let {
-            val daysUntil = java.time.temporal.ChronoUnit.DAYS.between(today, it.date)
-            daysUntil.toInt()
+            java.time.temporal.ChronoUnit.MINUTES.between(
+                today,
+                java.time.LocalDateTime.of(it.date, it.time)
+            ).toInt()
         }
 
         // ATI scores — use None record (id=0) when category/event is null
@@ -141,7 +143,7 @@ private suspend fun orderAutoScheduledTasks(db: AppDatabase, autoTasks: List<Mas
 
 /* Resolve dependency chains */
 @RequiresApi(Build.VERSION_CODES.O)
-private fun resolveDependencyChains(orderedTasks: MutableList<OrderedTask>) {
+fun resolveDependencyChains(orderedTasks: MutableList<OrderedTask>) {
     // Map task ID to index
     val taskIndexMap = mutableMapOf<Int, Int>()
     orderedTasks.forEachIndexed { index, orderedTask ->

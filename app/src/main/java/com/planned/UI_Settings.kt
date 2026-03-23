@@ -76,40 +76,40 @@ fun Settings(db: AppDatabase) {
     var currentView by remember { mutableStateOf("main") }
 
     // Shared DB state for sub-pages
-    var categories          by remember { mutableStateOf(listOf<Category>()) }
-    var masterEvents        by remember { mutableStateOf(listOf<MasterEvent>()) }
-    var eventOccurrences    by remember { mutableStateOf(listOf<EventOccurrence>()) }
-    var deadlines           by remember { mutableStateOf(listOf<Deadline>()) }
-    var masterBuckets       by remember { mutableStateOf(listOf<MasterTaskBucket>()) }
-    var bucketOccurrences   by remember { mutableStateOf(listOf<TaskBucketOccurrence>()) }
-    var masterTasks         by remember { mutableStateOf(listOf<MasterTask>()) }
-    var taskIntervals       by remember { mutableStateOf(listOf<TaskInterval>()) }
-    var masterReminders     by remember { mutableStateOf(listOf<MasterReminder>()) }
+    var categories by remember { mutableStateOf(listOf<Category>()) }
+    var masterEvents by remember { mutableStateOf(listOf<MasterEvent>()) }
+    var eventOccurrences by remember { mutableStateOf(listOf<EventOccurrence>()) }
+    var deadlines by remember { mutableStateOf(listOf<Deadline>()) }
+    var masterBuckets by remember { mutableStateOf(listOf<MasterTaskBucket>()) }
+    var bucketOccurrences by remember { mutableStateOf(listOf<TaskBucketOccurrence>()) }
+    var masterTasks by remember { mutableStateOf(listOf<MasterTask>()) }
+    var taskIntervals by remember { mutableStateOf(listOf<TaskInterval>()) }
+    var masterReminders by remember { mutableStateOf(listOf<MasterReminder>()) }
     var reminderOccurrences by remember { mutableStateOf(listOf<ReminderOccurrence>()) }
-    var dbSettings          by remember { mutableStateOf(listOf<AppSetting>()) }
-    var categoryATIList     by remember { mutableStateOf(listOf<CategoryATI>()) }
-    var eventATIList        by remember { mutableStateOf(listOf<EventATI>()) }
-    var scheduleOrderRows   by remember { mutableStateOf(listOf<ScheduleOrderRow>()) }
+    var dbSettings by remember { mutableStateOf(listOf<AppSetting>()) }
+    var categoryATIList by remember { mutableStateOf(listOf<CategoryATI>()) }
+    var eventATIList by remember { mutableStateOf(listOf<EventATI>()) }
+    var scheduleOrderRows by remember { mutableStateOf(listOf<ScheduleOrderRow>()) }
 
     fun refreshData() {
         CoroutineScope(Dispatchers.IO).launch {
-            categories          = db.categoryDao().getAll()
-            masterEvents        = db.eventDao().getAllMasterEvents()
-            eventOccurrences    = db.eventDao().getAllOccurrences()
-            deadlines           = db.deadlineDao().getAll()
-            masterBuckets       = db.taskBucketDao().getAllMasterBuckets()
-            bucketOccurrences   = db.taskBucketDao().getAllBucketOccurrences()
-            masterTasks         = db.taskDao().getAllMasterTasks()
-            taskIntervals       = db.taskDao().getAllIntervals()
-            masterReminders     = db.reminderDao().getAllMasterReminders()
+            categories = db.categoryDao().getAll()
+            masterEvents = db.eventDao().getAllMasterEvents()
+            eventOccurrences = db.eventDao().getAllOccurrences()
+            deadlines = db.deadlineDao().getAll()
+            masterBuckets = db.taskBucketDao().getAllMasterBuckets()
+            bucketOccurrences = db.taskBucketDao().getAllBucketOccurrences()
+            masterTasks = db.taskDao().getAllMasterTasks()
+            taskIntervals = db.taskDao().getAllIntervals()
+            masterReminders = db.reminderDao().getAllMasterReminders()
             reminderOccurrences = db.reminderDao().getAllOccurrences()
             db.settingsDao().getAll()?.let { dbSettings = listOf(it) } ?: run { dbSettings = emptyList() }
-            categoryATIList     = db.categoryATIDao().getAll()
-            eventATIList        = db.eventATIDao().getAll()
+            categoryATIList = db.categoryATIDao().getAll()
+            eventATIList = db.eventATIDao().getAll()
 
-            val today        = java.time.LocalDate.now()
+            val today = java.time.LocalDateTime.now()
             val allDeadlines = db.deadlineDao().getAll()
-            val autoTasks    = db.taskDao().getAllMasterTasks().filter {
+            val autoTasks = db.taskDao().getAllMasterTasks().filter {
                 it.status != 3 && it.allDay == null && it.startDate == null && it.startTime == null
             }
 
@@ -120,7 +120,12 @@ fun Settings(db: AppDatabase) {
             val rows = mutableListOf<ScheduleOrderRow>()
             for (task in autoTasks) {
                 val deadline      = task.deadlineId?.let { id -> allDeadlines.find { it.id == id } }
-                val urgency       = deadline?.let { java.time.temporal.ChronoUnit.DAYS.between(today, it.date).toInt() }
+                val urgency = deadline?.let {
+                    java.time.temporal.ChronoUnit.MINUTES.between(
+                        today,
+                        java.time.LocalDateTime.of(it.date, it.time)
+                    ).toInt()
+                }
                 val categoryScore = task.categoryId
                     ?.let { id -> categoryATIList.find { it.categoryId == id }?.score }
                     ?: noneCategoryScore
@@ -128,20 +133,39 @@ fun Settings(db: AppDatabase) {
                     ?.let { id -> eventATIList.find { it.eventId == id }?.score }
                     ?: noneEventScore
                 rows.add(ScheduleOrderRow(
-                    masterTaskId     = task.id,
-                    title            = task.title,
+                    masterTaskId = task.id,
+                    title = task.title,
                     dependencyTaskId = task.dependencyTaskId,
-                    urgency          = urgency,
-                    categoryScore    = categoryScore,
-                    eventScore       = eventScore
+                    urgency = urgency,
+                    categoryScore = categoryScore,
+                    eventScore = eventScore
                 ))
             }
-            scheduleOrderRows = rows.sortedWith(compareBy(
+            val sorted = rows.sortedWith(compareBy(
                 { it.urgency ?: Int.MAX_VALUE },
                 { -(it.categoryScore) },
                 { -(it.eventScore) },
                 { it.masterTaskId }
-            ))
+            )).toMutableList()
+
+            val orderedForDep = sorted.map { row ->
+                OrderedTask(
+                    masterTask = MasterTask(
+                        id = row.masterTaskId,
+                        title = row.title,
+                        dependencyTaskId = row.dependencyTaskId,
+                        noIntervals = 0,
+                        predictedDuration = 0
+                    ),
+                    remainingDuration = 0
+                )
+            }.toMutableList()
+
+            resolveDependencyChains(orderedForDep)
+
+            scheduleOrderRows = orderedForDep.map { ordered ->
+                sorted.first { it.masterTaskId == ordered.masterTask.id }
+            }
         }
     }
     LaunchedEffect(Unit) { refreshData() }
@@ -150,38 +174,38 @@ fun Settings(db: AppDatabase) {
         "ati" -> {
             LaunchedEffect(Unit) { refreshData() }
             ATIPage(
-                db           = db,
-                categories   = categories,
+                db = db,
+                categories = categories,
                 masterEvents = masterEvents,
-                onBack       = { currentView = "main" }
+                onBack = { currentView = "main" }
             )
             return
         }
         "database" -> {
             DatabasePage(
-                db                  = db,
-                categories          = categories,
-                masterEvents        = masterEvents,
-                eventOccurrences    = eventOccurrences,
-                deadlines           = deadlines,
-                masterBuckets       = masterBuckets,
-                bucketOccurrences   = bucketOccurrences,
-                masterTasks         = masterTasks,
-                taskIntervals       = taskIntervals,
-                masterReminders     = masterReminders,
+                db = db,
+                categories = categories,
+                masterEvents = masterEvents,
+                eventOccurrences = eventOccurrences,
+                deadlines = deadlines,
+                masterBuckets = masterBuckets,
+                bucketOccurrences = bucketOccurrences,
+                masterTasks = masterTasks,
+                taskIntervals = taskIntervals,
+                masterReminders = masterReminders,
                 reminderOccurrences = reminderOccurrences,
-                categoryATIList     = categoryATIList,
-                eventATIList        = eventATIList,
-                settings            = dbSettings,
-                onBack              = { currentView = "main" },
-                onRefresh           = { refreshData() }
+                categoryATIList = categoryATIList,
+                eventATIList = eventATIList,
+                settings = dbSettings,
+                onBack = { currentView = "main" },
+                onRefresh = { refreshData() }
             )
             return
         }
         "schedule" -> {
             SchedulePage(
                 scheduleOrderRows = scheduleOrderRows,
-                onBack            = { currentView = "main" }
+                onBack = { currentView = "main" }
             )
             return
         }

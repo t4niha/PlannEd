@@ -107,7 +107,7 @@ fun runSample(db: AppDatabase) = runBlocking {
         categoryId = schoolCatId
     )
 
-    EventManager.insert(
+    val socialStudiesEventId = EventManager.insert(
         db = db,
         title = "Social Studies Class",
         notes = "Prof. Thalia — Room 215",
@@ -121,7 +121,7 @@ fun runSample(db: AppDatabase) = runBlocking {
         categoryId = schoolCatId
     )
 
-    EventManager.insert(
+    val bandPracticeEventId = EventManager.insert(
         db = db,
         title = "Band Practice",
         notes = "Main Auditorium",
@@ -207,21 +207,21 @@ fun runSample(db: AppDatabase) = runBlocking {
 
     // DEADLINES
 
-    DeadlineManager.insert(
+    val chemQuizDeadlineId = DeadlineManager.insert(
         db = db,
-        title = "Math Quiz",
-        notes = "Chapter 3 Integrals",
-        date = thisTuesday,
+        title = "Chemistry Quiz",
+        notes = "Chapter 3 Atomic Structure",
+        date = thisThursday,
         time = LocalTime.of(12, 40),
         categoryId = schoolCatId,
-        eventId = mathEventId
+        eventId = chemistryEventId
     )
 
-    DeadlineManager.insert(
+    val shakespeareEssayId = DeadlineManager.insert(
         db = db,
         title = "Shakespeare Essay",
         notes = "Upload on Canvas",
-        date = thisThursday,
+        date = thisTuesday,
         time = LocalTime.of(20, 0),
         categoryId = schoolCatId,
         eventId = englishEventId
@@ -229,12 +229,12 @@ fun runSample(db: AppDatabase) = runBlocking {
 
     DeadlineManager.insert(
         db = db,
-        title = "Chemistry Homework",
+        title = "Biology Homework",
         notes = "Upload on Canvas",
         date = thisSaturday,
         time = LocalTime.of(20, 0),
         categoryId = schoolCatId,
-        eventId = chemistryEventId
+        eventId = biologyEventId
     )
 
     // TASK BUCKETS
@@ -317,74 +317,227 @@ fun runSample(db: AppDatabase) = runBlocking {
         dependencyTaskId = null
     )
 
-    // HISTORICAL COMPLETED TASKS (for ATI seeding)
+    // AUTO-SCHEDULED TASKS
+
+    val copyChemNotesId = TaskManager.insert(
+        db = db,
+        title = "Copy Chem Notes",
+        notes = "Get notes from Radia on missed classes",
+        allDay = null,
+        breakable = false,
+        startDate = null,
+        startTime = null,
+        predictedDuration = 60,
+        categoryId = schoolCatId,
+        eventId = chemistryEventId,
+        deadlineId = null,
+        dependencyTaskId = null
+    )
+
+    TaskManager.insert(
+        db = db,
+        title = "Study Atomic Structure",
+        notes = "Ch. 4 pages 68-91",
+        allDay = null,
+        breakable = false,
+        startDate = null,
+        startTime = null,
+        predictedDuration = 60,
+        categoryId = schoolCatId,
+        eventId = chemistryEventId,
+        deadlineId = chemQuizDeadlineId,
+        dependencyTaskId = copyChemNotesId
+    )
+
+    TaskManager.insert(
+        db = db,
+        title = "Hamlet Essay",
+        notes = "Analysis on protagonist versus antagonist",
+        allDay = null,
+        breakable = false,
+        startDate = null,
+        startTime = null,
+        predictedDuration = 60,
+        categoryId = schoolCatId,
+        eventId = englishEventId,
+        deadlineId = shakespeareEssayId,
+        dependencyTaskId = null
+    )
+
+    TaskManager.insert(
+        db = db,
+        title = "Math Homework",
+        notes = "Ch. 3 exercise 3.4 Q 1-20",
+        allDay = null,
+        breakable = false,
+        startDate = null,
+        startTime = null,
+        predictedDuration = 60,
+        categoryId = schoolCatId,
+        eventId = mathEventId,
+        deadlineId = null,
+        dependencyTaskId = null
+    )
+
+    TaskManager.insert(
+        db = db,
+        title = "Social Studies Project",
+        notes = "Research important figures in ancient civilizations",
+        allDay = null,
+        breakable = false,
+        startDate = null,
+        startTime = null,
+        predictedDuration = 60,
+        categoryId = schoolCatId,
+        eventId = socialStudiesEventId,
+        deadlineId = null,
+        dependencyTaskId = null
+    )
+
+    TaskManager.insert(
+        db = db,
+        title = "Practice Staccato Swap",
+        notes = "Drill staccato hand swap transitions from lesson book",
+        allDay = null,
+        breakable = false,
+        startDate = null,
+        startTime = null,
+        predictedDuration = 60,
+        categoryId = ecCatId,
+        eventId = pianoLessonEventId,
+        deadlineId = null,
+        dependencyTaskId = null
+    )
+
+    TaskManager.insert(
+        db = db,
+        title = "Rehearse Setlist",
+        notes = "Run through full band setlist on beat",
+        allDay = null,
+        breakable = false,
+        startDate = null,
+        startTime = null,
+        predictedDuration = 60,
+        categoryId = ecCatId,
+        eventId = bandPracticeEventId,
+        deadlineId = null,
+        dependencyTaskId = null
+    )
+
+    TaskManager.insert(
+        db = db,
+        title = "Review Finances",
+        notes = "Go over recent purchases and update budget",
+        allDay = null,
+        breakable = false,
+        startDate = null,
+        startTime = null,
+        predictedDuration = 60,
+        categoryId = null,
+        eventId = null,
+        deadlineId = null,
+        dependencyTaskId = null
+    )
+
+    TaskManager.insert(
+        db = db,
+        title = "Make Reading List",
+        notes = "3 books to read over the vacation",
+        allDay = null,
+        breakable = false,
+        startDate = null,
+        startTime = null,
+        predictedDuration = 60,
+        categoryId = null,
+        eventId = null,
+        deadlineId = null,
+        dependencyTaskId = null
+    )
+
+    generateTaskIntervals(db)
+
+    // COMPLETED TASKS
+
+    val lastWeekMonday = today.minusWeeks(1).with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
 
     // Math Class tasks
     db.taskDao().insert(MasterTask(
         title = "Math Homework 1", noIntervals = 0,
         predictedDuration = 45, overTime = 20, deadlineMissed = false,
-        status = 3, categoryId = schoolCatId, eventId = mathEventId
+        status = 3, categoryId = schoolCatId, eventId = mathEventId,
+        completedAt = lastWeekMonday.atTime(17, 5)
     ))
     db.taskDao().insert(MasterTask(
         title = "Math Homework 2", noIntervals = 0,
         predictedDuration = 60, overTime = 35, deadlineMissed = true,
-        status = 3, categoryId = schoolCatId, eventId = mathEventId
+        status = 3, categoryId = schoolCatId, eventId = mathEventId,
+        completedAt = lastWeekMonday.plusDays(2).atTime(18, 35)
     ))
     db.taskDao().insert(MasterTask(
         title = "Math Homework 3", noIntervals = 0,
         predictedDuration = 30, overTime = 25, deadlineMissed = true,
-        status = 3, categoryId = schoolCatId, eventId = mathEventId
+        status = 3, categoryId = schoolCatId, eventId = mathEventId,
+        completedAt = lastWeekMonday.plusDays(4).atTime(16, 55)
     ))
 
     // English Class tasks
     db.taskDao().insert(MasterTask(
         title = "English Essay 1", noIntervals = 0,
         predictedDuration = 90, overTime = 15, deadlineMissed = false,
-        status = 3, categoryId = schoolCatId, eventId = englishEventId
+        status = 3, categoryId = schoolCatId, eventId = englishEventId,
+        completedAt = lastWeekMonday.plusDays(1).atTime(17, 45)
     ))
     db.taskDao().insert(MasterTask(
         title = "English Essay 2", noIntervals = 0,
         predictedDuration = 75, overTime = 0, deadlineMissed = false,
-        status = 3, categoryId = schoolCatId, eventId = englishEventId
+        status = 3, categoryId = schoolCatId, eventId = englishEventId,
+        completedAt = lastWeekMonday.plusDays(3).atTime(16, 15)
     ))
     db.taskDao().insert(MasterTask(
         title = "English Essay 3", noIntervals = 0,
         predictedDuration = 120, overTime = 30, deadlineMissed = true,
-        status = 3, categoryId = schoolCatId, eventId = englishEventId
+        status = 3, categoryId = schoolCatId, eventId = englishEventId,
+        completedAt = lastWeekMonday.plusDays(5).atTime(19, 30)
     ))
 
     // Piano Lesson tasks
     db.taskDao().insert(MasterTask(
         title = "Piano Practice 1", noIntervals = 0,
         predictedDuration = 30, overTime = 5, deadlineMissed = false,
-        status = 3, categoryId = ecCatId, eventId = pianoLessonEventId
+        status = 3, categoryId = ecCatId, eventId = pianoLessonEventId,
+        completedAt = lastWeekMonday.atTime(16, 35)
     ))
     db.taskDao().insert(MasterTask(
         title = "Piano Practice 2", noIntervals = 0,
         predictedDuration = 25, overTime = 0, deadlineMissed = false,
-        status = 3, categoryId = ecCatId, eventId = pianoLessonEventId
+        status = 3, categoryId = ecCatId, eventId = pianoLessonEventId,
+        completedAt = lastWeekMonday.plusDays(2).atTime(17, 25)
     ))
     db.taskDao().insert(MasterTask(
         title = "Piano Practice 3", noIntervals = 0,
         predictedDuration = 20, overTime = 10, deadlineMissed = false,
-        status = 3, categoryId = ecCatId, eventId = pianoLessonEventId
+        status = 3, categoryId = ecCatId, eventId = pianoLessonEventId,
+        completedAt = lastWeekMonday.plusDays(4).atTime(16, 30)
     ))
 
     // Home tasks
     db.taskDao().insert(MasterTask(
         title = "Clean Kitchen", noIntervals = 0,
         predictedDuration = 45, overTime = 15, deadlineMissed = false,
-        status = 3, categoryId = homeCatId, eventId = null
+        status = 3, categoryId = homeCatId, eventId = null,
+        completedAt = lastWeekMonday.plusDays(1).atTime(18, 0)
     ))
     db.taskDao().insert(MasterTask(
         title = "Laundry", noIntervals = 0,
         predictedDuration = 30, overTime = 0, deadlineMissed = false,
-        status = 3, categoryId = homeCatId, eventId = null
+        status = 3, categoryId = homeCatId, eventId = null,
+        completedAt = lastWeekMonday.plusDays(3).atTime(15, 30)
     ))
     db.taskDao().insert(MasterTask(
         title = "Grocery Run", noIntervals = 0,
         predictedDuration = 60, overTime = 20, deadlineMissed = false,
-        status = 3, categoryId = homeCatId, eventId = null
+        status = 3, categoryId = homeCatId, eventId = null,
+        completedAt = lastWeekMonday.plusDays(5).atTime(17, 20)
     ))
 
     // PATCH ATI RECORDS
@@ -456,6 +609,17 @@ fun runSample(db: AppDatabase) = runBlocking {
             paddingSlope = -0.5f,
             paddingIntercept = 17.5f,
             score = 0.0333f
+        ))
+    }
+    db.eventATIDao().getById(0)?.let {
+        db.eventATIDao().update(it.copy(
+            tasksCompleted    = 3,
+            deadlineMissCount = 0,
+            avgOvertime       = 11.6667f,
+            predictedPadding  = 15,
+            paddingSlope      = 0.6667f,
+            paddingIntercept  = -18.3333f,
+            score             = 0.0778f
         ))
     }
 }
