@@ -3,6 +3,7 @@ package com.planned
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -32,6 +33,8 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.core.graphics.withSave
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -796,9 +799,37 @@ fun DatabasePage(
                 headers: List<String>,
                 rowContent: (T) -> List<String>
             ) {
-                Text(title, style = MaterialTheme.typography.titleMedium, color = Color.Black)
+                var expanded by remember { mutableStateOf(false) }
+                val chevronRotation by animateFloatAsState(
+                    targetValue = if (expanded) 180f else 0f,
+                    animationSpec = tween(durationMillis = 300),
+                    label = "chevron_$title"
+                )
+
+                // Title row with chevron toggle
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) { expanded = !expanded }
+                        .padding(vertical = 4.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.KeyboardArrowDown,
+                        contentDescription = if (expanded) "Collapse" else "Expand",
+                        tint = Color.Gray,
+                        modifier = Modifier
+                            .size(20.dp)
+                            .graphicsLayer { rotationZ = chevronRotation }
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(title, style = MaterialTheme.typography.titleMedium, color = Color.Black)
+                }
                 Spacer(Modifier.height(8.dp))
                 Column(modifier = Modifier.border(1.dp, GRID_COLOR)) {
+                    // Header row — always visible
                     Row(
                         modifier = Modifier
                             .background(HEADER_BG)
@@ -823,39 +854,48 @@ fun DatabasePage(
                             ) { Text(header, color = Color.Black) }
                         }
                     }
-                    val rows = data.ifEmpty { listOf(null) }
-                    rows.forEach { row ->
-                        val values = row?.let { rowContent(it) } ?: headers.map { "" }
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(IntrinsicSize.Min)
-                                .drawWithContent {
-                                    drawContent()
-                                    drawLine(
-                                        color       = GRID_COLOR,
-                                        start       = Offset(0f, size.height),
-                                        end         = Offset(size.width, size.height),
-                                        strokeWidth = 1.dp.toPx()
-                                    )
-                                }
-                        ) {
-                            values.forEachIndexed { index, value ->
-                                Box(
+                    // Data rows — collapsible with smooth animation
+                    AnimatedVisibility(
+                        visible = expanded,
+                        enter = expandVertically(animationSpec = tween(durationMillis = 300)),
+                        exit  = shrinkVertically(animationSpec = tween(durationMillis = 300))
+                    ) {
+                        Column {
+                            val rows = data.ifEmpty { listOf(null) }
+                            rows.forEach { row ->
+                                val values = row?.let { rowContent(it) } ?: headers.map { "" }
+                                Row(
                                     modifier = Modifier
-                                        .width(COLUMN_WIDTH)
-                                        .fillMaxHeight()
+                                        .fillMaxWidth()
+                                        .height(IntrinsicSize.Min)
                                         .drawWithContent {
                                             drawContent()
-                                            if (index < values.lastIndex) drawLine(
+                                            drawLine(
                                                 color       = GRID_COLOR,
-                                                start       = Offset(size.width, 0f),
+                                                start       = Offset(0f, size.height),
                                                 end         = Offset(size.width, size.height),
                                                 strokeWidth = 1.dp.toPx()
                                             )
                                         }
-                                        .padding(8.dp)
-                                ) { Text(value, color = Color.Black) }
+                                ) {
+                                    values.forEachIndexed { index, value ->
+                                        Box(
+                                            modifier = Modifier
+                                                .width(COLUMN_WIDTH)
+                                                .fillMaxHeight()
+                                                .drawWithContent {
+                                                    drawContent()
+                                                    if (index < values.lastIndex) drawLine(
+                                                        color       = GRID_COLOR,
+                                                        start       = Offset(size.width, 0f),
+                                                        end         = Offset(size.width, size.height),
+                                                        strokeWidth = 1.dp.toPx()
+                                                    )
+                                                }
+                                                .padding(8.dp)
+                                        ) { Text(value, color = Color.Black) }
+                                    }
+                                }
                             }
                         }
                     }
@@ -1014,12 +1054,14 @@ fun DatabasePage(
                 title   = "Category ATI",
                 data    = categoryATIList,
                 headers = listOf(
-                    "Category ID", "Score", "Deadline Misses",
+                    "Category ID", "Title", "Score", "Deadline Misses",
                     "Avg Overtime", "Tasks Completed", "Avg Padding", "Slope", "Intercept"
                 )
             ) { a ->
+                val categoryTitle = if (a.categoryId == 0) "None"
+                else categories.find { it.id == a.categoryId }?.title ?: ""
                 listOf(
-                    a.categoryId.toString(), "%.3f".format(a.score),
+                    a.categoryId.toString(), categoryTitle, "%.3f".format(a.score),
                     a.deadlineMissCount.toString(), "%.1f".format(a.avgOvertime),
                     a.tasksCompleted.toString(), a.predictedPadding.toString(),
                     "%.3f".format(a.paddingSlope), "%.3f".format(a.paddingIntercept)
@@ -1030,12 +1072,14 @@ fun DatabasePage(
                 title   = "Event ATI",
                 data    = eventATIList,
                 headers = listOf(
-                    "Event ID", "Score", "Deadline Misses",
+                    "Event ID", "Title", "Score", "Deadline Misses",
                     "Avg Overtime", "Tasks Completed", "Avg Padding", "Slope", "Intercept"
                 )
             ) { a ->
+                val eventTitle = if (a.eventId == 0) "None"
+                else masterEvents.find { it.id == a.eventId }?.title ?: ""
                 listOf(
-                    a.eventId.toString(), "%.3f".format(a.score),
+                    a.eventId.toString(), eventTitle, "%.3f".format(a.score),
                     a.deadlineMissCount.toString(), "%.1f".format(a.avgOvertime),
                     a.tasksCompleted.toString(), a.predictedPadding.toString(),
                     "%.3f".format(a.paddingSlope), "%.3f".format(a.paddingIntercept)
