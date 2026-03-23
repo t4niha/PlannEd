@@ -14,7 +14,6 @@ const val MIN_INTERVAL_SIZE = 10
 //<editor-fold desc="Colors">
 val BackgroundColor = Color.White
 const val CardColor = 0xFFF1F1F1
-val StripeColor = Color.Black.copy(alpha = 0.2f)
 
 // Object Presets
 val Preset1 = Color(0xFFC2B6B2)
@@ -57,7 +56,7 @@ const val TOTAL_PAGES = 20000
 val HourHeight = 80.dp
 val INNER_CIRCLE_SIZE = 12.dp
 const val ELEMENT_CORNER_RADIUS_DAY = 12
-const val ELEMENT_CORNER_RADIUS_WEEK = 2
+const val ELEMENT_CORNER_RADIUS_WEEK = 3
 const val ELEMENT_HORIZONTAL_PADDING = 0.75
 const val ELEMENT_VERTICAL_PADDING = 2
 const val ELEMENT_TEXT_PADDING = 8

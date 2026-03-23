@@ -37,6 +37,7 @@ data class EventBlock(
     val occurrence: EventOccurrence,
     val master: MasterEvent,
     val color: Color,
+    val stripeColor: Color,
     val title: String,
     val startTime: LocalTime,
     val endTime: LocalTime
@@ -68,7 +69,7 @@ suspend fun getEventsForDate(db: AppDatabase, date: LocalDate): List<EventBlock>
     return occurrences.mapNotNull { occurrence ->
         val master = masters.find { it.id == occurrence.masterEventId } ?: return@mapNotNull null
 
-        // Determine color
+        // Determine block fill color
         val color = when {
             master.color != null -> Converters.toColor(master.color)
             master.categoryId != null -> {
@@ -77,10 +78,18 @@ suspend fun getEventsForDate(db: AppDatabase, date: LocalDate): List<EventBlock>
             else -> Preset1
         }
 
+        // Determine stripe color: always category color, falls back to StripeColor if no category
+        val stripeColor = (master.categoryId?.let { catId ->
+            categories.find { it.id == catId }?.color?.let { Converters.toColor(it) }
+        } ?: Preset1).let { base ->
+            Color(red = base.red * 0.8f, green = base.green * 0.8f, blue = base.blue * 0.8f, alpha = base.alpha)
+        }
+
         EventBlock(
             occurrence = occurrence,
             master = master,
             color = color,
+            stripeColor = stripeColor,
             title = master.title,
             startTime = occurrence.startTime,
             endTime = occurrence.endTime
@@ -133,10 +142,14 @@ suspend fun getTasksForDate(db: AppDatabase, date: LocalDate): List<TaskBlock> {
             else -> Color.LightGray
         }
 
+        val borderColor = color.let { base ->
+            Color(red = base.red * 0.8f, green = base.green * 0.8f, blue = base.blue * 0.8f, alpha = base.alpha)
+        }
+
         TaskBlock(
             interval = interval,
             master = master,
-            color = color,
+            color = borderColor,
             title = master.title,
             startTime = interval.startTime,
             endTime = interval.endTime
@@ -235,7 +248,7 @@ fun RenderEventBlock(
     val showText = durationMinutes >= 30
     val showTime = durationMinutes >= 50
 
-    Box(
+    Row(
         modifier = modifier
             .offset(y = yOffset)
             .height(height)
@@ -248,28 +261,35 @@ fun RenderEventBlock(
                 com.planned.selectedEventOccurrenceForInfo = event.occurrence
                 com.planned.currentScreen = "EventInfo"
             }
-            .padding(vertical = ELEMENT_TEXT_PADDING.dp, horizontal = 10.dp)
     ) {
-        if (showText) {
-            Column(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.Top
-            ) {
-                Text(
-                    text = event.title,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = Color.DarkGray,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                if (showTime) {
+        Box(
+            modifier = Modifier
+                .width(10.dp)
+                .fillMaxHeight()
+                .background(event.stripeColor)
+        )
+        Box(modifier = Modifier.padding(ELEMENT_TEXT_PADDING.dp)) {
+            if (showText) {
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.Top
+                ) {
                     Text(
-                        text = timeText,
+                        text = event.title,
                         fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium,
                         color = Color.DarkGray,
-                        maxLines = 1
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
+                    if (showTime) {
+                        Text(
+                            text = timeText,
+                            fontSize = 16.sp,
+                            color = Color.DarkGray,
+                            maxLines = 1
+                        )
+                    }
                 }
             }
         }
@@ -326,48 +346,42 @@ fun RenderTaskBlock(
     val showText = durationMinutes >= 30
     val showTime = durationMinutes >= 50
 
-    Row(
+    Box(
         modifier = modifier
             .offset(y = yOffset)
             .height(height)
             .padding(bottom = ELEMENT_VERTICAL_PADDING.dp)
             .fillMaxWidth()
             .padding(end = 20.dp)
+            .border(4.dp, task.color, RoundedCornerShape(ELEMENT_CORNER_RADIUS_DAY.dp))
             .clip(RoundedCornerShape(ELEMENT_CORNER_RADIUS_DAY.dp))
-            .background(task.color)
+            .background(BackgroundColor)
             .clickable {
                 com.planned.selectedTaskForInfo = task.master
                 com.planned.currentScreen = "TaskInfo"
             }
+            .padding(vertical = ELEMENT_TEXT_PADDING.dp, horizontal = 10.dp)
     ) {
-        Box(
-            modifier = Modifier
-                .width(10.dp)
-                .fillMaxHeight()
-                .background(StripeColor)
-        )
-        Box(modifier = Modifier.padding(ELEMENT_TEXT_PADDING.dp)) {
-            if (showText) {
-                Column(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.Top
-                ) {
+        if (showText) {
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.Top
+            ) {
+                Text(
+                    text = task.title,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color.DarkGray,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                if (showTime) {
                     Text(
-                        text = task.title,
+                        text = timeText,
                         fontSize = 16.sp,
-                        fontWeight = FontWeight.Medium,
                         color = Color.DarkGray,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        maxLines = 1
                     )
-                    if (showTime) {
-                        Text(
-                            text = timeText,
-                            fontSize = 16.sp,
-                            color = Color.DarkGray,
-                            maxLines = 1
-                        )
-                    }
                 }
             }
         }
@@ -447,11 +461,11 @@ fun RenderEventBlockWeek(
 
     val timeFormatter = DateTimeFormatter.ofPattern("h:mm a")
 
-    Box(
+    Row(
         modifier = modifier
             .offset(y = yOffset)
             .height(height)
-            .padding(horizontal = ELEMENT_HORIZONTAL_PADDING.dp, vertical = ELEMENT_VERTICAL_PADDING.dp)
+            .padding(end = 4.dp, start = 0.dp, top = ELEMENT_VERTICAL_PADDING.dp, bottom = ELEMENT_VERTICAL_PADDING.dp)
             .fillMaxWidth()
             .clip(RoundedCornerShape(ELEMENT_CORNER_RADIUS_WEEK.dp))
             .background(event.color)
@@ -460,27 +474,34 @@ fun RenderEventBlockWeek(
                 com.planned.selectedEventOccurrenceForInfo = event.occurrence
                 com.planned.currentScreen = "EventInfo"
             }
-            .padding(4.dp)
     ) {
-        if (showWeekText) {
-            Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
-                Text(
-                    text = event.title,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Medium,
-                    lineHeight = 12.sp,
-                    color = Color.DarkGray,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                if (showWeekTime) {
+        Box(
+            modifier = Modifier
+                .width(4.dp)
+                .fillMaxHeight()
+                .background(event.stripeColor)
+        )
+        Box(modifier = Modifier.padding(4.dp)) {
+            if (showWeekText) {
+                Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
                     Text(
-                        text = event.startTime.format(timeFormatter),
+                        text = event.title,
                         fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
                         lineHeight = 12.sp,
                         color = Color.DarkGray,
-                        maxLines = 1
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
+                    if (showWeekTime) {
+                        Text(
+                            text = event.startTime.format(timeFormatter),
+                            fontSize = 12.sp,
+                            lineHeight = 12.sp,
+                            color = Color.DarkGray,
+                            maxLines = 1
+                        )
+                    }
                 }
             }
         }
@@ -502,7 +523,7 @@ fun RenderTaskBucketBlockWeek(
         modifier = modifier
             .offset(y = yOffset)
             .height(height)
-            .padding(horizontal = ELEMENT_HORIZONTAL_PADDING.dp, vertical = ELEMENT_VERTICAL_PADDING.dp)
+            .padding(end = 4.dp, start = 0.dp, top = ELEMENT_VERTICAL_PADDING.dp, bottom = ELEMENT_VERTICAL_PADDING.dp)
             .fillMaxWidth()
             .clip(RoundedCornerShape(ELEMENT_CORNER_RADIUS_WEEK.dp))
             .background(Color(CardColor))
@@ -535,47 +556,41 @@ fun RenderTaskBlockWeek(
 
     val timeFormatter = DateTimeFormatter.ofPattern("h:mm a")
 
-    Row(
+    Box(
         modifier = modifier
             .offset(y = yOffset)
             .height(height)
-            .padding(horizontal = ELEMENT_HORIZONTAL_PADDING.dp, vertical = ELEMENT_VERTICAL_PADDING.dp)
+            .padding(end = 4.dp, start = 0.dp, top = ELEMENT_VERTICAL_PADDING.dp, bottom = ELEMENT_VERTICAL_PADDING.dp)
             .fillMaxWidth()
             .padding(end = 6.dp)
+            .border(2.dp, task.color, RoundedCornerShape(ELEMENT_CORNER_RADIUS_WEEK.dp))
             .clip(RoundedCornerShape(ELEMENT_CORNER_RADIUS_WEEK.dp))
-            .background(task.color)
+            .background(BackgroundColor)
             .clickable {
                 com.planned.selectedTaskForInfo = task.master
                 com.planned.currentScreen = "TaskInfo"
             }
+            .padding(4.dp)
     ) {
-        Box(
-            modifier = Modifier
-                .width(4.dp)
-                .fillMaxHeight()
-                .background(StripeColor)
-        )
-        Box(modifier = Modifier.padding(4.dp)) {
-            if (showWeekText) {
-                Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
+        if (showWeekText) {
+            Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
+                Text(
+                    text = task.title,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                    lineHeight = 12.sp,
+                    color = Color.DarkGray,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                if (showWeekTime) {
                     Text(
-                        text = task.title,
+                        text = task.startTime.format(timeFormatter),
                         fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium,
                         lineHeight = 12.sp,
                         color = Color.DarkGray,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        maxLines = 1
                     )
-                    if (showWeekTime) {
-                        Text(
-                            text = task.startTime.format(timeFormatter),
-                            fontSize = 12.sp,
-                            lineHeight = 12.sp,
-                            color = Color.DarkGray,
-                            maxLines = 1
-                        )
-                    }
                 }
             }
         }
