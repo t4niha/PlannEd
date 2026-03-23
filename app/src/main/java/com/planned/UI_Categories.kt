@@ -144,6 +144,8 @@ fun CategoryListItem(
             text = category.title,
             fontSize = 16.sp,
             fontWeight = FontWeight.Medium,
+            maxLines = 1,
+            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f)
         )
         Spacer(modifier = Modifier.width(8.dp))

@@ -168,7 +168,7 @@ fun EventListItem(
         Box(modifier = Modifier.size(INNER_CIRCLE_SIZE).background(eventColor, CircleShape))
         Spacer(modifier = Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text(text = event.title, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+            Text(text = event.title, fontSize = 16.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
             Text(text = "$timeText, $recurrenceText", fontSize = 14.sp, color = Color.Gray)
         }
         Spacer(modifier = Modifier.width(8.dp))
@@ -333,6 +333,8 @@ fun EventInfoPage(
                                     text = task.title,
                                     fontSize = 16.sp,
                                     fontWeight = FontWeight.Normal,
+                                    maxLines = 1,
+                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                                     modifier = Modifier.weight(1f)
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
