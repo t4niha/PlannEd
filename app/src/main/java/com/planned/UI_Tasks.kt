@@ -366,12 +366,18 @@ fun UnscheduledTaskItem(
     onClick: () -> Unit
 ) {
     var category by remember { mutableStateOf<Category?>(null) }
+    var eventColor by remember { mutableStateOf<Color?>(null) }
 
-    LaunchedEffect(task.categoryId) {
+    LaunchedEffect(task.eventId, task.categoryId) {
+        if (task.eventId != null) {
+            val event = db.eventDao().getAllMasterEvents().find { it.id == task.eventId }
+            eventColor = event?.color?.let { Converters.toColor(it) }
+                ?: event?.categoryId?.let { catId -> db.categoryDao().getAll().find { it.id == catId }?.color?.let { Converters.toColor(it) } }
+        }
         category = task.categoryId?.let { db.categoryDao().getCategoryById(it) }
     }
 
-    val innerColor = category?.let { Converters.toColor(it.color) } ?: Color.LightGray
+    val innerColor = eventColor ?: category?.let { Converters.toColor(it.color) } ?: Color.LightGray
 
     Row(
         modifier = Modifier
@@ -496,12 +502,18 @@ fun ScheduledTaskItem(
     onClick: () -> Unit
 ) {
     var category by remember { mutableStateOf<Category?>(null) }
+    var eventColor by remember { mutableStateOf<Color?>(null) }
 
-    LaunchedEffect(masterTask.categoryId) {
+    LaunchedEffect(masterTask.eventId, masterTask.categoryId) {
+        if (masterTask.eventId != null) {
+            val event = db.eventDao().getAllMasterEvents().find { it.id == masterTask.eventId }
+            eventColor = event?.color?.let { Converters.toColor(it) }
+                ?: event?.categoryId?.let { catId -> db.categoryDao().getAll().find { it.id == catId }?.color?.let { Converters.toColor(it) } }
+        }
         category = masterTask.categoryId?.let { db.categoryDao().getCategoryById(it) }
     }
 
-    val innerColor = category?.let { Converters.toColor(it.color) } ?: Color.LightGray
+    val innerColor = eventColor ?: category?.let { Converters.toColor(it.color) } ?: Color.LightGray
 
     val dateFormatter = DateTimeFormatter.ofPattern("MMMM d, yyyy")
     val timeFormatter = DateTimeFormatter.ofPattern("h:mm a")
@@ -1314,13 +1326,19 @@ fun AllDayTaskItem(
     onClick: () -> Unit
 ) {
     var category by remember { mutableStateOf<Category?>(null) }
+    var eventColor by remember { mutableStateOf<Color?>(null) }
     val dateFormatter = DateTimeFormatter.ofPattern("MMMM d, yyyy")
 
-    LaunchedEffect(task.categoryId) {
+    LaunchedEffect(task.eventId, task.categoryId) {
+        if (task.eventId != null) {
+            val event = db.eventDao().getAllMasterEvents().find { it.id == task.eventId }
+            eventColor = event?.color?.let { Converters.toColor(it) }
+                ?: event?.categoryId?.let { catId -> db.categoryDao().getAll().find { it.id == catId }?.color?.let { Converters.toColor(it) } }
+        }
         category = task.categoryId?.let { db.categoryDao().getCategoryById(it) }
     }
 
-    val circleColor = category?.let { Converters.toColor(it.color) } ?: Color.LightGray
+    val circleColor = eventColor ?: category?.let { Converters.toColor(it.color) } ?: Color.LightGray
 
     Row(
         modifier = Modifier

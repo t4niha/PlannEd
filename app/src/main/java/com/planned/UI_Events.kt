@@ -291,6 +291,12 @@ fun EventInfoPage(
                             val taskColor = remember(task) {
                                 runBlocking {
                                     when {
+                                        task.eventId != null -> {
+                                            val event = db.eventDao().getAllMasterEvents().find { it.id == task.eventId }
+                                            event?.color?.let { Converters.toColor(it) }
+                                                ?: event?.categoryId?.let { catId -> db.categoryDao().getAll().find { it.id == catId }?.color?.let { Converters.toColor(it) } }
+                                                ?: Color.Gray
+                                        }
                                         task.categoryId != null -> {
                                             val cat = db.categoryDao().getCategoryById(task.categoryId)
                                             cat?.color?.let { Converters.toColor(it) } ?: Color.Gray
