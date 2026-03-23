@@ -502,42 +502,43 @@ fun Header(
                         }
                     }
 
-                    Spacer(modifier = Modifier.width(8.dp))
-
                     // Pulsing timer icon — visible only when a task is running
                     AnimatedVisibility(
                         visible = PomodoroState.isRunning,
                         enter = expandHorizontally(),
                         exit = shrinkHorizontally()
                     ) {
-                        IconButton(
-                            onClick = {
-                                val capturedScreen = currentScreen
-                                coroutineScope.launch {
-                                    val taskId = PomodoroState.activeTaskId ?: return@launch
-                                    val task = db.taskDao().getMasterTaskById(taskId) ?: return@launch
-                                    pomodoroReturnScreen = capturedScreen
-                                    if (PomodoroState.isAllDay) {
-                                        previousAllDayTaskForInfo = selectedAllDayTaskForInfo
-                                        selectedAllDayTaskForInfo = task
-                                        currentScreen = "AllDayTaskPomodoro"
-                                    } else {
-                                        previousTaskForInfo = selectedTaskForInfo
-                                        previousTaskInfoReturnScreen = taskInfoReturnScreen
-                                        selectedTaskForInfo = task
-                                        currentScreen = "TaskPomodoro"
+                        Row {
+                            Spacer(modifier = Modifier.width(8.dp))
+                            IconButton(
+                                onClick = {
+                                    val capturedScreen = currentScreen
+                                    coroutineScope.launch {
+                                        val taskId = PomodoroState.activeTaskId ?: return@launch
+                                        val task = db.taskDao().getMasterTaskById(taskId) ?: return@launch
+                                        pomodoroReturnScreen = capturedScreen
+                                        if (PomodoroState.isAllDay) {
+                                            previousAllDayTaskForInfo = selectedAllDayTaskForInfo
+                                            selectedAllDayTaskForInfo = task
+                                            currentScreen = "AllDayTaskPomodoro"
+                                        } else {
+                                            previousTaskForInfo = selectedTaskForInfo
+                                            previousTaskInfoReturnScreen = taskInfoReturnScreen
+                                            selectedTaskForInfo = task
+                                            currentScreen = "TaskPomodoro"
+                                        }
                                     }
                                 }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Timer,
+                                    contentDescription = "Running task",
+                                    tint = PrimaryColor,
+                                    modifier = Modifier
+                                        .size(28.dp)
+                                        .graphicsLayer { alpha = pulseAlpha }
+                                )
                             }
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.Timer,
-                                contentDescription = "Running task",
-                                tint = PrimaryColor,
-                                modifier = Modifier
-                                    .size(28.dp)
-                                    .graphicsLayer { alpha = pulseAlpha }
-                            )
                         }
                     }
 
