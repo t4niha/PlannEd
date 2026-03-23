@@ -33,36 +33,33 @@ import kotlinx.coroutines.delay
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
 fun Categories(db: AppDatabase) {
-    var currentView by remember { mutableStateOf("list") }
-    var selectedCategory by remember { mutableStateOf<Category?>(null) }
-
-    when (currentView) {
+    when (categoriesCurrentView) {
         "list" -> CategoriesList(
             db = db,
             onCategoryClick = { category ->
-                selectedCategory = category
-                currentView = "info"
+                categoriesSelectedCategory = category
+                categoriesCurrentView = "info"
             }
         )
-        "info" -> selectedCategory?.let { category ->
+        "info" -> categoriesSelectedCategory?.let { category ->
             CategoryInfoPage(
                 db = db,
                 category = category,
                 onBack = {
-                    currentView = "list"
-                    selectedCategory = null
+                    categoriesCurrentView = "list"
+                    categoriesSelectedCategory = null
                 },
-                onUpdate = { currentView = "update" }
+                onUpdate = { categoriesCurrentView = "update" }
             )
         }
-        "update" -> selectedCategory?.let { category ->
+        "update" -> categoriesSelectedCategory?.let { category ->
             CategoryUpdateForm(
                 db = db,
                 category = category,
-                onBack = { currentView = "info" },
+                onBack = { categoriesCurrentView = "info" },
                 onSaveSuccess = { updatedCategory ->
-                    selectedCategory = updatedCategory
-                    currentView = "info"
+                    categoriesSelectedCategory = updatedCategory
+                    categoriesCurrentView = "info"
                 }
             )
         }

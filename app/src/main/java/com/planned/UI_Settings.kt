@@ -76,7 +76,7 @@ fun Settings(db: AppDatabase) {
     val scope = rememberCoroutineScope()
 
     // Sub-page navigation
-    var currentView by remember { mutableStateOf("main") }
+    // Uses globally hoisted state so navigation away and back preserves subpage position
 
     // Shared DB state for sub-pages
     var categories by remember { mutableStateOf(listOf<Category>()) }
@@ -173,14 +173,14 @@ fun Settings(db: AppDatabase) {
     }
     LaunchedEffect(Unit) { refreshData() }
 
-    when (currentView) {
+    when (settingsCurrentView) {
         "ati" -> {
             LaunchedEffect(Unit) { refreshData() }
             ATIPage(
                 db = db,
                 categories = categories,
                 masterEvents = masterEvents,
-                onBack = { currentView = "main" }
+                onBack = { settingsCurrentView = "main" }
             )
             return
         }
@@ -200,7 +200,7 @@ fun Settings(db: AppDatabase) {
                 categoryATIList = categoryATIList,
                 eventATIList = eventATIList,
                 settings = dbSettings,
-                onBack = { currentView = "main" },
+                onBack = { settingsCurrentView = "main" },
                 onRefresh = { refreshData() }
             )
             return
@@ -208,7 +208,7 @@ fun Settings(db: AppDatabase) {
         "schedule" -> {
             SchedulePage(
                 scheduleOrderRows = scheduleOrderRows,
-                onBack = { currentView = "main" }
+                onBack = { settingsCurrentView = "main" }
             )
             return
         }
@@ -566,9 +566,9 @@ fun Settings(db: AppDatabase) {
         Spacer(modifier = Modifier.height(12.dp))
 
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            SettingsNavItem(label = "Overtime", onClick = { currentView = "ati" })
-            SettingsNavItem(label = "Database",  onClick = { currentView = "database" })
-            SettingsNavItem(label = "Schedule",  onClick = { currentView = "schedule" })
+            SettingsNavItem(label = "Overtime", onClick = { settingsCurrentView = "ati" })
+            SettingsNavItem(label = "Database",  onClick = { settingsCurrentView = "database" })
+            SettingsNavItem(label = "Schedule",  onClick = { settingsCurrentView = "schedule" })
         }
 
         Spacer(modifier = Modifier.height(12.dp))

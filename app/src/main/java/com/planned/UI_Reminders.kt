@@ -38,43 +38,39 @@ data class ReminderUpdateFormData(
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun Reminders(db: AppDatabase) {
-    var currentView by remember { mutableStateOf("list") }
-    var selectedReminder by remember { mutableStateOf<MasterReminder?>(null) }
-    var updateFormData by remember { mutableStateOf<ReminderUpdateFormData?>(null) }
-
-    when (currentView) {
+    when (remindersCurrentView) {
         "list" -> RemindersListView(
             db = db,
             onReminderClick = { reminder ->
-                selectedReminder = reminder
-                currentView = "info"
+                remindersSelectedReminder = reminder
+                remindersCurrentView = "info"
             }
         )
-        "info" -> selectedReminder?.let { reminder ->
+        "info" -> remindersSelectedReminder?.let { reminder ->
             ReminderInfoView(
                 db = db,
                 reminder = reminder,
                 occurrence = null,
                 onBack = {
-                    currentView = "list"
-                    selectedReminder = null
-                    updateFormData = null
+                    remindersCurrentView = "list"
+                    remindersSelectedReminder = null
+                    remindersUpdateFormData = null
                 },
-                onUpdateDataReady = { data -> updateFormData = data },
-                onUpdate = { currentView = "update" }
+                onUpdateDataReady = { data -> remindersUpdateFormData = data },
+                onUpdate = { remindersCurrentView = "update" }
             )
         }
-        "update" -> selectedReminder?.let { reminder ->
-            updateFormData?.let { formData ->
+        "update" -> remindersSelectedReminder?.let { reminder ->
+            remindersUpdateFormData?.let { formData ->
                 ReminderUpdateView(
                     db = db,
                     reminder = reminder,
                     preloadedData = formData,
-                    onBack = { currentView = "info" },
+                    onBack = { remindersCurrentView = "info" },
                     onSaveSuccess = { updatedReminder ->
-                        selectedReminder = updatedReminder
-                        updateFormData = null
-                        currentView = "info"
+                        remindersSelectedReminder = updatedReminder
+                        remindersUpdateFormData = null
+                        remindersCurrentView = "info"
                     }
                 )
             }

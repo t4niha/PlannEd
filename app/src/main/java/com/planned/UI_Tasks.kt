@@ -48,142 +48,140 @@ data class UpdateFormData(
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
 fun Tasks(db: AppDatabase) {
-    var currentView by remember { mutableStateOf("main") }
-    var selectedTask by remember { mutableStateOf<MasterTask?>(null) }
-    var selectedInterval by remember { mutableStateOf<TaskInterval?>(null) }
-    var updateFormData by remember { mutableStateOf<UpdateFormData?>(null) }
+    // Uses globally hoisted state so navigation away and back preserves position
 
-    when (currentView) {
+    when (tasksCurrentView) {
         "main" -> TasksMainView(
             db = db,
-            onUnscheduledClick = { currentView = "unscheduled" },
-            onScheduledClick = { currentView = "scheduled" },
-            onAllDayClick = { currentView = "allday" }
+            onUnscheduledClick = { tasksCurrentView = "unscheduled" },
+            onScheduledClick = { tasksCurrentView = "scheduled" },
+            onAllDayClick = { tasksCurrentView = "allday" }
         )
         "unscheduled" -> UnscheduledTasksList(
             db = db,
-            onBack = { currentView = "main" },
+            onBack = { tasksCurrentView = "main" },
             onTaskClick = { task ->
-                selectedTask = task
-                currentView = "info"
+                tasksSelectedTask = task
+                tasksCurrentView = "info"
             }
         )
         "scheduled" -> ScheduledTasksList(
             db = db,
-            onBack = { currentView = "main" },
+            onBack = { tasksCurrentView = "main" },
             onTaskClick = { interval, task ->
-                selectedInterval = interval
-                selectedTask = task
-                currentView = "info"
+                tasksSelectedInterval = interval
+                tasksSelectedTask = task
+                tasksCurrentView = "info"
             }
         )
         "allday" -> AllDayTasksList(
             db = db,
-            onBack = { currentView = "main" },
+            onBack = { tasksCurrentView = "main" },
             onTaskClick = { task ->
-                selectedTask = task
-                currentView = "alldayinfo"
+                tasksSelectedTask = task
+                tasksCurrentView = "alldayinfo"
             }
         )
-        "info" -> selectedTask?.let { task ->
+        "info" -> tasksSelectedTask?.let { task ->
             TaskInfoPage(
                 db = db,
                 task = task,
                 onBack = {
-                    currentView = if (selectedInterval != null) "scheduled" else "unscheduled"
-                    selectedTask = null
-                    selectedInterval = null
-                    updateFormData = null
+                    tasksCurrentView = if (tasksSelectedInterval != null) "scheduled" else "unscheduled"
+                    tasksSelectedTask = null
+                    tasksSelectedInterval = null
+                    tasksUpdateFormData = null
                 },
-                onUpdateDataReady = { data -> updateFormData = data },
-                onUpdate = { currentView = "update" },
+                onUpdateDataReady = { data -> tasksUpdateFormData = data },
+                onUpdate = { tasksCurrentView = "update" },
                 onPlay = {
-                    pomodoroReturnScreen = if (selectedInterval != null) "scheduled" else "unscheduled"
-                    currentView = "pomodoro"
+                    pomodoroReturnScreen = "info"
+                    tasksCurrentView = "pomodoro"
                 }
             )
         }
-        "alldayinfo" -> selectedTask?.let { task ->
+        "alldayinfo" -> tasksSelectedTask?.let { task ->
             AllDayTaskInfoPage(
                 db = db,
                 task = task,
                 onBack = {
-                    currentView = "allday"
-                    selectedTask = null
-                    updateFormData = null
+                    tasksCurrentView = "allday"
+                    tasksSelectedTask = null
+                    tasksUpdateFormData = null
                 },
-                onUpdate = { currentView = "alldayupdate" },
+                onUpdate = { tasksCurrentView = "alldayupdate" },
                 onPlay = {
                     pomodoroReturnScreen = "alldayinfo"
-                    currentView = "alldaypomodoro"
+                    tasksCurrentView = "alldaypomodoro"
                 }
             )
         }
-        "update" -> selectedTask?.let { task ->
-            updateFormData?.let { formData ->
+        "update" -> tasksSelectedTask?.let { task ->
+            tasksUpdateFormData?.let { formData ->
                 TaskUpdateForm(
                     db = db,
                     task = task,
                     preloadedData = formData,
-                    onBack = { currentView = "info" },
+                    onBack = { tasksCurrentView = "info" },
                     onSaveSuccess = { updatedTask ->
-                        selectedTask = updatedTask
-                        updateFormData = null
-                        currentView = "info"
+                        tasksSelectedTask = updatedTask
+                        tasksUpdateFormData = null
+                        tasksCurrentView = "info"
                     }
                 )
             }
         }
-        "alldayupdate" -> selectedTask?.let { task ->
+        "alldayupdate" -> tasksSelectedTask?.let { task ->
             AllDayTaskUpdateForm(
                 db = db,
                 task = task,
-                onBack = { currentView = "alldayinfo" },
+                onBack = { tasksCurrentView = "alldayinfo" },
                 onSaveSuccess = { updatedTask ->
-                    selectedTask = updatedTask
-                    currentView = "alldayinfo"
+                    tasksSelectedTask = updatedTask
+                    tasksCurrentView = "alldayinfo"
                 }
             )
         }
-        "pomodoro" -> selectedTask?.let { task ->
+        "pomodoro" -> tasksSelectedTask?.let { task ->
             PomodoroPage(
                 db = db,
                 task = task,
                 onBack = {
                     val returnTo = pomodoroReturnScreen
                     pomodoroReturnScreen = "Calendars"
-                    currentView = when (returnTo) {
+                    tasksCurrentView = when (returnTo) {
+                        "info" -> "info"
                         "scheduled" -> "scheduled"
                         "unscheduled" -> "unscheduled"
-                        else -> if (selectedInterval != null) "scheduled" else "unscheduled"
+                        else -> if (tasksSelectedInterval != null) "scheduled" else "unscheduled"
                     }
                 },
                 onComplete = {
                     PomodoroState.clear()
-                    val returnTo = if (selectedInterval != null) "scheduled" else "unscheduled"
-                    selectedTask = null
-                    selectedInterval = null
-                    updateFormData = null
+                    val returnTo = if (tasksSelectedInterval != null) "scheduled" else "unscheduled"
+                    tasksSelectedTask = null
+                    tasksSelectedInterval = null
+                    tasksUpdateFormData = null
                     pomodoroReturnScreen = "Calendars"
-                    currentView = returnTo
+                    tasksCurrentView = returnTo
                 }
             )
         }
-        "alldaypomodoro" -> selectedTask?.let { task ->
+        "alldaypomodoro" -> tasksSelectedTask?.let { task ->
             AllDayPomodoroPage(
                 db = db,
                 task = task,
                 onBack = {
                     val returnTo = pomodoroReturnScreen
                     pomodoroReturnScreen = "Calendars"
-                    currentView = if (returnTo == "alldayinfo") "alldayinfo" else "allday"
+                    tasksCurrentView = if (returnTo == "alldayinfo") "alldayinfo" else "allday"
                 },
                 onComplete = {
                     PomodoroState.clear()
-                    selectedTask = null
-                    updateFormData = null
+                    tasksSelectedTask = null
+                    tasksUpdateFormData = null
                     pomodoroReturnScreen = "Calendars"
-                    currentView = "allday"
+                    tasksCurrentView = "allday"
                 }
             )
         }

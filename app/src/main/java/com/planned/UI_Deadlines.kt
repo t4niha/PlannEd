@@ -42,43 +42,39 @@ data class DeadlineUpdateFormData(
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
 fun Deadlines(db: AppDatabase) {
-    var currentView by remember { mutableStateOf("list") }
-    var selectedDeadline by remember { mutableStateOf<Deadline?>(null) }
-    var updateFormData by remember { mutableStateOf<DeadlineUpdateFormData?>(null) }
-
-    when (currentView) {
+    when (deadlinesCurrentView) {
         "list" -> DeadlinesListView(
             db = db,
             onDeadlineClick = { deadline ->
-                selectedDeadline = deadline
-                currentView = "info"
+                deadlinesSelectedDeadline = deadline
+                deadlinesCurrentView = "info"
             }
         )
-        "info" -> selectedDeadline?.let { deadline ->
+        "info" -> deadlinesSelectedDeadline?.let { deadline ->
             DeadlineInfoView(
                 db = db,
                 deadline = deadline,
                 onBack = {
-                    currentView = "list"
-                    selectedDeadline = null
-                    updateFormData = null
+                    deadlinesCurrentView = "list"
+                    deadlinesSelectedDeadline = null
+                    deadlinesUpdateFormData = null
                 },
-                onUpdateDataReady = { data -> updateFormData = data },
-                onUpdate = { currentView = "update" },
+                onUpdateDataReady = { data -> deadlinesUpdateFormData = data },
+                onUpdate = { deadlinesCurrentView = "update" },
                 deadlineReturnScreen = "Deadlines"
             )
         }
-        "update" -> selectedDeadline?.let { deadline ->
-            updateFormData?.let { formData ->
+        "update" -> deadlinesSelectedDeadline?.let { deadline ->
+            deadlinesUpdateFormData?.let { formData ->
                 DeadlineUpdateView(
                     db = db,
                     deadline = deadline,
                     preloadedData = formData,
-                    onBack = { currentView = "info" },
+                    onBack = { deadlinesCurrentView = "info" },
                     onSaveSuccess = { updatedDeadline ->
-                        selectedDeadline = updatedDeadline
-                        updateFormData = null
-                        currentView = "info"
+                        deadlinesSelectedDeadline = updatedDeadline
+                        deadlinesUpdateFormData = null
+                        deadlinesCurrentView = "info"
                     }
                 )
             }

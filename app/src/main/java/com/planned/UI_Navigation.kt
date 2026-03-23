@@ -78,6 +78,42 @@ var selectedAllDayTaskForInfo by mutableStateOf<MasterTask?>(null)
 
 // Pomodoro
 var pomodoroReturnScreen by mutableStateOf("Calendars")
+// Saved state restored when returning from timer-icon-triggered pomodoro
+var previousTaskForInfo by mutableStateOf<MasterTask?>(null)
+var previousTaskInfoReturnScreen by mutableStateOf("Calendars")
+var previousAllDayTaskForInfo by mutableStateOf<MasterTask?>(null)
+
+// Internal Tasks screen state
+var tasksCurrentView by mutableStateOf("main")
+var tasksSelectedTask by mutableStateOf<MasterTask?>(null)
+var tasksSelectedInterval by mutableStateOf<TaskInterval?>(null)
+var tasksUpdateFormData by mutableStateOf<UpdateFormData?>(null)
+
+// Internal Categories screen state
+var categoriesCurrentView by mutableStateOf("list")
+var categoriesSelectedCategory by mutableStateOf<Category?>(null)
+
+// Internal Events screen state
+var eventsCurrentView by mutableStateOf("list")
+var eventsSelectedEvent by mutableStateOf<MasterEvent?>(null)
+var eventsUpdateFormData by mutableStateOf<EventUpdateFormData?>(null)
+
+// Internal Deadlines screen state
+var deadlinesCurrentView by mutableStateOf("list")
+var deadlinesSelectedDeadline by mutableStateOf<Deadline?>(null)
+var deadlinesUpdateFormData by mutableStateOf<DeadlineUpdateFormData?>(null)
+
+// Internal Reminders screen state
+var remindersCurrentView by mutableStateOf("list")
+var remindersSelectedReminder by mutableStateOf<MasterReminder?>(null)
+var remindersUpdateFormData by mutableStateOf<ReminderUpdateFormData?>(null)
+
+// Internal TaskBuckets screen state
+var taskBucketsCurrentView by mutableStateOf("list")
+var taskBucketsSelectedBucket by mutableStateOf<MasterTaskBucket?>(null)
+
+// Internal Settings screen state
+var settingsCurrentView by mutableStateOf("main")
 //</editor-fold>
 
 /* POMODORO STATE */
@@ -194,6 +230,15 @@ fun AppNavigation(db: AppDatabase) {
                                 onBack = {
                                     val returnTo = pomodoroReturnScreen
                                     pomodoroReturnScreen = "Calendars"
+                                    // Restore previous task only if timer icon was used
+                                    // (previousTaskForInfo set), or if returning somewhere
+                                    // other than TaskInfo (so selectedTaskForInfo isn't needed)
+                                    if (previousTaskForInfo != null || returnTo != "TaskInfo") {
+                                        selectedTaskForInfo = previousTaskForInfo
+                                        taskInfoReturnScreen = previousTaskInfoReturnScreen
+                                    }
+                                    previousTaskForInfo = null
+                                    previousTaskInfoReturnScreen = "Calendars"
                                     currentScreen = returnTo
                                 },
                                 onComplete = {
@@ -202,6 +247,8 @@ fun AppNavigation(db: AppDatabase) {
                                     taskInfoReturnScreen = "Calendars"
                                     navUpdateFormData = null
                                     selectedTaskForInfo = null
+                                    previousTaskForInfo = null
+                                    previousTaskInfoReturnScreen = "Calendars"
                                     pomodoroReturnScreen = "Calendars"
                                     currentScreen = returnTo
                                 }
@@ -242,11 +289,16 @@ fun AppNavigation(db: AppDatabase) {
                                 onBack = {
                                     val returnTo = pomodoroReturnScreen
                                     pomodoroReturnScreen = "Calendars"
+                                    if (previousAllDayTaskForInfo != null || returnTo != "AllDayTaskInfo") {
+                                        selectedAllDayTaskForInfo = previousAllDayTaskForInfo
+                                    }
+                                    previousAllDayTaskForInfo = null
                                     currentScreen = returnTo
                                 },
                                 onComplete = {
                                     PomodoroState.clear()
                                     selectedAllDayTaskForInfo = null
+                                    previousAllDayTaskForInfo = null
                                     pomodoroReturnScreen = "Calendars"
                                     currentScreen = "Calendars"
                                 }
@@ -460,14 +512,18 @@ fun Header(
                     ) {
                         IconButton(
                             onClick = {
+                                val capturedScreen = currentScreen
                                 coroutineScope.launch {
                                     val taskId = PomodoroState.activeTaskId ?: return@launch
                                     val task = db.taskDao().getMasterTaskById(taskId) ?: return@launch
-                                    pomodoroReturnScreen = currentScreen
+                                    pomodoroReturnScreen = capturedScreen
                                     if (PomodoroState.isAllDay) {
+                                        previousAllDayTaskForInfo = selectedAllDayTaskForInfo
                                         selectedAllDayTaskForInfo = task
                                         currentScreen = "AllDayTaskPomodoro"
                                     } else {
+                                        previousTaskForInfo = selectedTaskForInfo
+                                        previousTaskInfoReturnScreen = taskInfoReturnScreen
                                         selectedTaskForInfo = task
                                         currentScreen = "TaskPomodoro"
                                     }

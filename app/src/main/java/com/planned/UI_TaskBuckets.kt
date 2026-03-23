@@ -52,37 +52,34 @@ fun formatBucketRecurrence(bucket: MasterTaskBucket, startWeekOnMonday: Boolean)
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
 fun TaskBuckets(db: AppDatabase) {
-    var currentView by remember { mutableStateOf("list") }
-    var selectedBucket by remember { mutableStateOf<MasterTaskBucket?>(null) }
-
-    when (currentView) {
+    when (taskBucketsCurrentView) {
         "list" -> TaskBucketsList(
             db = db,
             onBucketClick = { bucket ->
-                selectedBucket = bucket
-                currentView = "info"
+                taskBucketsSelectedBucket = bucket
+                taskBucketsCurrentView = "info"
             }
         )
-        "info" -> selectedBucket?.let { bucket ->
+        "info" -> taskBucketsSelectedBucket?.let { bucket ->
             TaskBucketInfoPage(
                 db = db,
                 bucket = bucket,
                 occurrence = null,
                 onBack = {
-                    currentView = "list"
-                    selectedBucket = null
+                    taskBucketsCurrentView = "list"
+                    taskBucketsSelectedBucket = null
                 },
-                onUpdate = { currentView = "update" }
+                onUpdate = { taskBucketsCurrentView = "update" }
             )
         }
-        "update" -> selectedBucket?.let { bucket ->
+        "update" -> taskBucketsSelectedBucket?.let { bucket ->
             TaskBucketUpdateForm(
                 db = db,
                 bucket = bucket,
-                onBack = { currentView = "info" },
+                onBack = { taskBucketsCurrentView = "info" },
                 onSaveSuccess = { updatedBucket ->
-                    selectedBucket = updatedBucket
-                    currentView = "info"
+                    taskBucketsSelectedBucket = updatedBucket
+                    taskBucketsCurrentView = "info"
                 }
             )
         }

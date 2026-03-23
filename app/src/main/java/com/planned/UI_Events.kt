@@ -39,44 +39,40 @@ data class EventUpdateFormData(
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
 fun Events(db: AppDatabase) {
-    var currentView by remember { mutableStateOf("list") }
-    var selectedEvent by remember { mutableStateOf<MasterEvent?>(null) }
-    var updateFormData by remember { mutableStateOf<EventUpdateFormData?>(null) }
-
-    when (currentView) {
+    when (eventsCurrentView) {
         "list" -> EventsList(
             db = db,
             onEventClick = { event ->
-                selectedEvent = event
-                currentView = "info"
+                eventsSelectedEvent = event
+                eventsCurrentView = "info"
             }
         )
-        "info" -> selectedEvent?.let { event ->
+        "info" -> eventsSelectedEvent?.let { event ->
             EventInfoPage(
                 db = db,
                 event = event,
                 occurrence = null,
                 onBack = {
-                    currentView = "list"
-                    selectedEvent = null
-                    updateFormData = null
+                    eventsCurrentView = "list"
+                    eventsSelectedEvent = null
+                    eventsUpdateFormData = null
                 },
-                onUpdateDataReady = { data -> updateFormData = data },
-                onUpdate = { currentView = "update" },
+                onUpdateDataReady = { data -> eventsUpdateFormData = data },
+                onUpdate = { eventsCurrentView = "update" },
                 eventReturnScreen = "Events"
             )
         }
-        "update" -> selectedEvent?.let { event ->
-            updateFormData?.let { formData ->
+        "update" -> eventsSelectedEvent?.let { event ->
+            eventsUpdateFormData?.let { formData ->
                 EventUpdateForm(
                     db = db,
                     event = event,
                     preloadedData = formData,
-                    onBack = { currentView = "info" },
+                    onBack = { eventsCurrentView = "info" },
                     onSaveSuccess = { updatedEvent ->
-                        selectedEvent = updatedEvent
-                        updateFormData = null
-                        currentView = "info"
+                        eventsSelectedEvent = updatedEvent
+                        eventsUpdateFormData = null
+                        eventsCurrentView = "info"
                     }
                 )
             }
