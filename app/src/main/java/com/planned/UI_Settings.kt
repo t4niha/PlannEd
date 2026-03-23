@@ -1375,7 +1375,7 @@ fun ATIScatterPlot(
                                 .border(1.dp, Color.LightGray, RoundedCornerShape(8.dp))
                                 .padding(12.dp)
                         ) {
-                            Text(entityNames.getOrNull(selectedEntityIndex) ?: "None", color = Color.Black)
+                            Text(entityNames.getOrNull(selectedEntityIndex) ?: "None", fontSize = 14.sp, color = Color.Black)
                         }
                         AnimatedVisibility(
                             visible = showDropdown,
@@ -1406,7 +1406,8 @@ fun ATIScatterPlot(
                                     ) {
                                         Text(
                                             name,
-                                            color      = if (isSelected) BackgroundColor else Color.Black,
+                                            fontSize = 14.sp,
+                                            color = if (isSelected) BackgroundColor else Color.Black,
                                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                                         )
                                     }
