@@ -331,7 +331,7 @@ fun DeadlineInfoView(
                                 Text(
                                     text = task.title,
                                     fontSize = 16.sp,
-                                    fontWeight = FontWeight.Medium,
+                                    fontWeight = FontWeight.Normal,
                                     modifier = Modifier.weight(1f)
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))

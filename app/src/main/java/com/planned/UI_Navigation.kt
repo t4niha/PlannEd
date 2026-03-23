@@ -588,7 +588,10 @@ fun NavigationDrawer(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(top = 128.dp)
-                    .clickable { onDrawerToggle() }
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null
+                    ) { onDrawerToggle() }
             )
         }
 
