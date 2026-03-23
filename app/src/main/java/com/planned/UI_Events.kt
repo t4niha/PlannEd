@@ -305,6 +305,8 @@ fun EventInfoPage(
                                     .clip(RoundedCornerShape(12.dp))
                                     .background(Color(CardColor))
                                     .clickable {
+                                        com.planned.eventsCurrentView = "list"
+                                        com.planned.eventsSelectedEvent = null
                                         com.planned.selectedEventForInfo = currentEvent
                                         com.planned.eventInfoReturnScreen = eventReturnScreen
                                         com.planned.selectedTaskForInfo = task

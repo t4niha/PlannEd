@@ -304,6 +304,8 @@ fun DeadlineInfoView(
                                     .clip(RoundedCornerShape(12.dp))
                                     .background(Color(CardColor))
                                     .clickable {
+                                        com.planned.deadlinesCurrentView = "list"
+                                        com.planned.deadlinesSelectedDeadline = null
                                         com.planned.selectedDeadlineForInfo = currentDeadline
                                         com.planned.deadlineInfoReturnScreen = deadlineReturnScreen
                                         com.planned.selectedTaskForInfo = task

@@ -7,6 +7,7 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.shrinkHorizontally
@@ -454,7 +455,8 @@ fun Header(
         initialValue = 1f,
         targetValue = 0.3f,
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 700)
+            animation = tween(durationMillis = 700),
+            repeatMode = RepeatMode.Reverse
         ),
         label = "pulseAlpha"
     )

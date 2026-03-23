@@ -1222,13 +1222,13 @@ fun PomodoroTimer(
                 Text(
                     text = if (isBreak) "Break" else "Task",
                     fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.Medium,
                     color = Color.White
                 )
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(10.dp))
                 Text(
                     text = String.format(Locale.US, "%02d:%02d:%02d", displayHours, displayMinutes, displaySeconds),
-                    fontSize = 20.sp,
+                    fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.White
                 )
