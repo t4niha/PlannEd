@@ -1067,7 +1067,7 @@ fun PomodoroPage(
             Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                 Column(
                     horizontalAlignment = Alignment.Start,
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(0.dp)
                 ) {
                     Text(
                         text = "Current Interval: ${currentIntervalData.currentIntervalNo}/${currentTask.noIntervals}",
@@ -1225,7 +1225,7 @@ fun PomodoroTimer(
                     fontWeight = FontWeight.Bold,
                     color = Color.White
                 )
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(12.dp))
                 Text(
                     text = String.format(Locale.US, "%02d:%02d:%02d", displayHours, displayMinutes, displaySeconds),
                     fontSize = 20.sp,
