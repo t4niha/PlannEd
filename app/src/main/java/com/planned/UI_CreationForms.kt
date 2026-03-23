@@ -48,12 +48,12 @@ fun CategoryForm(
         onNotesChange(notesValue)
         Spacer(modifier = Modifier.height(12.dp))
 
-        val colorValue = colorPickerField(
+        colorPickerField(
             label = "Color",
             initialColor = color,
-            key = resetTrigger
+            key = resetTrigger,
+            onColorChange = onColorChange
         )
-        onColorChange(colorValue)
     }
 }
 

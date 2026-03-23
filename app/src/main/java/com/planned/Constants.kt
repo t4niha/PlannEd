@@ -14,6 +14,7 @@ const val MIN_INTERVAL_SIZE = 10
 //<editor-fold desc="Colors">
 val BackgroundColor = Color.White
 const val CardColor = 0xFFF1F1F1
+val StripeColor = Color.Gray
 
 // Object Presets
 val Preset1 = Color(0xFFC2B6B2)
