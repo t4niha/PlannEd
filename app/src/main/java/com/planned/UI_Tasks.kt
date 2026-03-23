@@ -97,7 +97,10 @@ fun Tasks(db: AppDatabase) {
                 },
                 onUpdateDataReady = { data -> updateFormData = data },
                 onUpdate = { currentView = "update" },
-                onPlay = { currentView = "pomodoro" }
+                onPlay = {
+                    pomodoroReturnScreen = if (selectedInterval != null) "scheduled" else "unscheduled"
+                    currentView = "pomodoro"
+                }
             )
         }
         "alldayinfo" -> selectedTask?.let { task ->
@@ -110,7 +113,10 @@ fun Tasks(db: AppDatabase) {
                     updateFormData = null
                 },
                 onUpdate = { currentView = "alldayupdate" },
-                onPlay = { currentView = "alldaypomodoro" }
+                onPlay = {
+                    pomodoroReturnScreen = "alldayinfo"
+                    currentView = "alldaypomodoro"
+                }
             )
         }
         "update" -> selectedTask?.let { task ->
@@ -143,12 +149,22 @@ fun Tasks(db: AppDatabase) {
             PomodoroPage(
                 db = db,
                 task = task,
-                onBack = { currentView = "info" },
+                onBack = {
+                    val returnTo = pomodoroReturnScreen
+                    pomodoroReturnScreen = "Calendars"
+                    currentView = when (returnTo) {
+                        "scheduled" -> "scheduled"
+                        "unscheduled" -> "unscheduled"
+                        else -> if (selectedInterval != null) "scheduled" else "unscheduled"
+                    }
+                },
                 onComplete = {
+                    PomodoroState.clear()
                     val returnTo = if (selectedInterval != null) "scheduled" else "unscheduled"
                     selectedTask = null
                     selectedInterval = null
                     updateFormData = null
+                    pomodoroReturnScreen = "Calendars"
                     currentView = returnTo
                 }
             )
@@ -157,10 +173,16 @@ fun Tasks(db: AppDatabase) {
             AllDayPomodoroPage(
                 db = db,
                 task = task,
-                onBack = { currentView = "alldayinfo" },
+                onBack = {
+                    val returnTo = pomodoroReturnScreen
+                    pomodoroReturnScreen = "Calendars"
+                    currentView = if (returnTo == "alldayinfo") "alldayinfo" else "allday"
+                },
                 onComplete = {
+                    PomodoroState.clear()
                     selectedTask = null
                     updateFormData = null
+                    pomodoroReturnScreen = "Calendars"
                     currentView = "allday"
                 }
             )
@@ -612,12 +634,13 @@ fun TaskInfoPage(
                     ) { onBack() }
                     .size(40.dp)
             )
+            val isOtherTaskRunning = PomodoroState.activeTaskId != null && PomodoroState.activeTaskId != currentTask.id
             Box(
                 modifier = Modifier
                     .size(40.dp)
                     .clip(CircleShape)
-                    .background(PrimaryColor)
-                    .clickable { onPlay() },
+                    .background(if (isOtherTaskRunning) Color.LightGray else PrimaryColor)
+                    .clickable(enabled = !isOtherTaskRunning) { onPlay() },
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -668,7 +691,7 @@ fun TaskInfoPage(
             }
             InfoCard(listOf(
                 "Duration" to durationText,
-                "Dependency Task" to (dependencyTask?.title ?: "None"),
+                "Prerequisite Task" to (dependencyTask?.title ?: "None"),
                 "Deadline" to (deadline?.title ?: "None"),
                 "Event" to (event?.title ?: "None"),
                 "Category" to (category?.title ?: "None"),
@@ -968,9 +991,6 @@ fun PomodoroPage(
     onBack: () -> Unit,
     onComplete: () -> Unit = onBack
 ) {
-    var elapsedSeconds by remember { mutableIntStateOf(0) }
-    var sessionSeconds by remember { mutableIntStateOf(0) }
-    var isRunning by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
 
@@ -984,28 +1004,25 @@ fun PomodoroPage(
     LaunchedEffect(Unit) {
         intervals = db.taskDao().getIntervalsForTask(task.id).sortedBy { it.intervalNo }
         currentTask = db.taskDao().getMasterTaskById(task.id) ?: task
-    }
-
-    LaunchedEffect(isRunning) {
-        while (isRunning) {
-            delay(1000L)
-            elapsedSeconds++
-            sessionSeconds++
+        // If this task is already running in PomodoroState, restore — otherwise start fresh
+        if (PomodoroState.activeTaskId != task.id) {
+            PomodoroState.elapsedSeconds = 0
+            PomodoroState.sessionSeconds = 0
         }
     }
 
-    val sessionMinutes = sessionSeconds / 60
-
+    // Save progress to DB when navigating away while running (banner tap or back while running)
     DisposableEffect(Unit) {
         onDispose {
-            if (isRunning && !isCompleted) {
+            if (PomodoroState.isRunning && !isCompleted) {
                 kotlinx.coroutines.runBlocking {
-                    updateTaskProgress(db, currentTask, intervals, sessionSeconds / 60)
+                    updateTaskProgress(db, currentTask, intervals, PomodoroState.sessionSeconds / 60)
                 }
             }
         }
     }
 
+    val sessionMinutes = PomodoroState.sessionSeconds / 60
     val totalActualDuration = (currentTask.actualDuration ?: 0) + sessionMinutes
     val currentIntervalData = getCurrentIntervalData(intervals, totalActualDuration, currentTask)
 
@@ -1042,8 +1059,8 @@ fun PomodoroPage(
             }
 
             PomodoroTimer(
-                elapsedSeconds = elapsedSeconds,
-                isRunning = isRunning,
+                elapsedSeconds = PomodoroState.elapsedSeconds,
+                isRunning = PomodoroState.isRunning,
                 breakEveryMinutes = breakEvery,
                 breakDurationMinutes = breakDuration
             )
@@ -1079,13 +1096,17 @@ fun PomodoroPage(
             Button(
                 onClick = {
                     scope.launch {
-                        if (isRunning) {
-                            isRunning = false
-                            updateTaskProgress(db, currentTask, intervals, sessionMinutes)
-                            sessionSeconds = 0
+                        if (PomodoroState.isRunning) {
+                            // PAUSE: save progress, clear PomodoroState
+                            updateTaskProgress(db, currentTask, intervals, PomodoroState.sessionSeconds / 60)
+                            PomodoroState.isRunning = false
+                            PomodoroState.elapsedSeconds = 0
+                            PomodoroState.sessionSeconds = 0
+                            PomodoroState.activeTaskId = null
                             currentTask = db.taskDao().getMasterTaskById(task.id) ?: task
                             intervals = db.taskDao().getIntervalsForTask(task.id).sortedBy { it.intervalNo }
                         } else {
+                            // START: mark task in-progress, set PomodoroState
                             if (currentTask.status == 1) {
                                 intervals.firstOrNull()?.let { firstInterval ->
                                     db.taskDao().updateInterval(firstInterval.copy(status = 2))
@@ -1093,7 +1114,12 @@ fun PomodoroPage(
                                 db.taskDao().update(currentTask.copy(status = 2))
                                 currentTask = currentTask.copy(status = 2)
                             }
-                            isRunning = true
+                            PomodoroState.activeTaskId = task.id
+                            PomodoroState.activeTaskTitle = currentTask.title
+                            PomodoroState.isAllDay = false
+                            PomodoroState.breakEvery = breakEvery
+                            PomodoroState.breakDuration = breakDuration
+                            PomodoroState.isRunning = true
                         }
                     }
                 },
@@ -1101,14 +1127,14 @@ fun PomodoroPage(
                 colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
                 contentPadding = PaddingValues(16.dp)
             ) {
-                Text(if (isRunning) "Pause" else "Start", fontSize = 16.sp, color = Color.White)
+                Text(if (PomodoroState.isRunning) "Pause" else "Start", fontSize = 16.sp, color = Color.White)
             }
 
             Button(
                 onClick = {
                     scope.launch {
-                        if (isRunning) {
-                            updateTaskProgress(db, currentTask, intervals, sessionMinutes)
+                        if (PomodoroState.isRunning) {
+                            updateTaskProgress(db, currentTask, intervals, PomodoroState.sessionSeconds / 60)
                         }
                         intervals.forEach { interval -> db.taskDao().deleteInterval(interval.id) }
 
@@ -1126,6 +1152,7 @@ fun PomodoroPage(
                         db.taskDao().update(currentTask.copy(status = 3, noIntervals = 0, deadlineMissed = missedDeadline, completedAt = LocalDateTime.now()))
                         updateATIOnTaskComplete(db, currentTask)
                         isCompleted = true
+                        PomodoroState.clear()
                         onComplete()
                     }
                 },
@@ -1372,12 +1399,13 @@ fun AllDayTaskInfoPage(
                     ) { onBack() }
                     .size(40.dp)
             )
+            val isOtherTaskRunning2 = PomodoroState.activeTaskId != null && PomodoroState.activeTaskId != currentTask.id
             Box(
                 modifier = Modifier
                     .size(40.dp)
                     .clip(CircleShape)
-                    .background(PrimaryColor)
-                    .clickable { onPlay() },
+                    .background(if (isOtherTaskRunning2) Color.LightGray else PrimaryColor)
+                    .clickable(enabled = !isOtherTaskRunning2) { onPlay() },
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -1708,35 +1736,28 @@ fun AllDayPomodoroPage(
     onBack: () -> Unit,
     onComplete: () -> Unit = onBack
 ) {
-    var elapsedSeconds by remember { mutableIntStateOf(0) }
-    var sessionSeconds by remember { mutableIntStateOf(0) }
-    var isRunning by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
     var currentTask by remember { mutableStateOf(task) }
+    var isCompleted by remember { mutableStateOf(false) }
 
     val breakEvery = SettingsManager.settings?.breakEvery ?: 30
     val breakDuration = SettingsManager.settings?.breakDuration ?: 5
 
     LaunchedEffect(Unit) {
         currentTask = db.taskDao().getMasterTaskById(task.id) ?: task
-        // restore elapsed from actualDuration
-        elapsedSeconds = (currentTask.actualDuration ?: 0) * 60
-    }
-
-    LaunchedEffect(isRunning) {
-        while (isRunning) {
-            delay(1000L)
-            elapsedSeconds++
-            sessionSeconds++
+        // If this task is not the active one, start fresh
+        if (PomodoroState.activeTaskId != task.id) {
+            PomodoroState.elapsedSeconds = 0
+            PomodoroState.sessionSeconds = 0
         }
     }
 
     DisposableEffect(Unit) {
         onDispose {
-            if (isRunning) {
+            if (PomodoroState.isRunning && !isCompleted) {
                 kotlinx.coroutines.runBlocking {
-                    val sessionMinutes = sessionSeconds / 60
+                    val sessionMinutes = PomodoroState.sessionSeconds / 60
                     val newActualDuration = (currentTask.actualDuration ?: 0) + sessionMinutes
                     db.taskDao().update(currentTask.copy(actualDuration = newActualDuration, status = 2))
                 }
@@ -1744,7 +1765,7 @@ fun AllDayPomodoroPage(
         }
     }
 
-    val totalWorkedMinutes = elapsedSeconds / 60
+    val totalWorkedMinutes = ((currentTask.actualDuration ?: 0) + (PomodoroState.sessionSeconds / 60))
     val workedHours = totalWorkedMinutes / 60
     val workedMins = totalWorkedMinutes % 60
 
@@ -1781,8 +1802,8 @@ fun AllDayPomodoroPage(
             }
 
             PomodoroTimer(
-                elapsedSeconds = elapsedSeconds,
-                isRunning = isRunning,
+                elapsedSeconds = PomodoroState.elapsedSeconds,
+                isRunning = PomodoroState.isRunning,
                 breakEveryMinutes = breakEvery,
                 breakDurationMinutes = breakDuration
             )
@@ -1807,19 +1828,28 @@ fun AllDayPomodoroPage(
             Button(
                 onClick = {
                     scope.launch {
-                        if (isRunning) {
-                            isRunning = false
-                            val sessionMinutes = sessionSeconds / 60
+                        if (PomodoroState.isRunning) {
+                            // PAUSE: save progress, clear PomodoroState
+                            val sessionMinutes = PomodoroState.sessionSeconds / 60
                             val newActualDuration = (currentTask.actualDuration ?: 0) + sessionMinutes
                             db.taskDao().update(currentTask.copy(actualDuration = newActualDuration, status = 2))
+                            PomodoroState.isRunning = false
+                            PomodoroState.elapsedSeconds = 0
+                            PomodoroState.sessionSeconds = 0
+                            PomodoroState.activeTaskId = null
                             currentTask = db.taskDao().getMasterTaskById(task.id) ?: currentTask
-                            sessionSeconds = 0
                         } else {
+                            // START
                             if (currentTask.status == 1) {
                                 db.taskDao().update(currentTask.copy(status = 2))
                                 currentTask = currentTask.copy(status = 2)
                             }
-                            isRunning = true
+                            PomodoroState.activeTaskId = task.id
+                            PomodoroState.activeTaskTitle = currentTask.title
+                            PomodoroState.isAllDay = true
+                            PomodoroState.breakEvery = breakEvery
+                            PomodoroState.breakDuration = breakDuration
+                            PomodoroState.isRunning = true
                         }
                     }
                 },
@@ -1827,14 +1857,14 @@ fun AllDayPomodoroPage(
                 colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
                 contentPadding = PaddingValues(16.dp)
             ) {
-                Text(if (isRunning) "Pause" else "Start", fontSize = 16.sp, color = Color.White)
+                Text(if (PomodoroState.isRunning) "Pause" else "Start", fontSize = 16.sp, color = Color.White)
             }
 
             Button(
                 onClick = {
                     scope.launch {
-                        val completedTask = if (isRunning) {
-                            val sessionMinutes = sessionSeconds / 60
+                        val completedTask = if (PomodoroState.isRunning) {
+                            val sessionMinutes = PomodoroState.sessionSeconds / 60
                             val newActualDuration = (currentTask.actualDuration ?: 0) + sessionMinutes
                             currentTask.copy(actualDuration = newActualDuration, status = 3, completedAt = LocalDateTime.now())
                         } else {
@@ -1844,6 +1874,8 @@ fun AllDayPomodoroPage(
                         updateATIOnTaskComplete(db, completedTask)
                         onTaskDeleted(db, completedTask.id)
                         db.taskDao().deleteMasterTask(completedTask.id)
+                        isCompleted = true
+                        PomodoroState.clear()
                         onComplete()
                     }
                 },

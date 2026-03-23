@@ -2,8 +2,14 @@ package com.planned
 
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -14,12 +20,15 @@ import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Timer
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -32,7 +41,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.ui.graphics.graphicsLayer
 
 /* VARIABLES */
 //<editor-fold desc="Variables">
@@ -67,7 +75,31 @@ var selectedBucketOccurrenceForInfo by mutableStateOf<TaskBucketOccurrence?>(nul
 
 // All-Day Task
 var selectedAllDayTaskForInfo by mutableStateOf<MasterTask?>(null)
+
+// Pomodoro
+var pomodoroReturnScreen by mutableStateOf("Calendars")
 //</editor-fold>
+
+/* POMODORO STATE */
+object PomodoroState {
+    var activeTaskId by mutableStateOf<Int?>(null)
+    var activeTaskTitle by mutableStateOf("")
+    var isAllDay by mutableStateOf(false)
+    var elapsedSeconds by mutableStateOf(0)
+    var sessionSeconds by mutableStateOf(0)
+    var isRunning by mutableStateOf(false)
+    var breakEvery by mutableStateOf(30)
+    var breakDuration by mutableStateOf(5)
+
+    fun clear() {
+        activeTaskId = null
+        activeTaskTitle = ""
+        isAllDay = false
+        elapsedSeconds = 0
+        sessionSeconds = 0
+        isRunning = false
+    }
+}
 
 /* APP NAVIGATION */
 @RequiresApi(Build.VERSION_CODES.O)
@@ -75,6 +107,15 @@ var selectedAllDayTaskForInfo by mutableStateOf<MasterTask?>(null)
 fun AppNavigation(db: AppDatabase) {
     var isDrawerOpen by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
+
+    // Global pomodoro timer — lives at root, survives all navigation
+    LaunchedEffect(PomodoroState.isRunning) {
+        while (PomodoroState.isRunning) {
+            delay(1000L)
+            PomodoroState.elapsedSeconds++
+            PomodoroState.sessionSeconds++
+        }
+    }
 
     NavigationDrawer(
         isDrawerOpen = isDrawerOpen,
@@ -84,6 +125,7 @@ fun AppNavigation(db: AppDatabase) {
             containerColor = BackgroundColor,
             topBar = {
                 Header(
+                    db = db,
                     currentView = currentCalendarView,
                     onViewSelected = { view ->
                         currentCalendarView = view
@@ -124,7 +166,10 @@ fun AppNavigation(db: AppDatabase) {
                                 },
                                 onUpdateDataReady = { data -> navUpdateFormData = data },
                                 onUpdate = { currentScreen = "TaskUpdate" },
-                                onPlay = { currentScreen = "TaskPomodoro" }
+                                onPlay = {
+                                    pomodoroReturnScreen = "TaskInfo"
+                                    currentScreen = "TaskPomodoro"
+                                }
                             )
                         }
                         "TaskUpdate" -> selectedTaskForInfo?.let { task ->
@@ -146,12 +191,18 @@ fun AppNavigation(db: AppDatabase) {
                             PomodoroPage(
                                 db = db,
                                 task = task,
-                                onBack = { currentScreen = "TaskInfo" },
+                                onBack = {
+                                    val returnTo = pomodoroReturnScreen
+                                    pomodoroReturnScreen = "Calendars"
+                                    currentScreen = returnTo
+                                },
                                 onComplete = {
+                                    PomodoroState.clear()
                                     val returnTo = taskInfoReturnScreen
                                     taskInfoReturnScreen = "Calendars"
                                     navUpdateFormData = null
                                     selectedTaskForInfo = null
+                                    pomodoroReturnScreen = "Calendars"
                                     currentScreen = returnTo
                                 }
                             )
@@ -167,7 +218,10 @@ fun AppNavigation(db: AppDatabase) {
                                     selectedAllDayTaskForInfo = null
                                 },
                                 onUpdate = { currentScreen = "AllDayTaskUpdate" },
-                                onPlay = { currentScreen = "AllDayTaskPomodoro" }
+                                onPlay = {
+                                    pomodoroReturnScreen = "AllDayTaskInfo"
+                                    currentScreen = "AllDayTaskPomodoro"
+                                }
                             )
                         }
                         "AllDayTaskUpdate" -> selectedAllDayTaskForInfo?.let { task ->
@@ -185,9 +239,15 @@ fun AppNavigation(db: AppDatabase) {
                             AllDayPomodoroPage(
                                 db = db,
                                 task = task,
-                                onBack = { currentScreen = "AllDayTaskInfo" },
+                                onBack = {
+                                    val returnTo = pomodoroReturnScreen
+                                    pomodoroReturnScreen = "Calendars"
+                                    currentScreen = returnTo
+                                },
                                 onComplete = {
+                                    PomodoroState.clear()
                                     selectedAllDayTaskForInfo = null
+                                    pomodoroReturnScreen = "Calendars"
                                     currentScreen = "Calendars"
                                 }
                             )
@@ -325,13 +385,28 @@ fun AppNavigation(db: AppDatabase) {
 
 /* HEADER */
 @OptIn(ExperimentalMaterial3Api::class)
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun Header(
+    db: AppDatabase,
     currentView: String,
     onViewSelected: (String) -> Unit,
     onMenuClick: () -> Unit,
     onCreateClick: () -> Unit
 ) {
+    val coroutineScope = rememberCoroutineScope()
+
+    // Pulse animation for the timer icon
+    val infiniteTransition = rememberInfiniteTransition(label = "timerPulse")
+    val pulseAlpha by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 0.3f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 700)
+        ),
+        label = "pulseAlpha"
+    )
+
     Column(modifier = Modifier.background(BackgroundColor)) {
         CenterAlignedTopAppBar(
             navigationIcon = {
@@ -376,6 +451,39 @@ fun Header(
                     }
 
                     Spacer(modifier = Modifier.width(8.dp))
+
+                    // Pulsing timer icon — visible only when a task is running
+                    AnimatedVisibility(
+                        visible = PomodoroState.isRunning,
+                        enter = expandHorizontally(),
+                        exit = shrinkHorizontally()
+                    ) {
+                        IconButton(
+                            onClick = {
+                                coroutineScope.launch {
+                                    val taskId = PomodoroState.activeTaskId ?: return@launch
+                                    val task = db.taskDao().getMasterTaskById(taskId) ?: return@launch
+                                    pomodoroReturnScreen = currentScreen
+                                    if (PomodoroState.isAllDay) {
+                                        selectedAllDayTaskForInfo = task
+                                        currentScreen = "AllDayTaskPomodoro"
+                                    } else {
+                                        selectedTaskForInfo = task
+                                        currentScreen = "TaskPomodoro"
+                                    }
+                                }
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Timer,
+                                contentDescription = "Running task",
+                                tint = PrimaryColor,
+                                modifier = Modifier
+                                    .size(28.dp)
+                                    .graphicsLayer { alpha = pulseAlpha }
+                            )
+                        }
+                    }
 
                     IconButton(onClick = onCreateClick) {
                         Icon(Icons.Filled.Add, contentDescription = "Create", modifier = Modifier.size(32.dp))
