@@ -367,34 +367,28 @@ fun colorPickerField(
                 enter = fadeIn() + expandVertically(),
                 exit = fadeOut() + shrinkVertically()
             ) {
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(4),
-                    modifier = Modifier
-                        .padding(top = 12.dp)
-                        .height(180.dp)
-                ) {
-                    items(colorPresets.size) { i ->
-                        val c = colorPresets[i]
-                        val isSelected = c == selectedColor
-                        Box(
-                            modifier = Modifier
-                                .padding(8.dp)
-                                .size(45.dp)
-                                .then(
-                                    if (isSelected) {
-                                        Modifier.border(3.dp, PrimaryColor, CircleShape)
-                                    } else {
-                                        Modifier
+                Column {
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(4),
+                        modifier = Modifier
+                            .padding(top = 12.dp)
+                            .height(182.dp)
+                    ) {
+                        items(colorPresets.size) { i ->
+                            val c = colorPresets[i]
+                            Box(
+                                modifier = Modifier
+                                    .padding(8.dp)
+                                    .size(45.dp)
+                                    .clip(CircleShape)
+                                    .background(c)
+                                    .clickable {
+                                        selectedColor = c
+                                        showColorPicker = false
+                                        onColorChange?.invoke(c)
                                     }
-                                )
-                                .clip(CircleShape)
-                                .background(c)
-                                .clickable {
-                                    selectedColor = c
-                                    showColorPicker = false
-                                    onColorChange?.invoke(c)
-                                }
-                        )
+                            )
+                        }
                     }
                 }
             }
@@ -820,7 +814,7 @@ fun recurrencePickerField(
 
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(7),
-                    modifier = Modifier.height(220.dp)
+                    modifier = Modifier.height(215.dp)
                 ) {
                     items(31) { index ->
                         val dayNum = index + 1
@@ -861,6 +855,7 @@ fun recurrencePickerField(
             // End date options
             if (recurrenceFreq != RecurrenceFrequency.NONE) {
                 Spacer(modifier = Modifier.height(16.dp))
+                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), thickness = 1.dp, color = Color.LightGray)
 
                 // Repeat Forever toggle
                 Row(
@@ -893,7 +888,8 @@ fun recurrencePickerField(
                     enter = fadeIn() + expandVertically(),
                     exit = fadeOut() + shrinkVertically()
                 ) {
-                    Column(modifier = Modifier.padding(top = 12.dp)) {
+                    Column {
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), thickness = 1.dp, color = Color.LightGray)
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.fillMaxWidth()
@@ -1244,7 +1240,8 @@ fun schedulePickerField(
                 exit = fadeOut() + shrinkVertically()
             ) {
 
-                Column(modifier = Modifier.padding(top = 12.dp)) {
+                Column {
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), thickness = 1.dp, color = Color.LightGray)
 
                     // Date picker
                     Row(
@@ -1313,7 +1310,7 @@ fun schedulePickerField(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), thickness = 1.dp, color = Color.LightGray)
 
                     // Time picker
                     Row(
@@ -1519,7 +1516,8 @@ fun allDayPickerField(
                 enter = fadeIn() + expandVertically(),
                 exit = fadeOut() + shrinkVertically()
             ) {
-                Column(modifier = Modifier.padding(top = 12.dp)) {
+                Column {
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), thickness = 1.dp, color = Color.LightGray)
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.fillMaxWidth()
@@ -1761,7 +1759,8 @@ fun allDayTaskPickerField(
                 enter = fadeIn() + expandVertically(),
                 exit = fadeOut() + shrinkVertically()
             ) {
-                Column(modifier = Modifier.padding(top = 12.dp)) {
+                Column {
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), thickness = 1.dp, color = Color.LightGray)
                     var showDatePicker by remember { mutableStateOf(false) }
                     val dateFormatter = java.time.format.DateTimeFormatter.ofPattern("MMM d, yyyy")
 
@@ -1883,7 +1882,8 @@ fun autoScheduleTaskPickerField(
                 enter = fadeIn() + expandVertically(),
                 exit = fadeOut() + shrinkVertically()
             ) {
-                Column(modifier = Modifier.padding(top = 12.dp)) {
+                Column {
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), thickness = 1.dp, color = Color.LightGray)
                     // Duration picker
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -1991,7 +1991,7 @@ fun autoScheduleTaskPickerField(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), thickness = 1.dp, color = Color.LightGray)
 
                     // Breakable toggle
                     Row(

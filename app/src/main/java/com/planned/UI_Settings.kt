@@ -485,7 +485,7 @@ fun Settings(db: AppDatabase) {
                         columns = GridCells.Fixed(4),
                         modifier = Modifier
                             .padding(top = 12.dp)
-                            .height(183.dp)
+                            .height(182.dp)
                     ) {
                         items(colorPresets.size) { i ->
                             val c = colorPresets[i]
