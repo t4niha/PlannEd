@@ -185,7 +185,7 @@ fun typePickerField(
                     .border(3.dp, PrimaryColor, RoundedCornerShape(8.dp))
                     .padding(12.dp)
             ) {
-                Text(selectedType)
+                Text(selectedType, fontSize = 16.sp)
             }
 
             // Type options
@@ -213,6 +213,7 @@ fun typePickerField(
                         ) {
                             Text(
                                 type,
+                                fontSize = 16.sp,
                                 color = if (isSelected) BackgroundColor else Color.Black,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                             )
@@ -717,7 +718,7 @@ fun recurrencePickerField(
                     .border(1.dp, Color.LightGray, RoundedCornerShape(8.dp))
                     .padding(12.dp)
             ) {
-                Text(recurrenceText)
+                Text(recurrenceText, fontSize = 16.sp)
             }
 
             // Dropdown for frequency selection
@@ -756,6 +757,7 @@ fun recurrencePickerField(
                         ) {
                             Text(
                                 label,
+                                fontSize = 16.sp,
                                 color = if (isSelected) BackgroundColor else Color.Black,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                             )
@@ -1638,6 +1640,7 @@ fun dropdownField(
                 Text(
                     if (selectedIndex != null) items.getOrNull(selectedIndex!!) ?: "None"
                     else "None",
+                    fontSize = 16.sp,
                     color = Color.Black
                 )
             }
@@ -1673,6 +1676,7 @@ fun dropdownField(
                         ) {
                             Text(
                                 "None",
+                                fontSize = 16.sp,
                                 color = if (isNoneSelected) BackgroundColor else Color.Black,
                                 fontWeight = if (isNoneSelected) FontWeight.Bold else FontWeight.Normal
                             )
@@ -1697,6 +1701,7 @@ fun dropdownField(
                             ) {
                                 Text(
                                     item,
+                                    fontSize = 16.sp,
                                     color = if (isSelected) BackgroundColor else Color.Black,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                                 )
