@@ -232,7 +232,8 @@ fun RenderEventBlock(
     val startMinutes = event.startTime.hour * 60 + event.startTime.minute
     val endMinutes = event.endTime.hour * 60 + event.endTime.minute
     val durationMinutes = endMinutes - startMinutes
-    val showText = durationMinutes >= 35
+    val showText = durationMinutes >= 30
+    val showTime = durationMinutes >= 50
 
     Box(
         modifier = modifier
@@ -259,15 +260,17 @@ fun RenderEventBlock(
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Medium,
                     color = Color.DarkGray,
-                    maxLines = 3,
+                    maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                Text(
-                    text = timeText,
-                    fontSize = 16.sp,
-                    color = Color.DarkGray,
-                    maxLines = 1
-                )
+                if (showTime) {
+                    Text(
+                        text = timeText,
+                        fontSize = 16.sp,
+                        color = Color.DarkGray,
+                        maxLines = 1
+                    )
+                }
             }
         }
     }
@@ -320,7 +323,8 @@ fun RenderTaskBlock(
     val startMinutes = task.startTime.hour * 60 + task.startTime.minute
     val endMinutes = task.endTime.hour * 60 + task.endTime.minute
     val durationMinutes = endMinutes - startMinutes
-    val showText = durationMinutes >= 35
+    val showText = durationMinutes >= 30
+    val showTime = durationMinutes >= 50
 
     Box(
         modifier = modifier
@@ -347,15 +351,17 @@ fun RenderTaskBlock(
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Medium,
                     color = Color.DarkGray,
-                    maxLines = 3,
+                    maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                Text(
-                    text = timeText,
-                    fontSize = 16.sp,
-                    color = Color.DarkGray,
-                    maxLines = 1
-                )
+                if (showTime) {
+                    Text(
+                        text = timeText,
+                        fontSize = 16.sp,
+                        color = Color.DarkGray,
+                        maxLines = 1
+                    )
+                }
             }
         }
     }
@@ -426,6 +432,11 @@ fun RenderEventBlockWeek(
     val yOffset = calculateYOffset(event.startTime, hourHeight)
     val height = calculateHeight(event.startTime, event.endTime, hourHeight)
 
+    val startMinutes = event.startTime.hour * 60 + event.startTime.minute
+    val endMinutes = event.endTime.hour * 60 + event.endTime.minute
+    val durationMinutes = endMinutes - startMinutes
+    val showWeekText = durationMinutes >= 20
+
     Box(
         modifier = modifier
             .offset(y = yOffset)
@@ -439,7 +450,18 @@ fun RenderEventBlockWeek(
                 com.planned.selectedEventOccurrenceForInfo = event.occurrence
                 com.planned.currentScreen = "EventInfo"
             }
-    )
+            .padding(horizontal = 2.dp)
+    ) {
+        if (showWeekText) {
+            Text(
+                text = event.title,
+                fontSize = 12.sp,
+                color = Color.DarkGray,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    }
 }
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -482,6 +504,11 @@ fun RenderTaskBlockWeek(
     val yOffset = calculateYOffset(task.startTime, hourHeight)
     val height = calculateHeight(task.startTime, task.endTime, hourHeight)
 
+    val startMinutes = task.startTime.hour * 60 + task.startTime.minute
+    val endMinutes = task.endTime.hour * 60 + task.endTime.minute
+    val durationMinutes = endMinutes - startMinutes
+    val showWeekText = durationMinutes >= 20
+
     Box(
         modifier = modifier
             .offset(y = yOffset)
@@ -495,7 +522,18 @@ fun RenderTaskBlockWeek(
                 com.planned.selectedTaskForInfo = task.master
                 com.planned.currentScreen = "TaskInfo"
             }
-    )
+            .padding(horizontal = 4.dp, vertical = 2.dp)
+    ) {
+        if (showWeekText) {
+            Text(
+                text = task.title,
+                fontSize = 12.sp,
+                color = Color.DarkGray,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    }
 }
 
 /* MONTH VIEW INDICATORS */
