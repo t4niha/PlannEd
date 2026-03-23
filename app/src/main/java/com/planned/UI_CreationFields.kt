@@ -255,6 +255,7 @@ fun textInputField(
                     .fillMaxWidth()
                     .background(BackgroundColor, RoundedCornerShape(8.dp))
                     .border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)),
+                textStyle = LocalTextStyle.current.copy(fontSize = 16.sp),
                 colors = TextFieldDefaults.colors(
                     focusedContainerColor = BackgroundColor,
                     unfocusedContainerColor = BackgroundColor,
@@ -298,6 +299,7 @@ fun notesInputField(
                     .height(100.dp)
                     .background(BackgroundColor, RoundedCornerShape(8.dp))
                     .border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)),
+                textStyle = LocalTextStyle.current.copy(fontSize = 16.sp),
                 colors = TextFieldDefaults.colors(
                     focusedContainerColor = BackgroundColor,
                     unfocusedContainerColor = BackgroundColor,
