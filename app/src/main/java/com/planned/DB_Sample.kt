@@ -319,51 +319,6 @@ fun runSample(db: AppDatabase) = runBlocking {
 
     // AUTO-SCHEDULED TASKS
 
-    val copyChemNotesId = TaskManager.insert(
-        db = db,
-        title = "Copy Chem Notes",
-        notes = "Get notes from Radia on missed classes",
-        allDay = null,
-        breakable = false,
-        startDate = null,
-        startTime = null,
-        predictedDuration = 60,
-        categoryId = schoolCatId,
-        eventId = chemistryEventId,
-        deadlineId = null,
-        dependencyTaskId = null
-    )
-
-    TaskManager.insert(
-        db = db,
-        title = "Study Atomic Structure",
-        notes = "Ch. 4 pages 68-91",
-        allDay = null,
-        breakable = false,
-        startDate = null,
-        startTime = null,
-        predictedDuration = 60,
-        categoryId = schoolCatId,
-        eventId = chemistryEventId,
-        deadlineId = chemQuizDeadlineId,
-        dependencyTaskId = copyChemNotesId
-    )
-
-    TaskManager.insert(
-        db = db,
-        title = "Hamlet Essay",
-        notes = "Analysis on protagonist versus antagonist",
-        allDay = null,
-        breakable = false,
-        startDate = null,
-        startTime = null,
-        predictedDuration = 60,
-        categoryId = schoolCatId,
-        eventId = englishEventId,
-        deadlineId = shakespeareEssayId,
-        dependencyTaskId = null
-    )
-
     TaskManager.insert(
         db = db,
         title = "Math Homework",
@@ -375,36 +330,6 @@ fun runSample(db: AppDatabase) = runBlocking {
         predictedDuration = 60,
         categoryId = schoolCatId,
         eventId = mathEventId,
-        deadlineId = null,
-        dependencyTaskId = null
-    )
-
-    TaskManager.insert(
-        db = db,
-        title = "Social Studies Project",
-        notes = "Research important figures in ancient civilizations",
-        allDay = null,
-        breakable = false,
-        startDate = null,
-        startTime = null,
-        predictedDuration = 60,
-        categoryId = schoolCatId,
-        eventId = socialStudiesEventId,
-        deadlineId = null,
-        dependencyTaskId = null
-    )
-
-    TaskManager.insert(
-        db = db,
-        title = "Practice Staccato Swap",
-        notes = "Drill staccato hand swap transitions from lesson book",
-        allDay = null,
-        breakable = false,
-        startDate = null,
-        startTime = null,
-        predictedDuration = 60,
-        categoryId = ecCatId,
-        eventId = pianoLessonEventId,
         deadlineId = null,
         dependencyTaskId = null
     )
@@ -426,16 +351,16 @@ fun runSample(db: AppDatabase) = runBlocking {
 
     TaskManager.insert(
         db = db,
-        title = "Review Finances",
-        notes = "Go over recent purchases and update budget",
+        title = "Hamlet Essay",
+        notes = "Analysis on protagonist versus antagonist",
         allDay = null,
         breakable = false,
         startDate = null,
         startTime = null,
         predictedDuration = 60,
-        categoryId = null,
-        eventId = null,
-        deadlineId = null,
+        categoryId = schoolCatId,
+        eventId = englishEventId,
+        deadlineId = shakespeareEssayId,
         dependencyTaskId = null
     )
 
@@ -452,6 +377,81 @@ fun runSample(db: AppDatabase) = runBlocking {
         eventId = null,
         deadlineId = null,
         dependencyTaskId = null
+    )
+
+    val copyChemNotesId = TaskManager.insert(
+        db = db,
+        title = "Copy Chem Notes",
+        notes = "Get notes from Radia on missed classes",
+        allDay = null,
+        breakable = false,
+        startDate = null,
+        startTime = null,
+        predictedDuration = 60,
+        categoryId = schoolCatId,
+        eventId = chemistryEventId,
+        deadlineId = null,
+        dependencyTaskId = null
+    )
+
+    TaskManager.insert(
+        db = db,
+        title = "Social Studies Project",
+        notes = "Research important figures in ancient civilizations",
+        allDay = null,
+        breakable = false,
+        startDate = null,
+        startTime = null,
+        predictedDuration = 60,
+        categoryId = schoolCatId,
+        eventId = socialStudiesEventId,
+        deadlineId = null,
+        dependencyTaskId = null
+    )
+
+    TaskManager.insert(
+        db = db,
+        title = "Review Finances",
+        notes = "Go over recent purchases and update budget",
+        allDay = null,
+        breakable = false,
+        startDate = null,
+        startTime = null,
+        predictedDuration = 60,
+        categoryId = null,
+        eventId = null,
+        deadlineId = null,
+        dependencyTaskId = null
+    )
+
+    TaskManager.insert(
+        db = db,
+        title = "Practice Staccato Swap",
+        notes = "Drill staccato hand transitions from lesson book",
+        allDay = null,
+        breakable = false,
+        startDate = null,
+        startTime = null,
+        predictedDuration = 60,
+        categoryId = ecCatId,
+        eventId = pianoLessonEventId,
+        deadlineId = null,
+        dependencyTaskId = null
+    )
+
+    TaskManager.insert(
+        db = db,
+        title = "Study Atomic Structure",
+        notes = "Ch. 4 pages 68-91",
+        allDay = null,
+        breakable = false,
+        startDate = null,
+        startTime = null,
+        predictedDuration = 60,
+        categoryId = schoolCatId,
+        eventId = chemistryEventId,
+        deadlineId = chemQuizDeadlineId,
+        dependencyTaskId = copyChemNotesId
     )
 
     generateTaskIntervals(db)
