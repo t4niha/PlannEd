@@ -428,7 +428,13 @@ fun EventUpdateForm(
 
     var title by remember { mutableStateOf(event.title) }
     var notes by remember { mutableStateOf(event.notes ?: "") }
-    var color by remember { mutableStateOf(event.color?.let { Converters.toColor(it) } ?: Preset1) }
+    var color by remember {
+        mutableStateOf(
+            event.color?.let { Converters.toColor(it) }
+                ?: preloadedData.categories.find { it.id == event.categoryId }?.color?.let { Converters.toColor(it) }
+                ?: Preset1
+        )
+    }
     var startDate by remember { mutableStateOf(event.startDate) }
     var endDate by remember { mutableStateOf(event.endDate) }
     var startTime by remember { mutableStateOf(event.startTime) }
