@@ -258,7 +258,10 @@ fun TaskCategoryBox(
             .aspectRatio(1f)
             .clip(RoundedCornerShape(16.dp))
             .background(Color(CardColor))
-            .clickable { onClick() }
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null
+            ) { onClick() }
             .padding(16.dp)
     ) {
         Column(
