@@ -52,7 +52,7 @@ class MainActivity : ComponentActivity() {
 
 /**
 [ ] Timer on app close
-[ ] Check UI Logic
+[ ] Related task navigation bug
 [ ] Notifications
 [ ] Pretrained model parts
  **/
