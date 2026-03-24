@@ -52,6 +52,7 @@ class MainActivity : ComponentActivity() {
 
 /**
 [ ] Timer on app close
+[ ] Check UI Logic
 [ ] Notifications
 [ ] Pretrained model parts
  **/
