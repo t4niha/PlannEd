@@ -246,14 +246,26 @@ fun Calendars(db: AppDatabase) {
             modifier = Modifier.fillMaxWidth().padding(all = 20.dp),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            IconButton(
-                onClick = { coroutineScope.launch { pagerState.animateScrollToPage(pagerState.currentPage - 1) } },
-                modifier = Modifier.size(40.dp).background(PrimaryColor, shape = CircleShapePrimary)
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .background(PrimaryColor, shape = CircleShapePrimary)
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null
+                    ) { coroutineScope.launch { pagerState.animateScrollToPage(pagerState.currentPage - 1) } },
+                contentAlignment = Alignment.Center
             ) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Previous ${currentView.lowercase()}", tint = BackgroundColor) }
 
-            IconButton(
-                onClick = { coroutineScope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) } },
-                modifier = Modifier.size(40.dp).background(PrimaryColor, shape = CircleShapePrimary)
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .background(PrimaryColor, shape = CircleShapePrimary)
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null
+                    ) { coroutineScope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) } },
+                contentAlignment = Alignment.Center
             ) { Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Next ${currentView.lowercase()}", tint = BackgroundColor) }
         }
     }

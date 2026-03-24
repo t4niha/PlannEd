@@ -653,7 +653,11 @@ fun TaskInfoPage(
                     .size(40.dp)
                     .clip(CircleShape)
                     .background(if (isOtherTaskRunning) Color.LightGray else PrimaryColor)
-                    .clickable(enabled = !isOtherTaskRunning) { onPlay() },
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        enabled = !isOtherTaskRunning
+                    ) { onPlay() },
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -1425,7 +1429,11 @@ fun AllDayTaskInfoPage(
                     .size(40.dp)
                     .clip(CircleShape)
                     .background(if (isOtherTaskRunning2) Color.LightGray else PrimaryColor)
-                    .clickable(enabled = !isOtherTaskRunning2) { onPlay() },
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        enabled = !isOtherTaskRunning2
+                    ) { onPlay() },
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
