@@ -1073,7 +1073,7 @@ fun PomodoroPage(
                 Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
                     Text(text = currentTask.notes!!, fontSize = 16.sp)
                 }
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(36.dp))
             } else {
                 Spacer(modifier = Modifier.height(24.dp))
             }
