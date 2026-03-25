@@ -320,10 +320,15 @@ fun AppNavigation(db: AppDatabase) {
                                     navEventUpdateFormData = null
                                     selectedEventForInfo = null
                                     selectedEventOccurrenceForInfo = null
+                                    if (returnTo == "Events") {
+                                        eventsCurrentView = "list"
+                                        eventsSelectedEvent = null
+                                    }
                                     currentScreen = returnTo
                                 },
                                 onUpdateDataReady = { data -> navEventUpdateFormData = data },
-                                onUpdate = { currentScreen = "EventUpdate" }
+                                onUpdate = { currentScreen = "EventUpdate" },
+                                eventReturnScreen = eventInfoReturnScreen
                             )
                         }
                         "EventUpdate" -> selectedEventForInfo?.let { event ->
@@ -384,10 +389,15 @@ fun AppNavigation(db: AppDatabase) {
                                     deadlineInfoReturnScreen = "Calendars"
                                     navDeadlineUpdateFormData = null
                                     selectedDeadlineForInfo = null
+                                    if (returnTo == "Deadlines") {
+                                        deadlinesCurrentView = "list"
+                                        deadlinesSelectedDeadline = null
+                                    }
                                     currentScreen = returnTo
                                 },
                                 onUpdateDataReady = { data -> navDeadlineUpdateFormData = data },
-                                onUpdate = { currentScreen = "DeadlineUpdate" }
+                                onUpdate = { currentScreen = "DeadlineUpdate" },
+                                deadlineReturnScreen = deadlineInfoReturnScreen
                             )
                         }
                         "DeadlineUpdate" -> selectedDeadlineForInfo?.let { deadline ->
