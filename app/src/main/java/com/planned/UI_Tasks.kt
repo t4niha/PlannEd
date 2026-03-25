@@ -573,6 +573,7 @@ fun TaskInfoPage(
     onUpdate: () -> Unit,
     onPlay: () -> Unit
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     val scope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
     var category by remember { mutableStateOf<Category?>(null) }
@@ -761,7 +762,7 @@ fun TaskInfoPage(
                             onClick = {
                                 showDeleteDialog = false
                                 scope.launch {
-                                    TaskManager.delete(db, currentTask.id)
+                                    TaskManager.delete(context, db, currentTask.id)
                                     onBack()
                                 }
                             },
@@ -812,6 +813,7 @@ fun TaskUpdateForm(
     onBack: () -> Unit,
     onSaveSuccess: (MasterTask) -> Unit
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     val scope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
 
@@ -954,7 +956,7 @@ fun TaskUpdateForm(
                                     deadlineId = selectedDeadline?.let { deadlines.getOrNull(it)?.id },
                                     dependencyTaskId = selectedDependencyTask?.let { dependencyTasks.getOrNull(it)?.id }
                                 )
-                                TaskManager.update(db, updatedTask)
+                                TaskManager.update(context, db, updatedTask)
                                 val refreshedTask = db.taskDao().getMasterTaskById(task.id) ?: updatedTask
                                 onSaveSuccess(refreshedTask)
                             }
@@ -1390,6 +1392,7 @@ fun AllDayTaskInfoPage(
     onUpdate: () -> Unit,
     onPlay: () -> Unit
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     val scope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
     val dateFormatter = DateTimeFormatter.ofPattern("MMMM d, yyyy")
@@ -1510,7 +1513,7 @@ fun AllDayTaskInfoPage(
                             onClick = {
                                 showDeleteDialog = false
                                 scope.launch {
-                                    TaskManager.delete(db, currentTask.id)
+                                    TaskManager.delete(context, db, currentTask.id)
                                     onBack()
                                 }
                             },
@@ -1540,6 +1543,7 @@ fun AllDayTaskUpdateForm(
     onBack: () -> Unit,
     onSaveSuccess: (MasterTask) -> Unit
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     val scope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
 
@@ -1641,7 +1645,7 @@ fun AllDayTaskUpdateForm(
                                     eventId = selectedEvent?.let { events.getOrNull(it)?.id },
                                     deadlineId = selectedDeadline?.let { deadlines.getOrNull(it)?.id }
                                 )
-                                TaskManager.update(db, updatedTask)
+                                TaskManager.update(context, db, updatedTask)
                                 val refreshed = db.taskDao().getMasterTaskById(task.id) ?: updatedTask
                                 onSaveSuccess(refreshed)
                             }
@@ -1767,6 +1771,7 @@ fun AllDayPomodoroPage(
     onBack: () -> Unit,
     onComplete: () -> Unit = onBack
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     val scope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
     var currentTask by remember { mutableStateOf(task) }
@@ -1903,7 +1908,7 @@ fun AllDayPomodoroPage(
                         }
                         db.taskDao().update(completedTask)
                         updateATIOnTaskComplete(db, completedTask)
-                        onTaskDeleted(db, completedTask.id)
+                        onTaskDeleted(context, db, completedTask.id)
                         db.taskDao().deleteMasterTask(completedTask.id)
                         isCompleted = true
                         PomodoroState.clear()

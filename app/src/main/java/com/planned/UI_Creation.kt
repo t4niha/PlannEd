@@ -26,6 +26,7 @@ import java.time.LocalTime
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
 fun Creation(db: AppDatabase) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     val scrollState = rememberScrollState()
     var selectedType by remember { mutableStateOf("Task") }
     val scope = rememberCoroutineScope()
@@ -426,6 +427,7 @@ fun Creation(db: AppDatabase) {
 
                                     val durationInMinutes = (taskDurationHours * 60) + taskDurationMinutes
                                     val insertedTaskId = TaskManager.insert(
+                                        context = context,
                                         db = db,
                                         title = taskTitle,
                                         notes = taskNotes.ifBlank { null },
@@ -490,6 +492,7 @@ fun Creation(db: AppDatabase) {
                                     }
 
                                     ReminderManager.insert(
+                                        context = context,
                                         db = db,
                                         title = reminderTitle,
                                         notes = reminderNotes.ifBlank { null },
@@ -525,6 +528,7 @@ fun Creation(db: AppDatabase) {
 
                                     // Insert deadline first
                                     val insertedDeadlineId = DeadlineManager.insert(
+                                        context = context,
                                         db = db,
                                         title = deadlineTitle,
                                         notes = deadlineNotes.ifBlank { null },
@@ -539,6 +543,7 @@ fun Creation(db: AppDatabase) {
                                     if (deadlineAutoScheduleTask) {
                                         val durationInMinutes = (deadlineTaskDurationHours * 60) + deadlineTaskDurationMinutes
                                         insertedTaskId = TaskManager.insert(
+                                            context = context,
                                             db = db,
                                             title = deadlineTitle,
                                             notes = deadlineNotes.ifBlank { null },
@@ -621,6 +626,7 @@ fun Creation(db: AppDatabase) {
                                     val categories = CategoryManager.getAll(db)
 
                                     EventManager.insert(
+                                        context = context,
                                         db = db,
                                         title = eventTitle,
                                         notes = eventNotes.ifBlank { null },
@@ -651,6 +657,7 @@ fun Creation(db: AppDatabase) {
                                     }
 
                                     TaskBucketManager.insert(
+                                        context = context,
                                         db = db,
                                         startDate = bucketStartDate,
                                         endDate = bucketEndDate,

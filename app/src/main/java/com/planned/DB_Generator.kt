@@ -1,5 +1,6 @@
 package com.planned
 
+import android.content.Context
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.ui.graphics.Color
@@ -234,7 +235,7 @@ fun generateReminderOccurrences(master: MasterReminder): List<ReminderOccurrence
 
 /* Trim past occurrences outside the window and extend future ones not yet generated */
 @RequiresApi(Build.VERSION_CODES.O)
-suspend fun trimAndExtendOccurrences(db: AppDatabase) {
+suspend fun trimAndExtendOccurrences(context: Context, db: AppDatabase) {
     val today = LocalDate.now()
     val startLimit = today.minusMonths(generationMonths.toLong())
     val endLimit = today.plusMonths(generationMonths.toLong())
@@ -324,7 +325,7 @@ suspend fun trimAndExtendOccurrences(db: AppDatabase) {
 
     // Task intervals: only regenerate if there are none (scheduler handles the rest on create/update)
     if (db.taskDao().getAllIntervals().isEmpty()) {
-        generateTaskIntervals(db)
+        generateTaskIntervals(context, db)
     }
 }
 
@@ -334,7 +335,7 @@ private fun maxOfDate(a: LocalDate, b: LocalDate): LocalDate = if (a.isAfter(b))
 
 /* Regenerate all occurrences */
 @RequiresApi(Build.VERSION_CODES.O)
-suspend fun regenerateAllOccurrences(db: AppDatabase) {
+suspend fun regenerateAllOccurrences(context: Context, db: AppDatabase) {
     val today = LocalDate.now()
     val startLimit = today.minusMonths(generationMonths.toLong())
     val endLimit = today.plusMonths(generationMonths.toLong())
@@ -382,7 +383,7 @@ suspend fun regenerateAllOccurrences(db: AppDatabase) {
     }
 
     // Regenerate task intervals
-    generateTaskIntervals(db)
+    generateTaskIntervals(context, db)
 }
 
 /* Delete occurrences outside the generation window */

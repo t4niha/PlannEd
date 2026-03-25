@@ -193,6 +193,7 @@ fun EventInfoPage(
     onUpdate: () -> Unit,
     eventReturnScreen: String = "Calendars"
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     val scope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
     var category by remember { mutableStateOf<Category?>(null) }
@@ -387,7 +388,7 @@ fun EventInfoPage(
                                     showDeleteDialog = false
                                     scope.launch {
                                         db.eventDao().deleteOccurrence(occurrence.id)
-                                        onTaskChanged(db)
+                                        onTaskChanged(context, db)
                                         onBack()
                                     }
                                 },
@@ -401,7 +402,7 @@ fun EventInfoPage(
                             onClick = {
                                 showDeleteDialog = false
                                 scope.launch {
-                                    EventManager.delete(db, currentEvent.id)
+                                    EventManager.delete(context, db, currentEvent.id)
                                     onBack()
                                 }
                             },
@@ -432,6 +433,7 @@ fun EventUpdateForm(
     onBack: () -> Unit,
     onSaveSuccess: (MasterEvent) -> Unit
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     val scope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
 
@@ -573,7 +575,7 @@ fun EventUpdateForm(
                                     recurRule = recurRule,
                                     categoryId = selectedCategory?.let { categories.getOrNull(it)?.id }
                                 )
-                                EventManager.update(db, updatedEvent)
+                                EventManager.update(context, db, updatedEvent)
                                 val refreshedEvent = db.eventDao().getMasterEventById(event.id) ?: updatedEvent
                                 onSaveSuccess(refreshedEvent)
                             }

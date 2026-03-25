@@ -203,6 +203,7 @@ fun ReminderInfoView(
     onUpdateDataReady: (ReminderUpdateFormData) -> Unit,
     onUpdate: () -> Unit
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     val scope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
     var category by remember { mutableStateOf<Category?>(null) }
@@ -331,7 +332,7 @@ fun ReminderInfoView(
                             onClick = {
                                 showDeleteDialog = false
                                 scope.launch {
-                                    ReminderManager.delete(db, currentReminder.id)
+                                    ReminderManager.delete(context, db, currentReminder.id)
                                     onBack()
                                 }
                             },
@@ -362,6 +363,7 @@ fun ReminderUpdateView(
     onBack: () -> Unit,
     onSaveSuccess: (MasterReminder) -> Unit
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     val scope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
 
@@ -475,7 +477,7 @@ fun ReminderUpdateView(
                                     recurRule = recurRule,
                                     categoryId = selectedCategory?.let { categories.getOrNull(it)?.id }
                                 )
-                                ReminderManager.update(db, updatedReminder)
+                                ReminderManager.update(context, db, updatedReminder)
                                 val refreshedReminder = db.reminderDao().getMasterReminderById(reminder.id) ?: updatedReminder
                                 onSaveSuccess(refreshedReminder)
                             }

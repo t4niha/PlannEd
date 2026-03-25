@@ -1,5 +1,6 @@
 package com.planned
 
+import android.content.Context
 import android.os.Build
 import androidx.annotation.RequiresApi
 import kotlinx.coroutines.runBlocking
@@ -10,7 +11,7 @@ import java.time.temporal.TemporalAdjusters
 
 /* LOAD SAMPLE OBJECTS INTO DATABASE */
 @RequiresApi(Build.VERSION_CODES.O)
-fun runSample(db: AppDatabase) = runBlocking {
+fun runSample(context: Context, db: AppDatabase) = runBlocking {
 
     // Determine week bounds based on settings
     val startOnMonday = SettingsManager.settings?.startWeekOnMonday ?: false
@@ -37,6 +38,7 @@ fun runSample(db: AppDatabase) = runBlocking {
     // EVENTS
 
     val englishEventId = EventManager.insert(
+        context = context,
         db = db,
         title = "English Class",
         notes = "Prof. Harrison — Room 204",
@@ -51,6 +53,7 @@ fun runSample(db: AppDatabase) = runBlocking {
     )
 
     val chemistryEventId = EventManager.insert(
+        context = context,
         db = db,
         title = "Chemistry Class",
         notes = "Prof. Chen — Room 114",
@@ -65,6 +68,7 @@ fun runSample(db: AppDatabase) = runBlocking {
     )
 
     val biologyEventId = EventManager.insert(
+        context = context,
         db = db,
         title = "Biology Class",
         notes = "Prof. Kamal — Room 125",
@@ -79,6 +83,7 @@ fun runSample(db: AppDatabase) = runBlocking {
     )
 
     val physicsEventId = EventManager.insert(
+        context = context,
         db = db,
         title = "Physics Class",
         notes = "Prof. Anne — Room 112",
@@ -93,6 +98,7 @@ fun runSample(db: AppDatabase) = runBlocking {
     )
 
     val mathEventId = EventManager.insert(
+        context = context,
         db = db,
         title = "Math Class",
         notes = "Prof. Williams — Room 308",
@@ -107,6 +113,7 @@ fun runSample(db: AppDatabase) = runBlocking {
     )
 
     val socialStudiesEventId = EventManager.insert(
+        context = context,
         db = db,
         title = "Social Studies Class",
         notes = "Prof. Thalia — Room 215",
@@ -121,6 +128,7 @@ fun runSample(db: AppDatabase) = runBlocking {
     )
 
     val bandPracticeEventId = EventManager.insert(
+        context = context,
         db = db,
         title = "Band Practice",
         notes = "Main Auditorium",
@@ -135,6 +143,7 @@ fun runSample(db: AppDatabase) = runBlocking {
     )
 
     val pianoLessonEventId = EventManager.insert(
+        context = context,
         db = db,
         title = "Piano Lesson",
         notes = "Music Room 3",
@@ -149,6 +158,7 @@ fun runSample(db: AppDatabase) = runBlocking {
     )
 
     EventManager.insert(
+        context = context,
         db = db,
         title = "Morning Yoga",
         notes = "15m stretch, 30m flow sequence, 15m cool down",
@@ -163,6 +173,7 @@ fun runSample(db: AppDatabase) = runBlocking {
     )
 
     EventManager.insert(
+        context = context,
         db = db,
         title = "Meal Prep",
         notes = "Cook rice, chicken, and veggies",
@@ -179,6 +190,7 @@ fun runSample(db: AppDatabase) = runBlocking {
     // REMINDERS
 
     ReminderManager.insert(
+        context = context,
         db = db,
         title = "Doctor's Appointment",
         notes = "Get sore throat checked out",
@@ -192,6 +204,7 @@ fun runSample(db: AppDatabase) = runBlocking {
     )
 
     ReminderManager.insert(
+        context = context,
         db = db,
         title = "Visit Counsellor's Office",
         notes = "Discuss next semester's classes",
@@ -207,6 +220,7 @@ fun runSample(db: AppDatabase) = runBlocking {
     // DEADLINES
 
     val chemQuizDeadlineId = DeadlineManager.insert(
+        context = context,
         db = db,
         title = "Chemistry Quiz",
         notes = "Chapter 3 Atomic Structure",
@@ -217,6 +231,7 @@ fun runSample(db: AppDatabase) = runBlocking {
     )
 
     val shakespeareEssayId = DeadlineManager.insert(
+        context = context,
         db = db,
         title = "Shakespeare Essay",
         notes = "Upload on Canvas",
@@ -227,6 +242,7 @@ fun runSample(db: AppDatabase) = runBlocking {
     )
 
     DeadlineManager.insert(
+        context = context,
         db = db,
         title = "Biology Homework",
         notes = "Upload on Canvas",
@@ -239,6 +255,7 @@ fun runSample(db: AppDatabase) = runBlocking {
     // TASK BUCKETS
 
     TaskBucketManager.insert(
+        context = context,
         db = db,
         startDate = weekStart,
         endDate = weekEnd,
@@ -254,6 +271,7 @@ fun runSample(db: AppDatabase) = runBlocking {
     )
 
     TaskBucketManager.insert(
+        context = context,
         db = db,
         startDate = weekStart,
         endDate = weekEnd,
@@ -268,6 +286,7 @@ fun runSample(db: AppDatabase) = runBlocking {
     // ALL-DAY TASKS
 
     TaskManager.insert(
+        context = context,
         db = db,
         title = "Pick up groceries",
         notes = "Bread, Milk, Eggs",
@@ -283,6 +302,7 @@ fun runSample(db: AppDatabase) = runBlocking {
     )
 
     TaskManager.insert(
+        context = context,
         db = db,
         title = "Clean bedroom",
         notes = "Change bedsheets, organize closet",
@@ -300,6 +320,7 @@ fun runSample(db: AppDatabase) = runBlocking {
     // MANUAL TASKS
 
     TaskManager.insert(
+        context = context,
         db = db,
         title = "Read Hamlet",
         notes = "Pages 34–150",
@@ -317,6 +338,7 @@ fun runSample(db: AppDatabase) = runBlocking {
     // AUTO-SCHEDULED TASKS
 
     TaskManager.insert(
+        context = context,
         db = db,
         title = "Math Homework",
         notes = "Ch. 3 exercise 3.4 Q 1-20",
@@ -332,6 +354,7 @@ fun runSample(db: AppDatabase) = runBlocking {
     )
 
     TaskManager.insert(
+        context = context,
         db = db,
         title = "Rehearse Setlist",
         notes = "Run through full band setlist on beat",
@@ -347,6 +370,7 @@ fun runSample(db: AppDatabase) = runBlocking {
     )
 
     TaskManager.insert(
+        context = context,
         db = db,
         title = "Hamlet Essay",
         notes = "Analysis on protagonist versus antagonist",
@@ -362,6 +386,7 @@ fun runSample(db: AppDatabase) = runBlocking {
     )
 
     TaskManager.insert(
+        context = context,
         db = db,
         title = "Make Reading List",
         notes = "3 books to read over the vacation",
@@ -377,6 +402,7 @@ fun runSample(db: AppDatabase) = runBlocking {
     )
 
     val copyChemNotesId = TaskManager.insert(
+        context = context,
         db = db,
         title = "Copy Chem Notes",
         notes = "Get notes from Radia on missed classes",
@@ -392,6 +418,7 @@ fun runSample(db: AppDatabase) = runBlocking {
     )
 
     TaskManager.insert(
+        context = context,
         db = db,
         title = "Social Studies Project",
         notes = "Research important figures in ancient civilizations",
@@ -407,6 +434,7 @@ fun runSample(db: AppDatabase) = runBlocking {
     )
 
     TaskManager.insert(
+        context = context,
         db = db,
         title = "Review Finances",
         notes = "Go over recent purchases and update budget",
@@ -422,6 +450,7 @@ fun runSample(db: AppDatabase) = runBlocking {
     )
 
     TaskManager.insert(
+        context = context,
         db = db,
         title = "Practice Staccato Swap",
         notes = "Drill staccato hand transitions from lesson book",
@@ -437,6 +466,7 @@ fun runSample(db: AppDatabase) = runBlocking {
     )
 
     TaskManager.insert(
+        context = context,
         db = db,
         title = "Study Atomic Structure",
         notes = "Ch. 4 pages 68-91",
@@ -451,7 +481,7 @@ fun runSample(db: AppDatabase) = runBlocking {
         dependencyTaskId = copyChemNotesId
     )
 
-    generateTaskIntervals(db)
+    generateTaskIntervals(context, db)
 
     // COMPLETED TASKS
 
@@ -620,5 +650,5 @@ fun runSample(db: AppDatabase) = runBlocking {
         ))
     }
 
-    generateTaskIntervals(db)
+    generateTaskIntervals(context, db)
 }

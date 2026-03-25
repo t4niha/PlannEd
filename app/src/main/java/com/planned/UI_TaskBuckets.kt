@@ -189,6 +189,7 @@ fun TaskBucketInfoPage(
     onBack: () -> Unit,
     onUpdate: () -> Unit
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     val scope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
     var currentBucket by remember { mutableStateOf(bucket) }
@@ -293,7 +294,7 @@ fun TaskBucketInfoPage(
                                     showDeleteDialog = false
                                     scope.launch {
                                         db.taskBucketDao().deleteOccurrence(occurrence.id)
-                                        onTaskChanged(db)
+                                        onTaskChanged(context, db)
                                         onBack()
                                     }
                                 },
@@ -307,7 +308,7 @@ fun TaskBucketInfoPage(
                             onClick = {
                                 showDeleteDialog = false
                                 scope.launch {
-                                    TaskBucketManager.delete(db, currentBucket.id)
+                                    TaskBucketManager.delete(context, db, currentBucket.id)
                                     onBack()
                                 }
                             },
@@ -337,6 +338,7 @@ fun TaskBucketUpdateForm(
     onBack: () -> Unit,
     onSaveSuccess: (MasterTaskBucket) -> Unit
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     val scope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
 
@@ -435,7 +437,7 @@ fun TaskBucketUpdateForm(
                                 recurFreq = recurrenceFreq,
                                 recurRule = recurRule
                             )
-                            TaskBucketManager.update(db, updatedBucket)
+                            TaskBucketManager.update(context, db, updatedBucket)
                             val refreshedBucket = db.taskBucketDao().getMasterBucketById(bucket.id) ?: updatedBucket
                             onSaveSuccess(refreshedBucket)
                         }

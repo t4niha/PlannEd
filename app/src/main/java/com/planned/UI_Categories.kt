@@ -166,6 +166,7 @@ fun CategoryInfoPage(
     onBack: () -> Unit,
     onUpdate: () -> Unit
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     val scope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
     var currentCategory by remember { mutableStateOf(category) }
@@ -296,7 +297,7 @@ fun CategoryInfoPage(
                             onClick = {
                                 showDeleteDialog = false
                                 scope.launch {
-                                    CategoryManager.delete(db, currentCategory.id)
+                                    CategoryManager.delete(context, db, currentCategory.id)
                                     onBack()
                                 }
                             },

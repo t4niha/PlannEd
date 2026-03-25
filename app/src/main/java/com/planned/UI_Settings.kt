@@ -246,7 +246,7 @@ fun Settings(db: AppDatabase) {
                     indication = ripple(bounded = true)
                 ) {
                     scope.launch {
-                        generateTaskIntervals(db)
+                        generateTaskIntervals(context, db)
                     }
                 }
                 .padding(16.dp)
@@ -550,7 +550,7 @@ fun Settings(db: AppDatabase) {
                     onCheckedChange = {
                         scope.launch {
                             SettingsManager.setAtiPaddingEnabled(db, it)
-                            generateTaskIntervals(db)
+                            generateTaskIntervals(context, db)
                         }
                     },
                     colors = SwitchDefaults.colors(
@@ -1202,6 +1202,7 @@ fun DatabasePage(
     onBack: () -> Unit,
     onRefresh: () -> Unit = {}
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     val scrollV = rememberScrollState()
     val scrollH = rememberScrollState()
     val scope = rememberCoroutineScope()
@@ -1277,8 +1278,8 @@ fun DatabasePage(
                     Button(
                         onClick = {
                             CoroutineScope(Dispatchers.IO).launch {
-                                runSample(db)
-                                trimAndExtendOccurrences(db)
+                                runSample(context, db)
+                                trimAndExtendOccurrences(context, db)
                                 onRefresh()
                             }
                         },

@@ -206,6 +206,7 @@ fun DeadlineInfoView(
     onUpdate: () -> Unit,
     deadlineReturnScreen: String = "Calendars"
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     val scope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
     var category by remember { mutableStateOf<Category?>(null) }
@@ -384,7 +385,7 @@ fun DeadlineInfoView(
                             onClick = {
                                 showDeleteDialog = false
                                 scope.launch {
-                                    DeadlineManager.delete(db, currentDeadline.id)
+                                    DeadlineManager.delete(context, db, currentDeadline.id)
                                     onBack()
                                 }
                             },
@@ -414,6 +415,7 @@ fun DeadlineUpdateView(
     onBack: () -> Unit,
     onSaveSuccess: (Deadline) -> Unit
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     val scope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
 
@@ -553,7 +555,7 @@ fun DeadlineUpdateView(
                                     categoryId = selectedCategory?.let { categories.getOrNull(it)?.id },
                                     eventId = selectedEvent?.let { events.getOrNull(it)?.id }
                                 )
-                                DeadlineManager.update(db, updatedDeadline)
+                                DeadlineManager.update(context, db, updatedDeadline)
                                 val refreshedDeadline = db.deadlineDao().getDeadlineById(deadline.id) ?: updatedDeadline
                                 onSaveSuccess(refreshedDeadline)
                             }
