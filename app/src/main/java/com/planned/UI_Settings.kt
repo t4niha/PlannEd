@@ -611,7 +611,7 @@ fun Settings(db: AppDatabase) {
                     Column {
                         HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), thickness = 1.dp, color = Color.LightGray)
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                            Text("All-Day Time", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                            Text("All-Day Tasks", fontSize = 16.sp, fontWeight = FontWeight.Medium)
                             Spacer(modifier = Modifier.weight(1f))
                             Button(
                                 onClick = { showTaskTimePicker = true },
@@ -792,7 +792,7 @@ fun Settings(db: AppDatabase) {
                     Column {
                         HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), thickness = 1.dp, color = Color.LightGray)
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                            Text("All-Day Time", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                            Text("All-Day Reminders", fontSize = 16.sp, fontWeight = FontWeight.Medium)
                             Spacer(modifier = Modifier.weight(1f))
                             Button(
                                 onClick = { showReminderTimePicker = true },
@@ -890,8 +890,6 @@ fun Settings(db: AppDatabase) {
                         HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), thickness = 1.dp, color = Color.LightGray)
 
                         // Timing dropdown — same style as dropdownField() in creation
-                        Text("Notify", fontSize = 16.sp, fontWeight = FontWeight.Medium)
-                        Spacer(modifier = Modifier.height(12.dp))
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
