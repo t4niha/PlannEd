@@ -329,7 +329,19 @@ data class AppSetting(
     val primaryColor: String = "#FF4D4D4D",
     val breakDuration: Int = 5,
     val breakEvery: Int = 30,
-    val atiPaddingEnabled: Boolean = true
+    val atiPaddingEnabled: Boolean = true,
+
+    // Notifications
+    val notifTasksEnabled: Boolean = false,
+    val notifTaskAllDayTime: Int = 25200,
+    val notifEventsEnabled: Boolean = false,
+    val notifEventLeadMinutes: Int = 10,
+    val notifRemindersEnabled: Boolean = false,
+    val notifReminderAllDayTime: Int = 25200,
+    val notifDeadlinesEnabled: Boolean = false,
+    val notifDeadlineTiming: String = "TIME_OF",
+    val notifDeadlineLeadMinutes: Int = 0,
+    val notifDeadlineTime: Int = 25200
 )
 //</editor-fold>
 
@@ -609,6 +621,26 @@ interface SettingsDao {
     suspend fun updateBreakEvery(minutes: Int)
     @Query("UPDATE AppSetting SET atiPaddingEnabled = :value WHERE id = 0")
     suspend fun updateAtiPaddingEnabled(value: Boolean)
+    @Query("UPDATE AppSetting SET notifTasksEnabled = :value WHERE id = 0")
+    suspend fun updateNotifTasksEnabled(value: Boolean)
+    @Query("UPDATE AppSetting SET notifEventsEnabled = :value WHERE id = 0")
+    suspend fun updateNotifEventsEnabled(value: Boolean)
+    @Query("UPDATE AppSetting SET notifEventLeadMinutes = :minutes WHERE id = 0")
+    suspend fun updateNotifEventLeadMinutes(minutes: Int)
+    @Query("UPDATE AppSetting SET notifRemindersEnabled = :value WHERE id = 0")
+    suspend fun updateNotifRemindersEnabled(value: Boolean)
+    @Query("UPDATE AppSetting SET notifReminderAllDayTime = :seconds WHERE id = 0")
+    suspend fun updateNotifReminderAllDayTime(seconds: Int)
+    @Query("UPDATE AppSetting SET notifTaskAllDayTime = :seconds WHERE id = 0")
+    suspend fun updateNotifTaskAllDayTime(seconds: Int)
+    @Query("UPDATE AppSetting SET notifDeadlinesEnabled = :value WHERE id = 0")
+    suspend fun updateNotifDeadlinesEnabled(value: Boolean)
+    @Query("UPDATE AppSetting SET notifDeadlineTiming = :timing WHERE id = 0")
+    suspend fun updateNotifDeadlineTiming(timing: String)
+    @Query("UPDATE AppSetting SET notifDeadlineTime = :seconds WHERE id = 0")
+    suspend fun updateNotifDeadlineTime(seconds: Int)
+    @Query("UPDATE AppSetting SET notifDeadlineLeadMinutes = :minutes WHERE id = 0")
+    suspend fun updateNotifDeadlineLeadMinutes(minutes: Int)
 
     // Fetch all settings
     @Query("SELECT * FROM AppSetting WHERE id = 0")

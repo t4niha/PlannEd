@@ -65,6 +65,46 @@ object SettingsManager {
         db.settingsDao().updateAtiPaddingEnabled(enabled)
         settings = settings?.copy(atiPaddingEnabled = enabled)
     }
+    suspend fun setNotifTasksEnabled(db: AppDatabase, value: Boolean) {
+        db.settingsDao().updateNotifTasksEnabled(value)
+        settings = settings?.copy(notifTasksEnabled = value)
+    }
+    suspend fun setNotifEventsEnabled(db: AppDatabase, value: Boolean) {
+        db.settingsDao().updateNotifEventsEnabled(value)
+        settings = settings?.copy(notifEventsEnabled = value)
+    }
+    suspend fun setNotifEventLeadMinutes(db: AppDatabase, minutes: Int) {
+        db.settingsDao().updateNotifEventLeadMinutes(minutes)
+        settings = settings?.copy(notifEventLeadMinutes = minutes)
+    }
+    suspend fun setNotifRemindersEnabled(db: AppDatabase, value: Boolean) {
+        db.settingsDao().updateNotifRemindersEnabled(value)
+        settings = settings?.copy(notifRemindersEnabled = value)
+    }
+    suspend fun setNotifReminderAllDayTime(db: AppDatabase, seconds: Int) {
+        db.settingsDao().updateNotifReminderAllDayTime(seconds)
+        settings = settings?.copy(notifReminderAllDayTime = seconds)
+    }
+    suspend fun setNotifTaskAllDayTime(db: AppDatabase, seconds: Int) {
+        db.settingsDao().updateNotifTaskAllDayTime(seconds)
+        settings = settings?.copy(notifTaskAllDayTime = seconds)
+    }
+    suspend fun setNotifDeadlinesEnabled(db: AppDatabase, value: Boolean) {
+        db.settingsDao().updateNotifDeadlinesEnabled(value)
+        settings = settings?.copy(notifDeadlinesEnabled = value)
+    }
+    suspend fun setNotifDeadlineTiming(db: AppDatabase, timing: String) {
+        db.settingsDao().updateNotifDeadlineTiming(timing)
+        settings = settings?.copy(notifDeadlineTiming = timing)
+    }
+    suspend fun setNotifDeadlineLeadMinutes(db: AppDatabase, minutes: Int) {
+        db.settingsDao().updateNotifDeadlineLeadMinutes(minutes)
+        settings = settings?.copy(notifDeadlineLeadMinutes = minutes)
+    }
+    suspend fun setNotifDeadlineTime(db: AppDatabase, seconds: Int) {
+        db.settingsDao().updateNotifDeadlineTime(seconds)
+        settings = settings?.copy(notifDeadlineTime = seconds)
+    }
 }
 
 /* CATEGORY MANAGER */
