@@ -665,97 +665,6 @@ fun Settings(db: AppDatabase) {
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // ── Events ───────────────────────────────────────────────────────────
-        val eventsNotifEnabled = settings?.notifEventsEnabled ?: false
-        var eventLeadH by remember { mutableIntStateOf((settings?.notifEventLeadMinutes ?: 10) / 60) }
-        var eventLeadM by remember { mutableIntStateOf((settings?.notifEventLeadMinutes ?: 10) % 60) }
-        var tempEventLeadH by remember { mutableIntStateOf(eventLeadH) }
-        var tempEventLeadM by remember { mutableIntStateOf(eventLeadM) }
-        var showEventLeadPicker by remember { mutableStateOf(false) }
-
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color(CardColor), RoundedCornerShape(12.dp))
-                .padding(16.dp)
-        ) {
-            Column {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Events", fontSize = 16.sp, fontWeight = FontWeight.Medium)
-                    Spacer(modifier = Modifier.weight(1f))
-                    Switch(
-                        checked = eventsNotifEnabled,
-                        onCheckedChange = { scope.launch { SettingsManager.setNotifEventsEnabled(db, it) } },
-                        colors = SwitchDefaults.colors(
-                            checkedThumbColor = BackgroundColor,
-                            checkedTrackColor = localPrimary,
-                            uncheckedTrackColor = Color.LightGray,
-                            uncheckedThumbColor = BackgroundColor
-                        )
-                    )
-                }
-                AnimatedVisibility(
-                    visible = eventsNotifEnabled,
-                    enter = fadeIn() + expandVertically(),
-                    exit = fadeOut() + shrinkVertically()
-                ) {
-                    Column {
-                        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), thickness = 1.dp, color = Color.LightGray)
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                            Text("Notify Before", fontSize = 16.sp, fontWeight = FontWeight.Medium)
-                            Spacer(modifier = Modifier.weight(1f))
-                            Button(
-                                onClick = {
-                                    tempEventLeadH = eventLeadH
-                                    tempEventLeadM = eventLeadM
-                                    showEventLeadPicker = true
-                                },
-                                colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
-                            ) { Text("${eventLeadH}h ${eventLeadM}m") }
-                        }
-                        if (showEventLeadPicker) {
-                            AlertDialog(
-                                onDismissRequest = { showEventLeadPicker = false },
-                                confirmButton = {
-                                    TextButton(onClick = {
-                                        eventLeadH = tempEventLeadH
-                                        eventLeadM = tempEventLeadM
-                                        showEventLeadPicker = false
-                                        scope.launch { SettingsManager.setNotifEventLeadMinutes(db, tempEventLeadH * 60 + tempEventLeadM) }
-                                    }) { Text("OK", color = Color.Black, fontSize = 16.sp) }
-                                },
-                                dismissButton = {
-                                    TextButton(onClick = { showEventLeadPicker = false }) { Text("Cancel", color = Color.Black, fontSize = 16.sp) }
-                                },
-                                containerColor = BackgroundColor,
-                                text = {
-                                    Row(horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                            Text("Hours", fontSize = 12.sp)
-                                            Spacer(modifier = Modifier.height(8.dp))
-                                            Button(onClick = { tempEventLeadH++ }, colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)) { Text("▲") }
-                                            Text(tempEventLeadH.toString(), fontSize = 24.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(vertical = 8.dp))
-                                            Button(onClick = { if (tempEventLeadH > 0) tempEventLeadH-- }, colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)) { Text("▼") }
-                                        }
-                                        Spacer(modifier = Modifier.width(32.dp))
-                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                            Text("Minutes", fontSize = 12.sp)
-                                            Spacer(modifier = Modifier.height(8.dp))
-                                            Button(onClick = { tempEventLeadM = (tempEventLeadM + 5) % 60 }, colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)) { Text("▲") }
-                                            Text(tempEventLeadM.toString(), fontSize = 24.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(vertical = 8.dp))
-                                            Button(onClick = { tempEventLeadM = if (tempEventLeadM - 5 < 0) 55 else tempEventLeadM - 5 }, colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)) { Text("▼") }
-                                        }
-                                    }
-                                }
-                            )
-                        }
-                    }
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
         // ── Reminders ────────────────────────────────────────────────────────
         val remindersNotifEnabled = settings?.notifRemindersEnabled ?: false
         var reminderAllDayTime by remember {
@@ -1065,6 +974,97 @@ fun Settings(db: AppDatabase) {
                                     )
                                 }
                             }
+                        }
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // ── Events ───────────────────────────────────────────────────────────
+        val eventsNotifEnabled = settings?.notifEventsEnabled ?: false
+        var eventLeadH by remember { mutableIntStateOf((settings?.notifEventLeadMinutes ?: 10) / 60) }
+        var eventLeadM by remember { mutableIntStateOf((settings?.notifEventLeadMinutes ?: 10) % 60) }
+        var tempEventLeadH by remember { mutableIntStateOf(eventLeadH) }
+        var tempEventLeadM by remember { mutableIntStateOf(eventLeadM) }
+        var showEventLeadPicker by remember { mutableStateOf(false) }
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color(CardColor), RoundedCornerShape(12.dp))
+                .padding(16.dp)
+        ) {
+            Column {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Events", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                    Spacer(modifier = Modifier.weight(1f))
+                    Switch(
+                        checked = eventsNotifEnabled,
+                        onCheckedChange = { scope.launch { SettingsManager.setNotifEventsEnabled(db, it) } },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = BackgroundColor,
+                            checkedTrackColor = localPrimary,
+                            uncheckedTrackColor = Color.LightGray,
+                            uncheckedThumbColor = BackgroundColor
+                        )
+                    )
+                }
+                AnimatedVisibility(
+                    visible = eventsNotifEnabled,
+                    enter = fadeIn() + expandVertically(),
+                    exit = fadeOut() + shrinkVertically()
+                ) {
+                    Column {
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), thickness = 1.dp, color = Color.LightGray)
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                            Text("Notify Before", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                            Spacer(modifier = Modifier.weight(1f))
+                            Button(
+                                onClick = {
+                                    tempEventLeadH = eventLeadH
+                                    tempEventLeadM = eventLeadM
+                                    showEventLeadPicker = true
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
+                            ) { Text("${eventLeadH}h ${eventLeadM}m") }
+                        }
+                        if (showEventLeadPicker) {
+                            AlertDialog(
+                                onDismissRequest = { showEventLeadPicker = false },
+                                confirmButton = {
+                                    TextButton(onClick = {
+                                        eventLeadH = tempEventLeadH
+                                        eventLeadM = tempEventLeadM
+                                        showEventLeadPicker = false
+                                        scope.launch { SettingsManager.setNotifEventLeadMinutes(db, tempEventLeadH * 60 + tempEventLeadM) }
+                                    }) { Text("OK", color = Color.Black, fontSize = 16.sp) }
+                                },
+                                dismissButton = {
+                                    TextButton(onClick = { showEventLeadPicker = false }) { Text("Cancel", color = Color.Black, fontSize = 16.sp) }
+                                },
+                                containerColor = BackgroundColor,
+                                text = {
+                                    Row(horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                            Text("Hours", fontSize = 12.sp)
+                                            Spacer(modifier = Modifier.height(8.dp))
+                                            Button(onClick = { tempEventLeadH++ }, colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)) { Text("▲") }
+                                            Text(tempEventLeadH.toString(), fontSize = 24.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(vertical = 8.dp))
+                                            Button(onClick = { if (tempEventLeadH > 0) tempEventLeadH-- }, colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)) { Text("▼") }
+                                        }
+                                        Spacer(modifier = Modifier.width(32.dp))
+                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                            Text("Minutes", fontSize = 12.sp)
+                                            Spacer(modifier = Modifier.height(8.dp))
+                                            Button(onClick = { tempEventLeadM = (tempEventLeadM + 5) % 60 }, colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)) { Text("▲") }
+                                            Text(tempEventLeadM.toString(), fontSize = 24.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(vertical = 8.dp))
+                                            Button(onClick = { tempEventLeadM = if (tempEventLeadM - 5 < 0) 55 else tempEventLeadM - 5 }, colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)) { Text("▼") }
+                                        }
+                                    }
+                                }
+                            )
                         }
                     }
                 }
