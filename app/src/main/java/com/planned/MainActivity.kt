@@ -139,7 +139,3 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
-
-/**
-[ ] Pretrained model parts
- **/
