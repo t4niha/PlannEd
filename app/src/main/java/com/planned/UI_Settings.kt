@@ -848,7 +848,7 @@ fun Settings(db: AppDatabase) {
 
         // ── Deadlines ────────────────────────────────────────────────────────
         val deadlinesNotifEnabled = settings?.notifDeadlinesEnabled ?: false
-        val deadlineTimingOptions = listOf("Time of", "Day of", "Day before")
+        val deadlineTimingOptions = listOf("Time Of", "Day Of", "Day Before")
         var deadlineTimingIndex by remember {
             mutableIntStateOf(when (settings?.notifDeadlineTiming) {
                 "DAY_OF" -> 1; "DAY_BEFORE" -> 2; else -> 0

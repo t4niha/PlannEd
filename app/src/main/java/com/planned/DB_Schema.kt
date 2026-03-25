@@ -340,7 +340,7 @@ data class AppSetting(
     val notifReminderAllDayTime: Int = 25200,
     val notifDeadlinesEnabled: Boolean = false,
     val notifDeadlineTiming: String = "TIME_OF",
-    val notifDeadlineLeadMinutes: Int = 0,
+    val notifDeadlineLeadMinutes: Int = 10,
     val notifDeadlineTime: Int = 25200
 )
 //</editor-fold>
