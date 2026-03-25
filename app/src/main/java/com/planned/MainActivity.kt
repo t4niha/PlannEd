@@ -81,7 +81,6 @@ class MainActivity : ComponentActivity() {
 }
 
 /**
-[ ] Timer on app close
 [ ] Pretrained model parts
  **/
 

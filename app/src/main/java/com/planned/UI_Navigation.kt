@@ -147,12 +147,16 @@ fun AppNavigation(db: AppDatabase) {
     var isDrawerOpen by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
 
-    // Global pomodoro timer — lives at root, survives all navigation
+    // Start/stop the foreground service in sync with PomodoroState.isRunning
+    val context = androidx.compose.ui.platform.LocalContext.current
     LaunchedEffect(PomodoroState.isRunning) {
-        while (PomodoroState.isRunning) {
-            delay(1000L)
-            PomodoroState.elapsedSeconds++
-            PomodoroState.sessionSeconds++
+        val intent = android.content.Intent(context, TimerForegroundService::class.java)
+        if (PomodoroState.isRunning) {
+            intent.action = TimerForegroundService.ACTION_START
+            androidx.core.content.ContextCompat.startForegroundService(context, intent)
+        } else {
+            intent.action = TimerForegroundService.ACTION_STOP
+            context.startService(intent)
         }
     }
 
