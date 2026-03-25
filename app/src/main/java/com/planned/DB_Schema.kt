@@ -332,13 +332,13 @@ data class AppSetting(
     val atiPaddingEnabled: Boolean = true,
 
     // Notifications
-    val notifTasksEnabled: Boolean = false,
+    val notifTasksEnabled: Boolean = true,
     val notifTaskAllDayTime: Int = 25200,
-    val notifEventsEnabled: Boolean = false,
+    val notifEventsEnabled: Boolean = true,
     val notifEventLeadMinutes: Int = 10,
-    val notifRemindersEnabled: Boolean = false,
+    val notifRemindersEnabled: Boolean = true,
     val notifReminderAllDayTime: Int = 25200,
-    val notifDeadlinesEnabled: Boolean = false,
+    val notifDeadlinesEnabled: Boolean = true,
     val notifDeadlineTiming: String = "TIME_OF",
     val notifDeadlineLeadMinutes: Int = 10,
     val notifDeadlineTime: Int = 25200

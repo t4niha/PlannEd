@@ -576,7 +576,7 @@ fun Settings(db: AppDatabase) {
         val notifTimeFormatter = java.time.format.DateTimeFormatter.ofPattern("h:mm a")
 
         // ── Tasks ────────────────────────────────────────────────────────────
-        val tasksNotifEnabled = settings?.notifTasksEnabled ?: false
+        val tasksNotifEnabled = settings?.notifTasksEnabled ?: true
         var taskAllDayTime by remember {
             mutableStateOf(java.time.LocalTime.ofSecondOfDay((settings?.notifTaskAllDayTime ?: 25200).toLong()))
         }
@@ -674,7 +674,7 @@ fun Settings(db: AppDatabase) {
         Spacer(modifier = Modifier.height(12.dp))
 
         // ── Reminders ────────────────────────────────────────────────────────
-        val remindersNotifEnabled = settings?.notifRemindersEnabled ?: false
+        val remindersNotifEnabled = settings?.notifRemindersEnabled ?: true
         var reminderAllDayTime by remember {
             mutableStateOf(java.time.LocalTime.ofSecondOfDay((settings?.notifReminderAllDayTime ?: 25200).toLong()))
         }
@@ -772,7 +772,7 @@ fun Settings(db: AppDatabase) {
         Spacer(modifier = Modifier.height(12.dp))
 
         // ── Deadlines ────────────────────────────────────────────────────────
-        val deadlinesNotifEnabled = settings?.notifDeadlinesEnabled ?: false
+        val deadlinesNotifEnabled = settings?.notifDeadlinesEnabled ?: true
         val deadlineTimingOptions = listOf("Time Of", "Day Of", "Day Before")
         var deadlineTimingIndex by remember {
             mutableIntStateOf(when (settings?.notifDeadlineTiming) {
@@ -1015,7 +1015,7 @@ fun Settings(db: AppDatabase) {
         Spacer(modifier = Modifier.height(12.dp))
 
         // ── Events ───────────────────────────────────────────────────────────
-        val eventsNotifEnabled = settings?.notifEventsEnabled ?: false
+        val eventsNotifEnabled = settings?.notifEventsEnabled ?: true
         var eventLeadH by remember { mutableIntStateOf((settings?.notifEventLeadMinutes ?: 10) / 60) }
         var eventLeadM by remember { mutableIntStateOf((settings?.notifEventLeadMinutes ?: 10) % 60) }
         var tempEventLeadH by remember { mutableIntStateOf(eventLeadH) }
