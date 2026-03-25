@@ -246,7 +246,6 @@ fun runSample(db: AppDatabase) = runBlocking {
         endTime = LocalTime.of(18, 45),
         recurFreq = RecurrenceFrequency.WEEKLY,
         recurRule = RecurrenceRule(daysOfWeek = listOf(
-            DayOfWeek.SUNDAY.value,
             DayOfWeek.MONDAY.value,
             DayOfWeek.TUESDAY.value,
             DayOfWeek.WEDNESDAY.value,
@@ -262,8 +261,7 @@ fun runSample(db: AppDatabase) = runBlocking {
         endTime = LocalTime.of(17, 15),
         recurFreq = RecurrenceFrequency.WEEKLY,
         recurRule = RecurrenceRule(daysOfWeek = listOf(
-            DayOfWeek.FRIDAY.value,
-            DayOfWeek.SATURDAY.value
+            DayOfWeek.FRIDAY.value
         ))
     )
 
