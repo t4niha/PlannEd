@@ -700,7 +700,7 @@ fun recurrencePickerField(
     ) {
         Column {
             Text("Recurrence", fontSize = 16.sp, fontWeight = FontWeight.Medium)
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             // Display current recurrence frequency
             val recurrenceText = when (recurrenceFreq) {
@@ -1627,7 +1627,7 @@ fun dropdownField(
         Column {
             Text(label, fontSize = 16.sp, fontWeight = FontWeight.Medium,
                 color = Color.Black)
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             // Display selected item or "None"
             Box(

@@ -39,6 +39,9 @@ import androidx.core.graphics.withSave
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import androidx.compose.material3.TimePicker
+import androidx.compose.material3.TimePickerDefaults
+import androidx.compose.material3.rememberTimePickerState
 
 /* GLOBAL SETTINGS */
 val startWeekOnMonday: Boolean
@@ -232,6 +235,27 @@ fun Settings(db: AppDatabase) {
             .verticalScroll(scrollState)
             .padding(12.dp)
     ) {
+        // Refresh Schedule
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color(CardColor), RoundedCornerShape(12.dp))
+                .clip(RoundedCornerShape(12.dp))
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = ripple(bounded = true)
+                ) {
+                    scope.launch {
+                        generateTaskIntervals(db)
+                    }
+                }
+                .padding(16.dp)
+        ) {
+            Text("Refresh Schedule", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
         Text(
             text = "Calendar",
             fontSize = 16.sp,
@@ -540,6 +564,515 @@ fun Settings(db: AppDatabase) {
         }
 
         Spacer(modifier = Modifier.height(12.dp))
+
+        Text(
+            text = "Notifications",
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color.Gray,
+            modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 12.dp)
+        )
+
+        val notifTimeFormatter = java.time.format.DateTimeFormatter.ofPattern("h:mm a")
+
+        // ── Tasks ────────────────────────────────────────────────────────────
+        val tasksNotifEnabled = settings?.notifTasksEnabled ?: false
+        var taskAllDayTime by remember {
+            mutableStateOf(java.time.LocalTime.ofSecondOfDay((settings?.notifTaskAllDayTime ?: 25200).toLong()))
+        }
+        var showTaskTimePicker by remember { mutableStateOf(false) }
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color(CardColor), RoundedCornerShape(12.dp))
+                .padding(16.dp)
+        ) {
+            Column {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Tasks", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                    Spacer(modifier = Modifier.weight(1f))
+                    Switch(
+                        checked = tasksNotifEnabled,
+                        onCheckedChange = { scope.launch { SettingsManager.setNotifTasksEnabled(db, it) } },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = BackgroundColor,
+                            checkedTrackColor = localPrimary,
+                            uncheckedTrackColor = Color.LightGray,
+                            uncheckedThumbColor = BackgroundColor
+                        )
+                    )
+                }
+                AnimatedVisibility(
+                    visible = tasksNotifEnabled,
+                    enter = fadeIn() + expandVertically(),
+                    exit = fadeOut() + shrinkVertically()
+                ) {
+                    Column {
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), thickness = 1.dp, color = Color.LightGray)
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                            Text("All-Day Tasks", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                            Spacer(modifier = Modifier.weight(1f))
+                            Button(
+                                onClick = { showTaskTimePicker = true },
+                                colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
+                            ) { Text(taskAllDayTime.format(notifTimeFormatter)) }
+                        }
+                        if (showTaskTimePicker) {
+                            val taskTimePickerState = rememberTimePickerState(
+                                initialHour = taskAllDayTime.hour,
+                                initialMinute = taskAllDayTime.minute,
+                                is24Hour = false
+                            )
+                            AlertDialog(
+                                onDismissRequest = { showTaskTimePicker = false },
+                                confirmButton = {
+                                    TextButton(onClick = {
+                                        taskAllDayTime = java.time.LocalTime.of(taskTimePickerState.hour, taskTimePickerState.minute, 0, 0)
+                                        showTaskTimePicker = false
+                                        scope.launch { SettingsManager.setNotifTaskAllDayTime(db, taskAllDayTime.toSecondOfDay()) }
+                                    }) { Text("OK", color = Color.Black, fontSize = 16.sp) }
+                                },
+                                dismissButton = {
+                                    TextButton(onClick = { showTaskTimePicker = false }) { Text("Cancel", color = Color.Black, fontSize = 16.sp) }
+                                },
+                                containerColor = BackgroundColor,
+                                text = {
+                                    TimePicker(
+                                        state = taskTimePickerState,
+                                        colors = TimePickerDefaults.colors(
+                                            clockDialColor = BackgroundColor,
+                                            selectorColor = PrimaryColor,
+                                            containerColor = BackgroundColor,
+                                            periodSelectorBorderColor = Color.LightGray,
+                                            periodSelectorSelectedContainerColor = PrimaryColor,
+                                            periodSelectorUnselectedContainerColor = BackgroundColor,
+                                            periodSelectorSelectedContentColor = BackgroundColor,
+                                            periodSelectorUnselectedContentColor = Color.Black,
+                                            timeSelectorSelectedContainerColor = PrimaryColor,
+                                            timeSelectorUnselectedContainerColor = BackgroundColor,
+                                            timeSelectorSelectedContentColor = BackgroundColor,
+                                            timeSelectorUnselectedContentColor = Color.Black
+                                        )
+                                    )
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // ── Reminders ────────────────────────────────────────────────────────
+        val remindersNotifEnabled = settings?.notifRemindersEnabled ?: false
+        var reminderAllDayTime by remember {
+            mutableStateOf(java.time.LocalTime.ofSecondOfDay((settings?.notifReminderAllDayTime ?: 25200).toLong()))
+        }
+        var showReminderTimePicker by remember { mutableStateOf(false) }
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color(CardColor), RoundedCornerShape(12.dp))
+                .padding(16.dp)
+        ) {
+            Column {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Reminders", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                    Spacer(modifier = Modifier.weight(1f))
+                    Switch(
+                        checked = remindersNotifEnabled,
+                        onCheckedChange = { scope.launch { SettingsManager.setNotifRemindersEnabled(db, it) } },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = BackgroundColor,
+                            checkedTrackColor = localPrimary,
+                            uncheckedTrackColor = Color.LightGray,
+                            uncheckedThumbColor = BackgroundColor
+                        )
+                    )
+                }
+                AnimatedVisibility(
+                    visible = remindersNotifEnabled,
+                    enter = fadeIn() + expandVertically(),
+                    exit = fadeOut() + shrinkVertically()
+                ) {
+                    Column {
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), thickness = 1.dp, color = Color.LightGray)
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                            Text("All-Day Reminders", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                            Spacer(modifier = Modifier.weight(1f))
+                            Button(
+                                onClick = { showReminderTimePicker = true },
+                                colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
+                            ) { Text(reminderAllDayTime.format(notifTimeFormatter)) }
+                        }
+                        if (showReminderTimePicker) {
+                            val reminderTimePickerState = rememberTimePickerState(
+                                initialHour = reminderAllDayTime.hour,
+                                initialMinute = reminderAllDayTime.minute,
+                                is24Hour = false
+                            )
+                            AlertDialog(
+                                onDismissRequest = { showReminderTimePicker = false },
+                                confirmButton = {
+                                    TextButton(onClick = {
+                                        reminderAllDayTime = java.time.LocalTime.of(reminderTimePickerState.hour, reminderTimePickerState.minute, 0, 0)
+                                        showReminderTimePicker = false
+                                        scope.launch { SettingsManager.setNotifReminderAllDayTime(db, reminderAllDayTime.toSecondOfDay()) }
+                                    }) { Text("OK", color = Color.Black, fontSize = 16.sp) }
+                                },
+                                dismissButton = {
+                                    TextButton(onClick = { showReminderTimePicker = false }) { Text("Cancel", color = Color.Black, fontSize = 16.sp) }
+                                },
+                                containerColor = BackgroundColor,
+                                text = {
+                                    TimePicker(
+                                        state = reminderTimePickerState,
+                                        colors = TimePickerDefaults.colors(
+                                            clockDialColor = BackgroundColor,
+                                            selectorColor = PrimaryColor,
+                                            containerColor = BackgroundColor,
+                                            periodSelectorBorderColor = Color.LightGray,
+                                            periodSelectorSelectedContainerColor = PrimaryColor,
+                                            periodSelectorUnselectedContainerColor = BackgroundColor,
+                                            periodSelectorSelectedContentColor = BackgroundColor,
+                                            periodSelectorUnselectedContentColor = Color.Black,
+                                            timeSelectorSelectedContainerColor = PrimaryColor,
+                                            timeSelectorUnselectedContainerColor = BackgroundColor,
+                                            timeSelectorSelectedContentColor = BackgroundColor,
+                                            timeSelectorUnselectedContentColor = Color.Black
+                                        )
+                                    )
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // ── Deadlines ────────────────────────────────────────────────────────
+        val deadlinesNotifEnabled = settings?.notifDeadlinesEnabled ?: false
+        val deadlineTimingOptions = listOf("Time Of", "Day Of", "Day Before")
+        var deadlineTimingIndex by remember {
+            mutableIntStateOf(when (settings?.notifDeadlineTiming) {
+                "DAY_OF" -> 1; "DAY_BEFORE" -> 2; else -> 0
+            })
+        }
+        var deadlineNotifTime by remember {
+            mutableStateOf(java.time.LocalTime.ofSecondOfDay((settings?.notifDeadlineTime ?: 25200).toLong()))
+        }
+        var showDeadlineTimePicker by remember { mutableStateOf(false) }
+        var showDeadlineDropdown by remember { mutableStateOf(false) }
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color(CardColor), RoundedCornerShape(12.dp))
+                .padding(16.dp)
+        ) {
+            Column {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Deadlines", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                    Spacer(modifier = Modifier.weight(1f))
+                    Switch(
+                        checked = deadlinesNotifEnabled,
+                        onCheckedChange = { scope.launch { SettingsManager.setNotifDeadlinesEnabled(db, it) } },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = BackgroundColor,
+                            checkedTrackColor = localPrimary,
+                            uncheckedTrackColor = Color.LightGray,
+                            uncheckedThumbColor = BackgroundColor
+                        )
+                    )
+                }
+                AnimatedVisibility(
+                    visible = deadlinesNotifEnabled,
+                    enter = fadeIn() + expandVertically(),
+                    exit = fadeOut() + shrinkVertically()
+                ) {
+                    Column {
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), thickness = 1.dp, color = Color.LightGray)
+
+                        // Timing dropdown — same style as dropdownField() in creation
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(BackgroundColor, RoundedCornerShape(8.dp))
+                                .border(1.dp, Color.LightGray, RoundedCornerShape(8.dp))
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null
+                                ) { showDeadlineDropdown = !showDeadlineDropdown }
+                                .padding(12.dp)
+                        ) {
+                            Text(deadlineTimingOptions[deadlineTimingIndex], fontSize = 16.sp, color = Color.Black)
+                        }
+                        AnimatedVisibility(
+                            visible = showDeadlineDropdown,
+                            enter = fadeIn() + expandVertically(),
+                            exit = fadeOut() + shrinkVertically()
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .padding(top = 8.dp)
+                                    .heightIn(max = 180.dp)
+                                    .verticalScroll(rememberScrollState())
+                            ) {
+                                deadlineTimingOptions.forEachIndexed { index, label ->
+                                    val isSelected = deadlineTimingIndex == index
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 4.dp)
+                                            .background(
+                                                if (isSelected) PrimaryColor else Color.LightGray,
+                                                RoundedCornerShape(8.dp)
+                                            )
+                                            .clickable {
+                                                deadlineTimingIndex = index
+                                                showDeadlineDropdown = false
+                                                val timing = when (index) { 1 -> "DAY_OF"; 2 -> "DAY_BEFORE"; else -> "TIME_OF" }
+                                                scope.launch { SettingsManager.setNotifDeadlineTiming(db, timing) }
+                                            }
+                                            .padding(12.dp)
+                                    ) {
+                                        Text(
+                                            label,
+                                            fontSize = 16.sp,
+                                            color = if (isSelected) BackgroundColor else Color.Black,
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        // Time picker — only for Day of / Day before
+                        // Duration picker — only for Time of
+                        AnimatedVisibility(
+                            visible = deadlineTimingIndex == 0,
+                            enter = fadeIn() + expandVertically(),
+                            exit = fadeOut() + shrinkVertically()
+                        ) {
+                            Column {
+                                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), thickness = 1.dp, color = Color.LightGray)
+                                var deadlineLeadH by remember { mutableIntStateOf((settings?.notifDeadlineLeadMinutes ?: 0) / 60) }
+                                var deadlineLeadM by remember { mutableIntStateOf((settings?.notifDeadlineLeadMinutes ?: 0) % 60) }
+                                var tempDeadlineLeadH by remember { mutableIntStateOf(deadlineLeadH) }
+                                var tempDeadlineLeadM by remember { mutableIntStateOf(deadlineLeadM) }
+                                var showDeadlineLeadPicker by remember { mutableStateOf(false) }
+                                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                                    Text("Notify Before", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                                    Spacer(modifier = Modifier.weight(1f))
+                                    Button(
+                                        onClick = {
+                                            tempDeadlineLeadH = deadlineLeadH
+                                            tempDeadlineLeadM = deadlineLeadM
+                                            showDeadlineLeadPicker = true
+                                        },
+                                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
+                                    ) { Text("${deadlineLeadH}h ${deadlineLeadM}m") }
+                                }
+                                if (showDeadlineLeadPicker) {
+                                    AlertDialog(
+                                        onDismissRequest = { showDeadlineLeadPicker = false },
+                                        confirmButton = {
+                                            TextButton(onClick = {
+                                                deadlineLeadH = tempDeadlineLeadH
+                                                deadlineLeadM = tempDeadlineLeadM
+                                                showDeadlineLeadPicker = false
+                                                scope.launch { SettingsManager.setNotifDeadlineLeadMinutes(db, tempDeadlineLeadH * 60 + tempDeadlineLeadM) }
+                                            }) { Text("OK", color = Color.Black, fontSize = 16.sp) }
+                                        },
+                                        dismissButton = {
+                                            TextButton(onClick = { showDeadlineLeadPicker = false }) { Text("Cancel", color = Color.Black, fontSize = 16.sp) }
+                                        },
+                                        containerColor = BackgroundColor,
+                                        text = {
+                                            Row(horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                                    Text("Hours", fontSize = 12.sp)
+                                                    Spacer(modifier = Modifier.height(8.dp))
+                                                    Button(onClick = { tempDeadlineLeadH++ }, colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)) { Text("▲") }
+                                                    Text(tempDeadlineLeadH.toString(), fontSize = 24.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(vertical = 8.dp))
+                                                    Button(onClick = { if (tempDeadlineLeadH > 0) tempDeadlineLeadH-- }, colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)) { Text("▼") }
+                                                }
+                                                Spacer(modifier = Modifier.width(32.dp))
+                                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                                    Text("Minutes", fontSize = 12.sp)
+                                                    Spacer(modifier = Modifier.height(8.dp))
+                                                    Button(onClick = { tempDeadlineLeadM = (tempDeadlineLeadM + 5) % 60 }, colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)) { Text("▲") }
+                                                    Text(tempDeadlineLeadM.toString(), fontSize = 24.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(vertical = 8.dp))
+                                                    Button(onClick = { tempDeadlineLeadM = if (tempDeadlineLeadM - 5 < 0) 55 else tempDeadlineLeadM - 5 }, colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)) { Text("▼") }
+                                                }
+                                            }
+                                        }
+                                    )
+                                }
+                            }
+                        }
+
+                        // Time picker — only for Day of / Day before
+                        AnimatedVisibility(
+                            visible = deadlineTimingIndex != 0,
+                            enter = fadeIn() + expandVertically(),
+                            exit = fadeOut() + shrinkVertically()
+                        ) {
+                            Column {
+                                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), thickness = 1.dp, color = Color.LightGray)
+                                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                                    Text("Time", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                                    Spacer(modifier = Modifier.weight(1f))
+                                    Button(
+                                        onClick = { showDeadlineTimePicker = true },
+                                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
+                                    ) { Text(deadlineNotifTime.format(notifTimeFormatter)) }
+                                }
+                                if (showDeadlineTimePicker) {
+                                    val deadlineTimePickerState = rememberTimePickerState(
+                                        initialHour = deadlineNotifTime.hour,
+                                        initialMinute = deadlineNotifTime.minute,
+                                        is24Hour = false
+                                    )
+                                    AlertDialog(
+                                        onDismissRequest = { showDeadlineTimePicker = false },
+                                        confirmButton = {
+                                            TextButton(onClick = {
+                                                deadlineNotifTime = java.time.LocalTime.of(deadlineTimePickerState.hour, deadlineTimePickerState.minute, 0, 0)
+                                                showDeadlineTimePicker = false
+                                                scope.launch { SettingsManager.setNotifDeadlineTime(db, deadlineNotifTime.toSecondOfDay()) }
+                                            }) { Text("OK", color = Color.Black, fontSize = 16.sp) }
+                                        },
+                                        dismissButton = {
+                                            TextButton(onClick = { showDeadlineTimePicker = false }) { Text("Cancel", color = Color.Black, fontSize = 16.sp) }
+                                        },
+                                        containerColor = BackgroundColor,
+                                        text = {
+                                            TimePicker(
+                                                state = deadlineTimePickerState,
+                                                colors = TimePickerDefaults.colors(
+                                                    clockDialColor = BackgroundColor,
+                                                    selectorColor = PrimaryColor,
+                                                    containerColor = BackgroundColor,
+                                                    periodSelectorBorderColor = Color.LightGray,
+                                                    periodSelectorSelectedContainerColor = PrimaryColor,
+                                                    periodSelectorUnselectedContainerColor = BackgroundColor,
+                                                    periodSelectorSelectedContentColor = BackgroundColor,
+                                                    periodSelectorUnselectedContentColor = Color.Black,
+                                                    timeSelectorSelectedContainerColor = PrimaryColor,
+                                                    timeSelectorUnselectedContainerColor = BackgroundColor,
+                                                    timeSelectorSelectedContentColor = BackgroundColor,
+                                                    timeSelectorUnselectedContentColor = Color.Black
+                                                )
+                                            )
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // ── Events ───────────────────────────────────────────────────────────
+        val eventsNotifEnabled = settings?.notifEventsEnabled ?: false
+        var eventLeadH by remember { mutableIntStateOf((settings?.notifEventLeadMinutes ?: 10) / 60) }
+        var eventLeadM by remember { mutableIntStateOf((settings?.notifEventLeadMinutes ?: 10) % 60) }
+        var tempEventLeadH by remember { mutableIntStateOf(eventLeadH) }
+        var tempEventLeadM by remember { mutableIntStateOf(eventLeadM) }
+        var showEventLeadPicker by remember { mutableStateOf(false) }
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color(CardColor), RoundedCornerShape(12.dp))
+                .padding(16.dp)
+        ) {
+            Column {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Events", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                    Spacer(modifier = Modifier.weight(1f))
+                    Switch(
+                        checked = eventsNotifEnabled,
+                        onCheckedChange = { scope.launch { SettingsManager.setNotifEventsEnabled(db, it) } },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = BackgroundColor,
+                            checkedTrackColor = localPrimary,
+                            uncheckedTrackColor = Color.LightGray,
+                            uncheckedThumbColor = BackgroundColor
+                        )
+                    )
+                }
+                AnimatedVisibility(
+                    visible = eventsNotifEnabled,
+                    enter = fadeIn() + expandVertically(),
+                    exit = fadeOut() + shrinkVertically()
+                ) {
+                    Column {
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), thickness = 1.dp, color = Color.LightGray)
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                            Text("Notify Before", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                            Spacer(modifier = Modifier.weight(1f))
+                            Button(
+                                onClick = {
+                                    tempEventLeadH = eventLeadH
+                                    tempEventLeadM = eventLeadM
+                                    showEventLeadPicker = true
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
+                            ) { Text("${eventLeadH}h ${eventLeadM}m") }
+                        }
+                        if (showEventLeadPicker) {
+                            AlertDialog(
+                                onDismissRequest = { showEventLeadPicker = false },
+                                confirmButton = {
+                                    TextButton(onClick = {
+                                        eventLeadH = tempEventLeadH
+                                        eventLeadM = tempEventLeadM
+                                        showEventLeadPicker = false
+                                        scope.launch { SettingsManager.setNotifEventLeadMinutes(db, tempEventLeadH * 60 + tempEventLeadM) }
+                                    }) { Text("OK", color = Color.Black, fontSize = 16.sp) }
+                                },
+                                dismissButton = {
+                                    TextButton(onClick = { showEventLeadPicker = false }) { Text("Cancel", color = Color.Black, fontSize = 16.sp) }
+                                },
+                                containerColor = BackgroundColor,
+                                text = {
+                                    Row(horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                            Text("Hours", fontSize = 12.sp)
+                                            Spacer(modifier = Modifier.height(8.dp))
+                                            Button(onClick = { tempEventLeadH++ }, colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)) { Text("▲") }
+                                            Text(tempEventLeadH.toString(), fontSize = 24.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(vertical = 8.dp))
+                                            Button(onClick = { if (tempEventLeadH > 0) tempEventLeadH-- }, colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)) { Text("▼") }
+                                        }
+                                        Spacer(modifier = Modifier.width(32.dp))
+                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                            Text("Minutes", fontSize = 12.sp)
+                                            Spacer(modifier = Modifier.height(8.dp))
+                                            Button(onClick = { tempEventLeadM = (tempEventLeadM + 5) % 60 }, colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)) { Text("▲") }
+                                            Text(tempEventLeadM.toString(), fontSize = 24.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(vertical = 8.dp))
+                                            Button(onClick = { tempEventLeadM = if (tempEventLeadM - 5 < 0) 55 else tempEventLeadM - 5 }, colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)) { Text("▼") }
+                                        }
+                                    }
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
         Text(
             text = "Analytics",
             fontSize = 16.sp,
@@ -547,27 +1080,6 @@ fun Settings(db: AppDatabase) {
             color = Color.Gray,
             modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 12.dp)
         )
-
-        // Refresh Schedule
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color(CardColor), RoundedCornerShape(12.dp))
-                .clip(RoundedCornerShape(12.dp))
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = ripple(bounded = true)
-                ) {
-                    scope.launch {
-                        generateTaskIntervals(db)
-                    }
-                }
-                .padding(16.dp)
-        ) {
-            Text("Refresh Schedule", fontSize = 16.sp, fontWeight = FontWeight.Medium)
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
 
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             SettingsNavItem(label = "Overtime", onClick = { settingsCurrentView = "ati" })

@@ -21,7 +21,7 @@ object AppDatabaseProvider {
                 context.applicationContext,
                 AppDatabase::class.java,
                 "planned-db"
-            ).fallbackToDestructiveMigration(false).build()
+            ).fallbackToDestructiveMigration(true).build()
             INSTANCE = instance
             instance
         }
