@@ -10,6 +10,7 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 // ID ranges — keeps each entity type's alarm IDs non-overlapping
 private const val TASK_ID_BASE     = 0
@@ -19,15 +20,14 @@ private const val DEADLINE_ID_BASE = 300_000
 
 @RequiresApi(Build.VERSION_CODES.O)
 object NotificationScheduler {
+    private val timeFormatter = DateTimeFormatter.ofPattern("h:mm a")
 
     // ── Helpers ──────────────────────────────────────────────────────────────
-
     private fun toEpochMillis(date: LocalDate, time: LocalTime): Long =
         LocalDateTime.of(date, time)
             .atZone(ZoneId.systemDefault())
             .toInstant()
             .toEpochMilli()
-
     private fun makePendingIntent(context: Context, notifId: Int, title: String, message: String): PendingIntent {
         val intent = Intent(context, NotificationReceiver::class.java).apply {
             putExtra("title",   title)
@@ -39,7 +39,6 @@ object NotificationScheduler {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
     }
-
     private fun schedule(context: Context, triggerMs: Long, notifId: Int, title: String, message: String) {
         if (triggerMs <= System.currentTimeMillis()) return
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
@@ -59,7 +58,6 @@ object NotificationScheduler {
             alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerMs, pending)
         }
     }
-
     private fun cancel(context: Context, notifId: Int) {
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val pending = makePendingIntent(context, notifId, "", "")
@@ -84,7 +82,7 @@ object NotificationScheduler {
                 val task = db.taskDao().getMasterTaskById(interval.masterTaskId) ?: return@forEach
                 val notifId = TASK_ID_BASE + interval.id
                 val triggerMs = toEpochMillis(interval.occurDate, interval.startTime)
-                schedule(context, triggerMs, notifId, task.title, "Task starting now")
+                schedule(context, triggerMs, notifId, task.title, "Scheduled now")
             }
 
             // All-day tasks — fire at configured all-day time on their date
@@ -93,7 +91,7 @@ object NotificationScheduler {
             allDayTasks.forEach { task ->
                 val notifId = TASK_ID_BASE + 50_000 + task.id  // separate range from intervals
                 val triggerMs = toEpochMillis(task.allDay!!, allDayTime)
-                schedule(context, triggerMs, notifId, task.title, "All-day task today")
+                schedule(context, triggerMs, notifId, task.title, "Scheduled today")
             }
         }
     }
@@ -122,10 +120,13 @@ object NotificationScheduler {
             occurrences.forEach { occ ->
                 val event = db.eventDao().getMasterEventById(occ.masterEventId) ?: return@forEach
                 val notifId = EVENT_ID_BASE + occ.id
-                val triggerTime = occ.startTime.minusMinutes(leadMinutes)
-                val triggerMs = toEpochMillis(occ.occurDate, triggerTime)
-                val message = if (leadMinutes == 0L) "Event starting now"
-                else "Starting in ${leadMinutes}m"
+                val triggerMs = LocalDateTime.of(occ.occurDate, occ.startTime)
+                    .minusMinutes(leadMinutes)
+                    .atZone(ZoneId.systemDefault())
+                    .toInstant()
+                    .toEpochMilli()
+                val message = if (leadMinutes == 0L) "Starting now"
+                else "Starting in ${leadMinutes} min"
                 schedule(context, triggerMs, notifId, event.title, message)
             }
         }
@@ -202,12 +203,17 @@ object NotificationScheduler {
                 val triggerMs = when (timing) {
                     "DAY_OF"     -> toEpochMillis(deadline.date, configTime)
                     "DAY_BEFORE" -> toEpochMillis(deadline.date.minusDays(1), configTime)
-                    else         -> toEpochMillis(deadline.date, deadline.time.minusMinutes(leadMinutes))
+                    else         -> LocalDateTime.of(deadline.date, deadline.time)
+                        .minusMinutes(leadMinutes)
+                        .atZone(ZoneId.systemDefault())
+                        .toInstant()
+                        .toEpochMilli()
                 }
+                val formattedTime = deadline.time.format(timeFormatter)
                 val message = when (timing) {
-                    "DAY_OF"     -> "Deadline today"
-                    "DAY_BEFORE" -> "Deadline tomorrow"
-                    else         -> if (leadMinutes == 0L) "Deadline now" else "Deadline in ${leadMinutes}m"
+                    "DAY_OF"     -> "Due today at $formattedTime"
+                    "DAY_BEFORE" -> "Due tomorrow at $formattedTime"
+                    else         -> if (leadMinutes == 0L) "Due now" else "Due in ${leadMinutes} min"
                 }
                 schedule(context, triggerMs, notifId, deadline.title, message)
             }
