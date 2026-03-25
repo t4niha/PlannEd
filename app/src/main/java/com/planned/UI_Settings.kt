@@ -594,7 +594,11 @@ fun Settings(db: AppDatabase) {
                     Spacer(modifier = Modifier.weight(1f))
                     Switch(
                         checked = tasksNotifEnabled,
-                        onCheckedChange = { scope.launch { SettingsManager.setNotifTasksEnabled(db, it) } },
+                        onCheckedChange = { scope.launch {
+                            SettingsManager.setNotifTasksEnabled(db, it)
+                            NotificationScheduler.cancelAllTaskNotifications(context, db)
+                            if (it) NotificationScheduler.scheduleTaskNotifications(context, db)
+                        } },
                         colors = SwitchDefaults.colors(
                             checkedThumbColor = BackgroundColor,
                             checkedTrackColor = localPrimary,
@@ -630,7 +634,11 @@ fun Settings(db: AppDatabase) {
                                     TextButton(onClick = {
                                         taskAllDayTime = java.time.LocalTime.of(taskTimePickerState.hour, taskTimePickerState.minute, 0, 0)
                                         showTaskTimePicker = false
-                                        scope.launch { SettingsManager.setNotifTaskAllDayTime(db, taskAllDayTime.toSecondOfDay()) }
+                                        scope.launch {
+                                            SettingsManager.setNotifTaskAllDayTime(db, taskAllDayTime.toSecondOfDay())
+                                            NotificationScheduler.cancelAllTaskNotifications(context, db)
+                                            NotificationScheduler.scheduleTaskNotifications(context, db)
+                                        }
                                     }) { Text("OK", color = Color.Black, fontSize = 16.sp) }
                                 },
                                 dismissButton = {
@@ -684,7 +692,11 @@ fun Settings(db: AppDatabase) {
                     Spacer(modifier = Modifier.weight(1f))
                     Switch(
                         checked = remindersNotifEnabled,
-                        onCheckedChange = { scope.launch { SettingsManager.setNotifRemindersEnabled(db, it) } },
+                        onCheckedChange = { scope.launch {
+                            SettingsManager.setNotifRemindersEnabled(db, it)
+                            NotificationScheduler.cancelAllReminderNotifications(context, db)
+                            if (it) NotificationScheduler.scheduleReminderNotifications(context, db)
+                        } },
                         colors = SwitchDefaults.colors(
                             checkedThumbColor = BackgroundColor,
                             checkedTrackColor = localPrimary,
@@ -720,7 +732,11 @@ fun Settings(db: AppDatabase) {
                                     TextButton(onClick = {
                                         reminderAllDayTime = java.time.LocalTime.of(reminderTimePickerState.hour, reminderTimePickerState.minute, 0, 0)
                                         showReminderTimePicker = false
-                                        scope.launch { SettingsManager.setNotifReminderAllDayTime(db, reminderAllDayTime.toSecondOfDay()) }
+                                        scope.launch {
+                                            SettingsManager.setNotifReminderAllDayTime(db, reminderAllDayTime.toSecondOfDay())
+                                            NotificationScheduler.cancelAllReminderNotifications(context, db)
+                                            NotificationScheduler.scheduleReminderNotifications(context, db)
+                                        }
                                     }) { Text("OK", color = Color.Black, fontSize = 16.sp) }
                                 },
                                 dismissButton = {
@@ -781,7 +797,11 @@ fun Settings(db: AppDatabase) {
                     Spacer(modifier = Modifier.weight(1f))
                     Switch(
                         checked = deadlinesNotifEnabled,
-                        onCheckedChange = { scope.launch { SettingsManager.setNotifDeadlinesEnabled(db, it) } },
+                        onCheckedChange = { scope.launch {
+                            SettingsManager.setNotifDeadlinesEnabled(db, it)
+                            NotificationScheduler.cancelAllDeadlineNotifications(context, db)
+                            if (it) NotificationScheduler.scheduleDeadlineNotifications(context, db)
+                        } },
                         colors = SwitchDefaults.colors(
                             checkedThumbColor = BackgroundColor,
                             checkedTrackColor = localPrimary,
@@ -837,7 +857,11 @@ fun Settings(db: AppDatabase) {
                                                 deadlineTimingIndex = index
                                                 showDeadlineDropdown = false
                                                 val timing = when (index) { 1 -> "DAY_OF"; 2 -> "DAY_BEFORE"; else -> "TIME_OF" }
-                                                scope.launch { SettingsManager.setNotifDeadlineTiming(db, timing) }
+                                                scope.launch {
+                                                    SettingsManager.setNotifDeadlineTiming(db, timing)
+                                                    NotificationScheduler.cancelAllDeadlineNotifications(context, db)
+                                                    NotificationScheduler.scheduleDeadlineNotifications(context, db)
+                                                }
                                             }
                                             .padding(12.dp)
                                     ) {
@@ -886,7 +910,11 @@ fun Settings(db: AppDatabase) {
                                                 deadlineLeadH = tempDeadlineLeadH
                                                 deadlineLeadM = tempDeadlineLeadM
                                                 showDeadlineLeadPicker = false
-                                                scope.launch { SettingsManager.setNotifDeadlineLeadMinutes(db, tempDeadlineLeadH * 60 + tempDeadlineLeadM) }
+                                                scope.launch {
+                                                    SettingsManager.setNotifDeadlineLeadMinutes(db, tempDeadlineLeadH * 60 + tempDeadlineLeadM)
+                                                    NotificationScheduler.cancelAllDeadlineNotifications(context, db)
+                                                    NotificationScheduler.scheduleDeadlineNotifications(context, db)
+                                                }
                                             }) { Text("OK", color = Color.Black, fontSize = 16.sp) }
                                         },
                                         dismissButton = {
@@ -945,7 +973,11 @@ fun Settings(db: AppDatabase) {
                                             TextButton(onClick = {
                                                 deadlineNotifTime = java.time.LocalTime.of(deadlineTimePickerState.hour, deadlineTimePickerState.minute, 0, 0)
                                                 showDeadlineTimePicker = false
-                                                scope.launch { SettingsManager.setNotifDeadlineTime(db, deadlineNotifTime.toSecondOfDay()) }
+                                                scope.launch {
+                                                    SettingsManager.setNotifDeadlineTime(db, deadlineNotifTime.toSecondOfDay())
+                                                    NotificationScheduler.cancelAllDeadlineNotifications(context, db)
+                                                    NotificationScheduler.scheduleDeadlineNotifications(context, db)
+                                                }
                                             }) { Text("OK", color = Color.Black, fontSize = 16.sp) }
                                         },
                                         dismissButton = {
@@ -1002,7 +1034,11 @@ fun Settings(db: AppDatabase) {
                     Spacer(modifier = Modifier.weight(1f))
                     Switch(
                         checked = eventsNotifEnabled,
-                        onCheckedChange = { scope.launch { SettingsManager.setNotifEventsEnabled(db, it) } },
+                        onCheckedChange = { scope.launch {
+                            SettingsManager.setNotifEventsEnabled(db, it)
+                            NotificationScheduler.cancelAllEventNotifications(context, db)
+                            if (it) NotificationScheduler.scheduleEventNotifications(context, db)
+                        } },
                         colors = SwitchDefaults.colors(
                             checkedThumbColor = BackgroundColor,
                             checkedTrackColor = localPrimary,
@@ -1038,7 +1074,11 @@ fun Settings(db: AppDatabase) {
                                         eventLeadH = tempEventLeadH
                                         eventLeadM = tempEventLeadM
                                         showEventLeadPicker = false
-                                        scope.launch { SettingsManager.setNotifEventLeadMinutes(db, tempEventLeadH * 60 + tempEventLeadM) }
+                                        scope.launch {
+                                            SettingsManager.setNotifEventLeadMinutes(db, tempEventLeadH * 60 + tempEventLeadM)
+                                            NotificationScheduler.cancelAllEventNotifications(context, db)
+                                            NotificationScheduler.scheduleEventNotifications(context, db)
+                                        }
                                     }) { Text("OK", color = Color.Black, fontSize = 16.sp) }
                                 },
                                 dismissButton = {
