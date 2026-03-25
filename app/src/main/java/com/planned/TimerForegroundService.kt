@@ -69,8 +69,12 @@ class TimerForegroundService : Service() {
     }
 
     private fun buildNotification() = run {
-        // Tap notification -> open app
-        val tapIntent = packageManager.getLaunchIntentForPackage(packageName)
+        // Tap notification -> open app and navigate to the running pomodoro page
+        val tapIntent = packageManager.getLaunchIntentForPackage(packageName)?.apply {
+            putExtra("entityType", if (PomodoroState.isAllDay) "pomodoro_allday" else "pomodoro")
+            putExtra("entityId",   PomodoroState.activeTaskId ?: -1)
+            flags = android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP or android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
         val pendingTap = PendingIntent.getActivity(
             this, 0, tapIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE

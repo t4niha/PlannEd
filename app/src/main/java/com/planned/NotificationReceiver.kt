@@ -21,8 +21,14 @@ class NotificationReceiver : BroadcastReceiver() {
         val channel = NotificationChannel(channelId, "Planned", NotificationManager.IMPORTANCE_HIGH)
         manager.createNotificationChannel(channel)
 
-        // Tap notification -> open app
-        val tapIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)
+        // Tap notification -> open app and deep-link to the relevant entity
+        val entityType = intent.getStringExtra("entityType") ?: ""
+        val entityId   = intent.getIntExtra("entityId", -1)
+        val tapIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)?.apply {
+            putExtra("entityType", entityType)
+            putExtra("entityId",   entityId)
+            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
         val pendingTap = PendingIntent.getActivity(
             context, notifId, tapIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE

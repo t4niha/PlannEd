@@ -28,27 +28,28 @@ object NotificationScheduler {
             .atZone(ZoneId.systemDefault())
             .toInstant()
             .toEpochMilli()
-    private fun makePendingIntent(context: Context, notifId: Int, title: String, message: String): PendingIntent {
+    private fun makePendingIntent(context: Context, notifId: Int, title: String, message: String, entityType: String = "", entityId: Int = -1): PendingIntent {
         val intent = Intent(context, NotificationReceiver::class.java).apply {
-            putExtra("title",   title)
-            putExtra("message", message)
-            putExtra("notifId", notifId)
+            putExtra("title",      title)
+            putExtra("message",    message)
+            putExtra("notifId",    notifId)
+            putExtra("entityType", entityType)
+            putExtra("entityId",   entityId)
         }
         return PendingIntent.getBroadcast(
             context, notifId, intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
     }
-    private fun schedule(context: Context, triggerMs: Long, notifId: Int, title: String, message: String) {
+    private fun schedule(context: Context, triggerMs: Long, notifId: Int, title: String, message: String, entityType: String = "", entityId: Int = -1) {
         if (triggerMs <= System.currentTimeMillis()) return
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        val pending = makePendingIntent(context, notifId, title, message)
+        val pending = makePendingIntent(context, notifId, title, message, entityType, entityId)
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 if (alarmManager.canScheduleExactAlarms()) {
                     alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerMs, pending)
                 } else {
-                    // Fall back to inexact if exact alarms not permitted
                     alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerMs, pending)
                 }
             } else {
@@ -82,7 +83,7 @@ object NotificationScheduler {
                 val task = db.taskDao().getMasterTaskById(interval.masterTaskId) ?: return@forEach
                 val notifId = TASK_ID_BASE + interval.id
                 val triggerMs = toEpochMillis(interval.occurDate, interval.startTime)
-                schedule(context, triggerMs, notifId, task.title, "Scheduled now")
+                schedule(context, triggerMs, notifId, task.title, "Scheduled now", "task", task.id)
             }
 
             // All-day tasks — fire at configured all-day time on their date
@@ -91,7 +92,7 @@ object NotificationScheduler {
             allDayTasks.forEach { task ->
                 val notifId = TASK_ID_BASE + 50_000 + task.id  // separate range from intervals
                 val triggerMs = toEpochMillis(task.allDay!!, allDayTime)
-                schedule(context, triggerMs, notifId, task.title, "Scheduled today")
+                schedule(context, triggerMs, notifId, task.title, "Scheduled today", "task_allday", task.id)
             }
         }
     }
@@ -127,7 +128,7 @@ object NotificationScheduler {
                     .toEpochMilli()
                 val message = if (leadMinutes == 0L) "Starting now"
                 else "Starting in ${leadMinutes} min"
-                schedule(context, triggerMs, notifId, event.title, message)
+                schedule(context, triggerMs, notifId, event.title, message, "event", event.id)
             }
         }
     }
@@ -164,7 +165,7 @@ object NotificationScheduler {
                 val notifId = REMINDER_ID_BASE + occ.id
                 val fireTime = if (occ.allDay) allDayTime else (occ.time ?: allDayTime)
                 val triggerMs = toEpochMillis(occ.occurDate, fireTime)
-                schedule(context, triggerMs, notifId, reminder.title, "Reminder")
+                schedule(context, triggerMs, notifId, reminder.title, "Reminder", "reminder", reminder.id)
             }
         }
     }
@@ -215,7 +216,7 @@ object NotificationScheduler {
                     "DAY_BEFORE" -> "Due tomorrow at $formattedTime"
                     else         -> if (leadMinutes == 0L) "Due now" else "Due in ${leadMinutes} min"
                 }
-                schedule(context, triggerMs, notifId, deadline.title, message)
+                schedule(context, triggerMs, notifId, deadline.title, message, "deadline", deadline.id)
             }
         }
     }
