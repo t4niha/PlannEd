@@ -1,5 +1,6 @@
 package com.planned
 
+import android.content.Context
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.getValue
@@ -141,8 +142,8 @@ object CategoryManager {
 
     // Delete category and cascade null-setting
     @RequiresApi(Build.VERSION_CODES.O)
-    suspend fun delete(db: AppDatabase, categoryId: Int) {
-        onCategoryDeleted(db, categoryId)
+    suspend fun delete(context: Context, db: AppDatabase, categoryId: Int) {
+        onCategoryDeleted(context, db, categoryId)
         db.categoryATIDao().deleteById(categoryId)
         db.categoryDao().deleteById(categoryId)
     }
@@ -153,6 +154,7 @@ object EventManager {
     // Insert new master event
     @RequiresApi(Build.VERSION_CODES.O)
     suspend fun insert(
+        context: Context,
         db: AppDatabase,
         title: String,
         notes: String?,
@@ -196,7 +198,11 @@ object EventManager {
         db.eventATIDao().insert(EventATI(eventId = insertedId))
 
         // Rerun scheduler since event times affect available slots
-        onTaskChanged(db)
+        onTaskChanged(context, db)
+
+        // Schedule notifications for new occurrences
+        NotificationScheduler.cancelAllEventNotifications(context, db)
+        NotificationScheduler.scheduleEventNotifications(context, db)
 
         return insertedId
     }
@@ -208,7 +214,7 @@ object EventManager {
 
     // Update master event
     @RequiresApi(Build.VERSION_CODES.O)
-    suspend fun update(db: AppDatabase, event: MasterEvent) {
+    suspend fun update(context: Context, db: AppDatabase, event: MasterEvent) {
         db.eventDao().update(event)
 
         // Delete old occurrences
@@ -223,12 +229,16 @@ object EventManager {
         }
 
         // Rerun scheduler since event times affect available slots
-        onTaskChanged(db)
+        onTaskChanged(context, db)
+
+        // Reschedule notifications for this event
+        NotificationScheduler.cancelEventNotifications(context, event.id, db)
+        NotificationScheduler.scheduleEventNotifications(context, db)
     }
 
     // Delete master event and cascade null-setting
     @RequiresApi(Build.VERSION_CODES.O)
-    suspend fun delete(db: AppDatabase, eventId: Int) {
+    suspend fun delete(context: Context, db: AppDatabase, eventId: Int) {
         // Null-set references in deadlines and tasks first
         val deadlines = db.deadlineDao().getAll()
         deadlines.filter { it.eventId == eventId }.forEach { deadline ->
@@ -244,7 +254,10 @@ object EventManager {
         db.eventDao().deleteMasterEvent(eventId)
 
         // Rerun scheduler now that event occurrences are gone
-        generateTaskIntervals(db)
+        generateTaskIntervals(context, db)
+
+        // Cancel notifications for deleted event
+        NotificationScheduler.cancelEventNotifications(context, eventId, db)
     }
 }
 
@@ -253,6 +266,7 @@ object DeadlineManager {
     // Insert new deadline
     @RequiresApi(Build.VERSION_CODES.O)
     suspend fun insert(
+        context: Context,
         db: AppDatabase,
         title: String,
         notes: String?,
@@ -272,7 +286,11 @@ object DeadlineManager {
         val insertedId = db.deadlineDao().insert(deadline).toInt()
 
         // Regenerate task intervals
-        onTaskChanged(db)
+        onTaskChanged(context, db)
+
+        // Schedule notification for new deadline
+        NotificationScheduler.cancelAllDeadlineNotifications(context, db)
+        NotificationScheduler.scheduleDeadlineNotifications(context, db)
 
         return insertedId
     }
@@ -284,18 +302,25 @@ object DeadlineManager {
 
     // Update deadline
     @RequiresApi(Build.VERSION_CODES.O)
-    suspend fun update(db: AppDatabase, deadline: Deadline) {
+    suspend fun update(context: Context, db: AppDatabase, deadline: Deadline) {
         db.deadlineDao().update(deadline)
 
         // Regenerate task intervals
-        onTaskChanged(db)
+        onTaskChanged(context, db)
+
+        // Reschedule notification for this deadline
+        NotificationScheduler.cancelDeadlineNotification(context, deadline.id)
+        NotificationScheduler.scheduleDeadlineNotifications(context, db)
     }
 
     // Delete deadline and cascade null-setting
     @RequiresApi(Build.VERSION_CODES.O)
-    suspend fun delete(db: AppDatabase, deadlineId: Int) {
-        onDeadlineDeleted(db, deadlineId)
+    suspend fun delete(context: Context, db: AppDatabase, deadlineId: Int) {
+        onDeadlineDeleted(context, db, deadlineId)
         db.deadlineDao().deleteById(deadlineId)
+
+        // Cancel notification for deleted deadline
+        NotificationScheduler.cancelDeadlineNotification(context, deadlineId)
     }
 }
 
@@ -304,6 +329,7 @@ object TaskBucketManager {
     // Insert new master task bucket
     @RequiresApi(Build.VERSION_CODES.O)
     suspend fun insert(
+        context: Context,
         db: AppDatabase,
         startDate: LocalDate,
         endDate: LocalDate?,
@@ -336,7 +362,7 @@ object TaskBucketManager {
         }
 
         // Regenerate task intervals
-        onTaskBucketDeleted(db)
+        onTaskBucketDeleted(context, db)
     }
 
     // Get all master buckets
@@ -346,7 +372,7 @@ object TaskBucketManager {
 
     // Update master bucket
     @RequiresApi(Build.VERSION_CODES.O)
-    suspend fun update(db: AppDatabase, bucket: MasterTaskBucket) {
+    suspend fun update(context: Context, db: AppDatabase, bucket: MasterTaskBucket) {
         db.taskBucketDao().update(bucket)
 
         // Delete old occurrences
@@ -361,16 +387,16 @@ object TaskBucketManager {
         }
 
         // Regenerate task intervals with updated bucket times
-        onTaskBucketDeleted(db)
+        onTaskBucketDeleted(context, db)
     }
 
     // Delete master bucket
     @RequiresApi(Build.VERSION_CODES.O)
-    suspend fun delete(db: AppDatabase, bucketId: Int) {
+    suspend fun delete(context: Context, db: AppDatabase, bucketId: Int) {
         db.taskBucketDao().deleteMasterBucket(bucketId)
 
         // Regenerate task intervals
-        onTaskBucketDeleted(db)
+        onTaskBucketDeleted(context, db)
     }
 }
 
@@ -379,6 +405,7 @@ object TaskManager {
     // Insert new master task
     @RequiresApi(Build.VERSION_CODES.O)
     suspend fun insert(
+        context: Context,
         db: AppDatabase,
         title: String,
         notes: String?,
@@ -408,8 +435,8 @@ object TaskManager {
         )
         val insertedId = db.taskDao().insert(task).toInt()
 
-        // Regenerate task intervals
-        onTaskChanged(db)
+        // Regenerate task intervals (task notifications handled inside generateTaskIntervals)
+        onTaskChanged(context, db)
 
         return insertedId
     }
@@ -421,7 +448,7 @@ object TaskManager {
 
     // Update master task
     @RequiresApi(Build.VERSION_CODES.O)
-    suspend fun update(db: AppDatabase, task: MasterTask) {
+    suspend fun update(context: Context, db: AppDatabase, task: MasterTask) {
         // Stamp completedAt when task is being marked complete
         val taskToWrite = if (task.status == 3 && task.completedAt == null)
             task.copy(completedAt = LocalDateTime.now())
@@ -431,25 +458,25 @@ object TaskManager {
 
         // Delete all-day tasks immediately on completion — they have no ATI use
         if (taskToWrite.allDay != null && taskToWrite.status == 3) {
-            onTaskDeleted(db, taskToWrite.id)
+            onTaskDeleted(context, db, taskToWrite.id)
             db.taskDao().deleteMasterTask(taskToWrite.id)
             return
         }
 
-        // Regenerate task intervals
-        onTaskChanged(db)
+        // Regenerate task intervals (task notifications handled inside generateTaskIntervals)
+        onTaskChanged(context, db)
     }
 
     // Delete master task
     @RequiresApi(Build.VERSION_CODES.O)
-    suspend fun delete(db: AppDatabase, taskId: Int) {
+    suspend fun delete(context: Context, db: AppDatabase, taskId: Int) {
         // Handle dependency
-        onTaskDeleted(db, taskId)
+        onTaskDeleted(context, db, taskId)
 
         db.taskDao().deleteMasterTask(taskId)
 
-        // Reschedule remaining tasks into freed slots
-        onTaskChanged(db)
+        // Reschedule remaining tasks into freed slots (task notifications handled inside generateTaskIntervals)
+        onTaskChanged(context, db)
     }
 }
 
@@ -458,6 +485,7 @@ object ReminderManager {
     // Insert new master reminder
     @RequiresApi(Build.VERSION_CODES.O)
     suspend fun insert(
+        context: Context,
         db: AppDatabase,
         title: String,
         notes: String?,
@@ -494,6 +522,10 @@ object ReminderManager {
         occurrences.forEach { occurrence ->
             db.reminderDao().insertOccurrence(occurrence)
         }
+
+        // Schedule notifications for new occurrences
+        NotificationScheduler.cancelAllReminderNotifications(context, db)
+        NotificationScheduler.scheduleReminderNotifications(context, db)
     }
 
     // Get all master reminders
@@ -503,7 +535,7 @@ object ReminderManager {
 
     // Update master reminder
     @RequiresApi(Build.VERSION_CODES.O)
-    suspend fun update(db: AppDatabase, reminder: MasterReminder) {
+    suspend fun update(context: Context, db: AppDatabase, reminder: MasterReminder) {
         db.reminderDao().update(reminder)
 
         // Delete old occurrences
@@ -516,10 +548,18 @@ object ReminderManager {
         occurrences.forEach { occurrence ->
             db.reminderDao().insertOccurrence(occurrence)
         }
+
+        // Reschedule notifications for this reminder
+        NotificationScheduler.cancelReminderNotifications(context, reminder.id, db)
+        NotificationScheduler.scheduleReminderNotifications(context, db)
     }
 
     // Delete master reminder
-    suspend fun delete(db: AppDatabase, reminderId: Int) {
+    @RequiresApi(Build.VERSION_CODES.O)
+    suspend fun delete(context: Context, db: AppDatabase, reminderId: Int) {
         db.reminderDao().deleteMasterReminder(reminderId)
+
+        // Cancel notifications for deleted reminder
+        NotificationScheduler.cancelReminderNotifications(context, reminderId, db)
     }
 }

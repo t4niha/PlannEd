@@ -1,5 +1,6 @@
 package com.planned
 
+import android.content.Context
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.ui.graphics.Color
@@ -391,7 +392,7 @@ suspend fun getMaxBucketDurationMinutes(db: AppDatabase): Int? {
 
 /* Handle category deletion */
 @RequiresApi(Build.VERSION_CODES.O)
-suspend fun onCategoryDeleted(db: AppDatabase, categoryId: Int) {
+suspend fun onCategoryDeleted(context: Context, db: AppDatabase, categoryId: Int) {
     // Set categoryId to null in MasterEvent
     val events = db.eventDao().getAllMasterEvents()
     events.filter { it.categoryId == categoryId }.forEach { event ->
@@ -417,12 +418,12 @@ suspend fun onCategoryDeleted(db: AppDatabase, categoryId: Int) {
     }
 
     // Regenerate task intervals
-    generateTaskIntervals(db)
+    generateTaskIntervals(context, db)
 }
 
 /* Handle event deletion */
 @RequiresApi(Build.VERSION_CODES.O)
-suspend fun onEventDeleted(db: AppDatabase, eventId: Int) {
+suspend fun onEventDeleted(context: Context, db: AppDatabase, eventId: Int) {
     // Set eventId to null in Deadline
     val deadlines = db.deadlineDao().getAll()
     deadlines.filter { it.eventId == eventId }.forEach { deadline ->
@@ -436,12 +437,12 @@ suspend fun onEventDeleted(db: AppDatabase, eventId: Int) {
     }
 
     // Regenerate task intervals
-    generateTaskIntervals(db)
+    generateTaskIntervals(context, db)
 }
 
 /* Handle deadline deletion */
 @RequiresApi(Build.VERSION_CODES.O)
-suspend fun onDeadlineDeleted(db: AppDatabase, deadlineId: Int) {
+suspend fun onDeadlineDeleted(context: Context, db: AppDatabase, deadlineId: Int) {
     // Set deadlineId to null in MasterTask
     val tasks = db.taskDao().getAllMasterTasks()
     tasks.filter { it.deadlineId == deadlineId }.forEach { task ->
@@ -449,31 +450,28 @@ suspend fun onDeadlineDeleted(db: AppDatabase, deadlineId: Int) {
     }
 
     // Regenerate task intervals
-    generateTaskIntervals(db)
+    generateTaskIntervals(context, db)
 }
 
 /* Handle task bucket deletion */
 @RequiresApi(Build.VERSION_CODES.O)
-suspend fun onTaskBucketDeleted(db: AppDatabase) {
+suspend fun onTaskBucketDeleted(context: Context, db: AppDatabase) {
     // Regenerate task intervals
-    generateTaskIntervals(db)
+    generateTaskIntervals(context, db)
 }
 
 /* Handle task updated/created/deleted */
 @RequiresApi(Build.VERSION_CODES.O)
-suspend fun onTaskChanged(db: AppDatabase) {
-    generateTaskIntervals(db)
+suspend fun onTaskChanged(context: Context, db: AppDatabase) {
+    generateTaskIntervals(context, db)
 }
 
 /* Handle task deletion */
 @RequiresApi(Build.VERSION_CODES.O)
-suspend fun onTaskDeleted(db: AppDatabase, taskId: Int) {
+suspend fun onTaskDeleted(context: Context, db: AppDatabase, taskId: Int) {
     // Set dependencyTaskId to null
     val tasks = db.taskDao().getAllMasterTasks()
     tasks.filter { it.dependencyTaskId == taskId }.forEach { task ->
         db.taskDao().update(task.copy(dependencyTaskId = null))
     }
-
-    // Regenerate task intervals
-    generateTaskIntervals(db)
 }

@@ -1,5 +1,6 @@
 package com.planned
 
+import android.content.Context
 import android.os.Build
 import androidx.annotation.RequiresApi
 import java.time.LocalDate
@@ -36,7 +37,7 @@ data class OrderedTask(
 
 /* Clear task intervals and regenerate */
 @RequiresApi(Build.VERSION_CODES.O)
-suspend fun generateTaskIntervals(db: AppDatabase) {
+suspend fun generateTaskIntervals(context: Context, db: AppDatabase) {
     // Clear task intervals, reset noIntervals
     db.taskDao().getAllIntervals().forEach { interval ->
         db.taskDao().deleteInterval(interval.id)
@@ -62,6 +63,10 @@ suspend fun generateTaskIntervals(db: AppDatabase) {
 
     // Assign auto-scheduled tasks into available slots
     assignAutoScheduledTasks(db, orderedAutoTasks, availableSlots)
+
+    // Reschedule task notifications now that intervals are fresh
+    NotificationScheduler.cancelAllTaskNotifications(context, db)
+    NotificationScheduler.scheduleTaskNotifications(context, db)
 }
 
 /* Set manually scheduled tasks */
