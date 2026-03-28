@@ -628,6 +628,8 @@ fun TaskInfoPage(
 
     val dateFormatter = DateTimeFormatter.ofPattern("MMMM d, yyyy")
     val timeFormatter = DateTimeFormatter.ofPattern("h:mm a")
+    val isOtherTaskRunning = PomodoroState.activeTaskId != null && PomodoroState.activeTaskId != currentTask.id
+    val isThisTaskRunning = PomodoroState.activeTaskId == currentTask.id && PomodoroState.isRunning
 
     Column(
         modifier = Modifier
@@ -651,7 +653,6 @@ fun TaskInfoPage(
                     ) { onBack() }
                     .size(40.dp)
             )
-            val isOtherTaskRunning = PomodoroState.activeTaskId != null && PomodoroState.activeTaskId != currentTask.id
             Box(
                 modifier = Modifier
                     .size(40.dp)
@@ -727,18 +728,20 @@ fun TaskInfoPage(
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Button(
-                onClick = { showDeleteDialog = true },
+                onClick = { if (!isThisTaskRunning) showDeleteDialog = true },
                 modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (isThisTaskRunning) Color.LightGray else Color.Gray
+                ),
                 contentPadding = PaddingValues(16.dp)
             ) {
                 Text("Delete", fontSize = 16.sp, color = Color.White)
             }
             Button(
-                onClick = { if (updateDataReady) onUpdate() },
+                onClick = { if (updateDataReady && !isThisTaskRunning) onUpdate() },
                 modifier = Modifier.weight(1f),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (updateDataReady) PrimaryColor else Color.LightGray
+                    containerColor = if (isThisTaskRunning || !updateDataReady) Color.LightGray else PrimaryColor
                 ),
                 contentPadding = PaddingValues(16.dp)
             ) {
@@ -1410,6 +1413,9 @@ fun AllDayTaskInfoPage(
         deadline = currentTask.deadlineId?.let { db.deadlineDao().getDeadlineById(it) }
     }
 
+    val isOtherTaskRunning2 = PomodoroState.activeTaskId != null && PomodoroState.activeTaskId != currentTask.id
+    val isThisTaskRunning2 = PomodoroState.activeTaskId == currentTask.id && PomodoroState.isRunning
+
     Column(
         modifier = Modifier.fillMaxSize().background(BackgroundColor).padding(16.dp)
     ) {
@@ -1429,7 +1435,6 @@ fun AllDayTaskInfoPage(
                     ) { onBack() }
                     .size(40.dp)
             )
-            val isOtherTaskRunning2 = PomodoroState.activeTaskId != null && PomodoroState.activeTaskId != currentTask.id
             Box(
                 modifier = Modifier
                     .size(40.dp)
@@ -1480,17 +1485,21 @@ fun AllDayTaskInfoPage(
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Button(
-                onClick = { showDeleteDialog = true },
+                onClick = { if (!isThisTaskRunning2) showDeleteDialog = true },
                 modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (isThisTaskRunning2) Color.LightGray else Color.Gray
+                ),
                 contentPadding = PaddingValues(16.dp)
             ) {
                 Text("Delete", fontSize = 16.sp, color = Color.White)
             }
             Button(
-                onClick = onUpdate,
+                onClick = { if (!isThisTaskRunning2) onUpdate() },
                 modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (isThisTaskRunning2) Color.LightGray else PrimaryColor
+                ),
                 contentPadding = PaddingValues(16.dp)
             ) {
                 Text("Update", fontSize = 16.sp, color = Color.White)
