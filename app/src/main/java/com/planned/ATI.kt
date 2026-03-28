@@ -59,7 +59,7 @@ fun calculatePadding(tasks: List<MasterTask>): PaddingResult {
  * Returns a score float — higher means more struggle, needs earlier scheduling */
 fun calculateScore(deadlineMissCount: Int, avgOvertime: Float): Float {
     val missRate    = deadlineMissCount / ROLLING_WINDOW.toFloat()
-    val overtimeNorm = (avgOvertime / 60f).coerceIn(0f, 1f)
+    val overtimeNorm = (avgOvertime / 180f).coerceIn(0f, 1f)
     return (WEIGHT_DEADLINE_MISS * missRate) + (WEIGHT_AVG_OVERTIME * overtimeNorm)
 }
 
