@@ -459,6 +459,10 @@ object VoiceCommandManager {
                 val autoTask   = json.optBoolean("auto_schedule_task", false)
                 val taskDur    = json.optInt("task_duration_minutes", 60)
                 val taskBreak  = json.optBoolean("task_breakable", false)
+                val taskSdStr  = json.optString("task_start_date","")
+                val taskStStr  = json.optString("task_start_time","")
+                val taskSd     = if(taskSdStr.isNotBlank()) LocalDate.parse(taskSdStr) else null
+                val taskSt     = if(taskStStr.isNotBlank()) LocalTime.parse(taskStStr) else null
 
                 // Category rules: event present → event's category. No event → user-supplied category.
                 val resolvedEvent = evId?.let { db.eventDao().getMasterEventById(it) }
@@ -476,14 +480,15 @@ object VoiceCommandManager {
                     "Notes"    to (notes?:"—")
                 )
                 if (autoTask) {
-                    summaryFields.add("Auto-create Task" to "Yes, ${fmtDur(taskDur)}${if(taskBreak) ", breakable" else ""}")
+                    val taskSchedStr = if(taskSd!=null&&taskSt!=null) "${taskSd.format(dateFmt)} at ${taskSt.format(timeFmt)}" else "Auto-scheduled"
+                    summaryFields.add("Auto-create Task" to "Yes, ${fmtDur(taskDur)}${if(taskBreak) ", breakable" else ""}, $taskSchedStr")
                 }
 
                 return VoicePendingAction(action,"Deadline", summaryFields, emptyList(), reply) {
                     val insertedDlId = DeadlineManager.insert(context=context,db=db,title=title,notes=notes,date=d,time=t,categoryId=catId,eventId=evId)
                     if (autoTask) {
                         TaskManager.insert(context=context,db=db,title=title,notes=notes,allDay=null,breakable=taskBreak,
-                            startDate=null,startTime=null,predictedDuration=taskDur,
+                            startDate=taskSd,startTime=taskSt,predictedDuration=taskDur,
                             categoryId=catId,eventId=evId,deadlineId=insertedDlId,dependencyTaskId=null)
                     }
                 }
@@ -666,7 +671,7 @@ CREATE_REMINDER: { "action":"CREATE_REMINDER", "title":"string", "start_date":"Y
 EDIT_REMINDER: { "action":"EDIT_REMINDER", "reminder_id":number, "start_date":"omit if unchanged", "end_date":"omit if unchanged", "time":"omit if unchanged", "notes":"omit if unchanged", "category_id":number_or_-1, "recur_freq":"omit if unchanged", "reply":"short spoken confirmation" }
 DELETE_REMINDER: { "action":"DELETE_REMINDER", "reminder_id":number, "reply":"short spoken confirmation" }
 
-CREATE_DEADLINE: { "action":"CREATE_DEADLINE", "title":"string", "date":"YYYY-MM-DD", "time":"HH:mm", "notes":"string or omit", "category_id":number_or_-1, "event_id":number_or_-1, "auto_schedule_task":boolean, "task_duration_minutes":number, "task_breakable":boolean, "reply":"short spoken confirmation" }
+CREATE_DEADLINE: { "action":"CREATE_DEADLINE", "title":"string", "date":"YYYY-MM-DD", "time":"HH:mm", "notes":"string or omit", "category_id":number_or_-1, "event_id":number_or_-1, "auto_schedule_task":boolean, "task_duration_minutes":number, "task_breakable":boolean, "task_start_date":"YYYY-MM-DD or omit for auto-schedule", "task_start_time":"HH:mm or omit for auto-schedule", "reply":"short spoken confirmation" }
 EDIT_DEADLINE:  { "action":"EDIT_DEADLINE", "deadline_id":number, "date":"omit if unchanged", "time":"omit if unchanged", "notes":"omit if unchanged", "category_id":number_or_-1, "event_id":number_or_-1, "reply":"short spoken confirmation" }
 DELETE_DEADLINE: { "action":"DELETE_DEADLINE", "deadline_id":number, "reply":"short spoken confirmation" }
 
