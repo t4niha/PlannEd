@@ -567,6 +567,14 @@ fun Header(
                         }
                     }
 
+                    // ── Voice command mic button ──────────────────────────────────
+                    Spacer(modifier = Modifier.width(6.dp))
+                    VoiceMicButton(
+                        db       = db,
+                        modifier = Modifier.padding(end = 0.dp)
+                    )
+
+                    // Create (+) button
                     CompositionLocalProvider(LocalRippleConfiguration provides null) {
                         IconButton(onClick = onCreateClick) {
                             Icon(Icons.Filled.Add, contentDescription = "Create", modifier = Modifier.size(32.dp))
