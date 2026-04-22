@@ -77,8 +77,11 @@ private suspend fun processManuallyScheduledTasks(db: AppDatabase, manualTasks: 
         val startDate = task.startDate!!
         val durationMinutes = task.predictedDuration
 
-        // Calculate end time — no ATI padding for manually scheduled tasks
-        val endTime = startTime.plusMinutes(durationMinutes.toLong())
+        // Calculate end time
+        val atiPaddingEnabled = SettingsManager.settings?.atiPaddingEnabled ?: true
+        val atiPadding = if (atiPaddingEnabled) calculateTaskPadding(db, task) else 0
+
+        val endTime = startTime.plusMinutes((durationMinutes + atiPadding).toLong())
 
         // Create single interval
         val interval = TaskInterval(
@@ -91,7 +94,7 @@ private suspend fun processManuallyScheduledTasks(db: AppDatabase, manualTasks: 
             status = 1,
             timeLeft = durationMinutes,
             overTime = 0,
-            atiPadding = 0
+            atiPadding = atiPadding
         )
 
         db.taskDao().insertInterval(interval)
@@ -338,10 +341,6 @@ private suspend fun assignAutoScheduledTasks(
     orderedTasks: MutableList<OrderedTask>,
     availableSlots: MutableList<AvailableTimeSlot>
 ) {
-    // Pre-fetch None ATI records once
-    val noneCategoryATI = db.categoryATIDao().getById(0)
-    val noneEventATI    = db.eventATIDao().getById(0)
-
     val tasksToProcess = orderedTasks.toMutableList()
 
     while (tasksToProcess.isNotEmpty() && availableSlots.isNotEmpty()) {
@@ -353,31 +352,8 @@ private suspend fun assignAutoScheduledTasks(
         var assigned = false
 
         // Look up ATI padding once per task — event padding takes priority over category padding;
-        // fall back to the None record (id=0) when event/category is null.
         val atiPaddingEnabled = SettingsManager.settings?.atiPaddingEnabled ?: true
-        val dur = task.predictedDuration.toFloat()
-        val atiPadding = if (atiPaddingEnabled) {
-            // Resolve the event ATI record: real event first, then None
-            val eventATI = task.eventId
-                ?.let { id -> db.eventATIDao().getById(id) }
-                ?: noneEventATI
-
-            val eventPadding = eventATI
-                ?.let { roundUpToNearest5(it.paddingSlope * dur + it.paddingIntercept).coerceAtMost(60) }
-
-            if (eventPadding != null) {
-                eventPadding
-            } else {
-                // Resolve the category ATI record: real category first, then None
-                val categoryATI = task.categoryId
-                    ?.let { id -> db.categoryATIDao().getById(id) }
-                    ?: noneCategoryATI
-
-                categoryATI
-                    ?.let { roundUpToNearest5(it.paddingSlope * dur + it.paddingIntercept).coerceAtMost(60) }
-                    ?: 0
-            }
-        } else 0
+        val atiPadding = if (atiPaddingEnabled) calculateTaskPadding(db, task) else 0
 
         for (i in availableSlots.indices) {
             val slot = availableSlots[i]
@@ -467,4 +443,32 @@ private suspend fun assignAutoScheduledTasks(
             tasksToProcess.removeAt(0)
         }
     }
+}
+
+/* Helper to compute dynamic padding mathematically */
+@RequiresApi(Build.VERSION_CODES.O)
+suspend fun calculateTaskPadding(db: AppDatabase, task: MasterTask): Int {
+    val basePadding = BaseModel.predictPadding(task.predictedDuration).toFloat()
+    val dur = task.predictedDuration.toFloat()
+
+    val eventATIObj = task.eventId?.let { db.eventATIDao().getById(it) } ?: db.eventATIDao().getById(0)
+    val categoryATIObj = task.categoryId?.let { db.categoryATIDao().getById(it) } ?: db.categoryATIDao().getById(0)
+
+    val paddingResultValue = if (eventATIObj != null) {
+        val factor = (eventATIObj.tasksCompleted * 0.1f).coerceIn(0f, 1f)
+        val regressionPadding = (eventATIObj.paddingSlope * dur + eventATIObj.paddingIntercept)
+        var combined = (factor * regressionPadding) + (1f - factor) * basePadding
+        if (eventATIObj.avgOvertime < 0) combined += eventATIObj.avgOvertime
+        combined
+    } else if (categoryATIObj != null) {
+        val factor = (categoryATIObj.tasksCompleted * 0.1f).coerceIn(0f, 1f)
+        val regressionPadding = (categoryATIObj.paddingSlope * dur + categoryATIObj.paddingIntercept)
+        var combined = (factor * regressionPadding) + (1f - factor) * basePadding
+        if (categoryATIObj.avgOvertime < 0) combined += categoryATIObj.avgOvertime
+        combined
+    } else {
+        basePadding
+    }
+
+    return roundUpToNearest5(paddingResultValue).coerceAtMost(60).coerceAtLeast(0)
 }
