@@ -403,22 +403,3 @@ fun VoiceResultDialog(
         }
     }
 }
-
-// ─────────────────────────────────────────────────────────────────
-// VoiceStatusBanner — optional floating status label
-// ─────────────────────────────────────────────────────────────────
-@Composable
-fun VoiceStatusBanner(phase: VoicePhase) {
-    if (phase == VoicePhase.IDLE || phase == VoicePhase.ERROR) return
-    val label = when (phase) {
-        VoicePhase.LISTENING -> "Listening…"
-        VoicePhase.THINKING  -> "Thinking…"
-        VoicePhase.SPEAKING  -> "Speaking…"
-        else -> return
-    }
-    Box(modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp), contentAlignment = Alignment.BottomCenter) {
-        Box(modifier = Modifier.clip(RoundedCornerShape(24.dp)).background(Color.Black.copy(alpha = 0.72f)).padding(horizontal = 20.dp, vertical = 8.dp)) {
-            Text(text = label, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Medium)
-        }
-    }
-}
