@@ -125,21 +125,26 @@ object VoiceCommandManager {
     @RequiresApi(Build.VERSION_CODES.O)
     fun startListening(context: Context, db: AppDatabase) {
         cancelSpeech()
+
         if (!SpeechRecognizer.isRecognitionAvailable(context)) {
-            onPhaseChange(VoicePhase.ERROR); return
+            onPhaseChange(VoicePhase.ERROR)
+            return
         }
         onPhaseChange(VoicePhase.LISTENING)
+
         speechRecognizer?.destroy()
         speechRecognizer = SpeechRecognizer.createSpeechRecognizer(context)
+
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-            putExtra(
-                RecognizerIntent.EXTRA_LANGUAGE_MODEL,
-                RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
-            )
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
             putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault())
             putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
-            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 1500L)
+            // Set these to very high values to prevent auto-stop
+            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 600000L) // 10 minutes
+            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 1000L)
+            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 600000L) // 10 minutes
         }
+
         speechRecognizer?.setRecognitionListener(object : RecognitionListener {
             override fun onReadyForSpeech(params: Bundle?) {}
             override fun onBeginningOfSpeech() {}
@@ -147,26 +152,33 @@ object VoiceCommandManager {
             override fun onBufferReceived(buffer: ByteArray?) {}
             override fun onPartialResults(partialResults: Bundle?) {}
             override fun onEvent(eventType: Int, params: Bundle?) {}
+
             override fun onEndOfSpeech() {
-                onPhaseChange(VoicePhase.THINKING)
+                // Don't auto-advance - just stay in LISTENING mode
+                // User will manually stop with button tap
             }
 
             override fun onError(error: Int) {
-                speechRecognizer?.destroy()
-                speechRecognizer = null
                 onPhaseChange(VoicePhase.ERROR)
+                kotlinx.coroutines.CoroutineScope(Dispatchers.Main).launch {
+                    onPhaseChange(VoicePhase.IDLE)
+                }
             }
 
             override fun onResults(results: Bundle?) {
-                val spoken =
-                    results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()
+                val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                val spoken = matches?.firstOrNull()
                 if (spoken.isNullOrBlank()) {
-                    onPhaseChange(VoicePhase.ERROR); return
+                    onPhaseChange(VoicePhase.ERROR)
+                    return
                 }
                 onPhaseChange(VoicePhase.THINKING)
-                managerScope.launch { handleSpokenCommand(context, db, spoken) }
+                kotlinx.coroutines.CoroutineScope(Dispatchers.Main).launch {
+                    handleSpokenCommand(context, db, spoken)
+                }
             }
         })
+
         speechRecognizer?.startListening(intent)
     }
 
@@ -328,8 +340,8 @@ object VoiceCommandManager {
             JSONObject(conn.inputStream.bufferedReader().readText())
                 .getJSONArray("candidates").getJSONObject(0)
                 .getJSONObject("content").getJSONArray("parts").getJSONObject(0).getString("text")
+            }
         }
-    }
 
     // ── Build pending action from JSON ────────────────────────────
     @RequiresApi(Build.VERSION_CODES.O)

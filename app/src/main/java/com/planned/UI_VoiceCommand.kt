@@ -40,7 +40,6 @@ import kotlinx.coroutines.launch
 // ─────────────────────────────────────────────────────────────────
 // VoiceMicButton
 // ─────────────────────────────────────────────────────────────────
-@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun VoiceMicButton(
     db: AppDatabase,
@@ -102,13 +101,26 @@ fun VoiceMicButton(
                 .clickable(interactionSource = remember { MutableInteractionSource() }, indication = ripple(bounded = true)) {
                     when (phase) {
                         VoicePhase.IDLE, VoicePhase.ERROR -> {
-                            val hasPerm = ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
-                            if (hasPerm) VoiceCommandManager.startListening(context, db)
-                            else permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                            val hasPermission = ContextCompat.checkSelfPermission(
+                                context, Manifest.permission.RECORD_AUDIO
+                            ) == PackageManager.PERMISSION_GRANTED
+
+                            if (hasPermission) {
+                                VoiceCommandManager.startListening(context, db)
+                            } else {
+                                permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                            }
                         }
-                        VoicePhase.LISTENING -> { phase = VoicePhase.THINKING; VoiceCommandManager.stopListening() }
-                        VoicePhase.SPEAKING  -> VoiceCommandManager.cancelSpeech()
-                        VoicePhase.THINKING  -> {}
+                        VoicePhase.LISTENING -> {
+                            // User taps to stop listening and process what they said
+                            VoiceCommandManager.stopListening()
+                            // Force process the recognized text
+                            phase = VoicePhase.THINKING
+                        }
+                        VoicePhase.SPEAKING -> {
+                            VoiceCommandManager.cancelSpeech()
+                        }
+                        VoicePhase.THINKING -> { /* Can't interrupt */ }
                     }
                 },
             contentAlignment = Alignment.Center
