@@ -20,7 +20,3 @@ gradle/wrapper/gradle-wrapper.jar
 
 # Mac
 .DS_Store
-
-# Keystore
-*.jks
-*.keystore

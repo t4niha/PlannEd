@@ -134,6 +134,7 @@ fun VoiceMicButton(
                 action  = action,
                 onConfirm = {
                     showPendingDialog = false
+                    pendingAction = null
                     scope.launch {
                         action.execute()
                         lastResult = VoiceResult(userText = "", replyText = action.replyText, actionTaken = actionLabel(action))

@@ -20,6 +20,10 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.cancelChildren
 
 // ─────────────────────────────────────────────────────────────────
 // Voice phases
@@ -53,9 +57,11 @@ data class VoiceResult(
 @RequiresApi(Build.VERSION_CODES.O)
 object VoiceCommandManager {
 
-    var onPhaseChange: (VoicePhase) -> Unit = {}
-    var onPendingAction: (VoicePendingAction) -> Unit = {}
-    var onResult: (VoiceResult) -> Unit = {}
+    private val managerScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
+
+    @Volatile var onPhaseChange: (VoicePhase) -> Unit = {}
+    @Volatile var onPendingAction: (VoicePendingAction) -> Unit = {}
+    @Volatile var onResult: (VoiceResult) -> Unit = {}
 
     private var tts: TextToSpeech? = null
     private var speechRecognizer: SpeechRecognizer? = null
@@ -73,10 +79,10 @@ object VoiceCommandManager {
                 tts?.setOnUtteranceProgressListener(object : android.speech.tts.UtteranceProgressListener() {
                     override fun onStart(utteranceId: String?) {}
                     override fun onDone(utteranceId: String?) {
-                        kotlinx.coroutines.CoroutineScope(Dispatchers.Main).launch { onPhaseChange(VoicePhase.IDLE) }
+                        managerScope.launch { onPhaseChange(VoicePhase.IDLE) }
                     }
                     override fun onError(utteranceId: String?) {
-                        kotlinx.coroutines.CoroutineScope(Dispatchers.Main).launch { onPhaseChange(VoicePhase.IDLE) }
+                        managerScope.launch { onPhaseChange(VoicePhase.IDLE) }
                     }
                 })
                 isTtsReady = true
@@ -84,11 +90,21 @@ object VoiceCommandManager {
         }
     }
 
-    fun releaseTts() { tts?.stop(); tts?.shutdown(); tts = null; isTtsReady = false }
+    fun releaseTts() {
+        managerScope.coroutineContext[Job]?.cancelChildren()
+        tts?.stop()
+        tts?.shutdown()
+        tts = null
+        isTtsReady = false
+    }
 
     fun speakOut(text: String) {
-        if (isTtsReady) tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "planned_vc")
-        onPhaseChange(VoicePhase.IDLE)
+        if (isTtsReady) {
+            onPhaseChange(VoicePhase.SPEAKING)
+            tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "planned_vc")
+        } else {
+            onPhaseChange(VoicePhase.IDLE)
+        }
     }
 
     fun cancelSpeech() { tts?.stop(); onPhaseChange(VoicePhase.IDLE) }
@@ -114,12 +130,16 @@ object VoiceCommandManager {
             override fun onPartialResults(partialResults: Bundle?) {}
             override fun onEvent(eventType: Int, params: Bundle?) {}
             override fun onEndOfSpeech() { onPhaseChange(VoicePhase.THINKING) }
-            override fun onError(error: Int) { onPhaseChange(VoicePhase.ERROR) }
+            override fun onError(error: Int) {
+                speechRecognizer?.destroy()
+                speechRecognizer = null
+                onPhaseChange(VoicePhase.ERROR)
+            }
             override fun onResults(results: Bundle?) {
                 val spoken = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()
                 if (spoken.isNullOrBlank()) { onPhaseChange(VoicePhase.ERROR); return }
                 onPhaseChange(VoicePhase.THINKING)
-                kotlinx.coroutines.CoroutineScope(Dispatchers.Main).launch { handleSpokenCommand(context, db, spoken) }
+                managerScope.launch { handleSpokenCommand(context, db, spoken) }
             }
         })
         speechRecognizer?.startListening(intent)
