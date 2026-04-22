@@ -24,6 +24,8 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancelChildren
+import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.withTimeout
 
 // ─────────────────────────────────────────────────────────────────
 // Voice phases
@@ -59,9 +61,12 @@ object VoiceCommandManager {
 
     private val managerScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
 
-    @Volatile var onPhaseChange: (VoicePhase) -> Unit = {}
-    @Volatile var onPendingAction: (VoicePendingAction) -> Unit = {}
-    @Volatile var onResult: (VoiceResult) -> Unit = {}
+    @Volatile
+    var onPhaseChange: (VoicePhase) -> Unit = {}
+    @Volatile
+    var onPendingAction: (VoicePendingAction) -> Unit = {}
+    @Volatile
+    var onResult: (VoiceResult) -> Unit = {}
 
     private var tts: TextToSpeech? = null
     private var speechRecognizer: SpeechRecognizer? = null
@@ -76,11 +81,13 @@ object VoiceCommandManager {
         tts = TextToSpeech(context) { status ->
             if (status == TextToSpeech.SUCCESS) {
                 tts?.language = Locale.US
-                tts?.setOnUtteranceProgressListener(object : android.speech.tts.UtteranceProgressListener() {
+                tts?.setOnUtteranceProgressListener(object :
+                    android.speech.tts.UtteranceProgressListener() {
                     override fun onStart(utteranceId: String?) {}
                     override fun onDone(utteranceId: String?) {
                         managerScope.launch { onPhaseChange(VoicePhase.IDLE) }
                     }
+
                     override fun onError(utteranceId: String?) {
                         managerScope.launch { onPhaseChange(VoicePhase.IDLE) }
                     }
@@ -91,11 +98,13 @@ object VoiceCommandManager {
     }
 
     fun releaseTts() {
-        managerScope.coroutineContext[Job]?.cancelChildren()
         tts?.stop()
         tts?.shutdown()
         tts = null
         isTtsReady = false
+
+        speechRecognizer?.destroy()
+        speechRecognizer = null
     }
 
     fun speakOut(text: String) {
@@ -107,17 +116,26 @@ object VoiceCommandManager {
         }
     }
 
-    fun cancelSpeech() { tts?.stop(); onPhaseChange(VoicePhase.IDLE) }
+    fun cancelSpeech() {
+        tts?.stop(); onPhaseChange(VoicePhase.IDLE)
+    }
 
     // ── Listening ─────────────────────────────────────────────────
+    @androidx.annotation.MainThread
+    @RequiresApi(Build.VERSION_CODES.O)
     fun startListening(context: Context, db: AppDatabase) {
         cancelSpeech()
-        if (!SpeechRecognizer.isRecognitionAvailable(context)) { onPhaseChange(VoicePhase.ERROR); return }
+        if (!SpeechRecognizer.isRecognitionAvailable(context)) {
+            onPhaseChange(VoicePhase.ERROR); return
+        }
         onPhaseChange(VoicePhase.LISTENING)
         speechRecognizer?.destroy()
         speechRecognizer = SpeechRecognizer.createSpeechRecognizer(context)
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+            putExtra(
+                RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
+            )
             putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault())
             putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
             putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 1500L)
@@ -129,15 +147,22 @@ object VoiceCommandManager {
             override fun onBufferReceived(buffer: ByteArray?) {}
             override fun onPartialResults(partialResults: Bundle?) {}
             override fun onEvent(eventType: Int, params: Bundle?) {}
-            override fun onEndOfSpeech() { onPhaseChange(VoicePhase.THINKING) }
+            override fun onEndOfSpeech() {
+                onPhaseChange(VoicePhase.THINKING)
+            }
+
             override fun onError(error: Int) {
                 speechRecognizer?.destroy()
                 speechRecognizer = null
                 onPhaseChange(VoicePhase.ERROR)
             }
+
             override fun onResults(results: Bundle?) {
-                val spoken = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()
-                if (spoken.isNullOrBlank()) { onPhaseChange(VoicePhase.ERROR); return }
+                val spoken =
+                    results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()
+                if (spoken.isNullOrBlank()) {
+                    onPhaseChange(VoicePhase.ERROR); return
+                }
                 onPhaseChange(VoicePhase.THINKING)
                 managerScope.launch { handleSpokenCommand(context, db, spoken) }
             }
@@ -145,29 +170,58 @@ object VoiceCommandManager {
         speechRecognizer?.startListening(intent)
     }
 
-    fun stopListening() { speechRecognizer?.stopListening() }
+    fun stopListening() {
+        speechRecognizer?.stopListening()
+    }
 
     // ── Helpers ───────────────────────────────────────────────────
-    private fun parseRecurFreq(v: String) = runCatching { RecurrenceFrequency.valueOf(v.uppercase()) }.getOrDefault(RecurrenceFrequency.NONE)
+    private fun parseRecurFreq(v: String) =
+        runCatching { RecurrenceFrequency.valueOf(v.uppercase()) }.getOrDefault(RecurrenceFrequency.NONE)
 
     private fun parseRecurRule(j: JSONObject): RecurrenceRule {
-        val dow = if (j.has("recur_days_of_week"))  j.getJSONArray("recur_days_of_week").let  { a -> (0 until a.length()).map { a.getInt(it) } } else null
-        val dom = if (j.has("recur_days_of_month")) j.getJSONArray("recur_days_of_month").let { a -> (0 until a.length()).map { a.getInt(it) } } else null
-        val mad = if (j.has("recur_month") && j.has("recur_day")) Pair(j.getInt("recur_day"), j.getInt("recur_month")) else null
+        val dow = if (j.has("recur_days_of_week")) j.getJSONArray("recur_days_of_week")
+            .let { a -> (0 until a.length()).map { a.getInt(it) } } else null
+        val dom = if (j.has("recur_days_of_month")) j.getJSONArray("recur_days_of_month")
+            .let { a -> (0 until a.length()).map { a.getInt(it) } } else null
+        val mad = if (j.has("recur_month") && j.has("recur_day")) Pair(
+            j.getInt("recur_day"),
+            j.getInt("recur_month")
+        ) else null
         return RecurrenceRule(daysOfWeek = dow, daysOfMonth = dom, monthAndDay = mad)
     }
 
-    private fun hexToColor(hex: String): Color = runCatching { Converters.toColor(hex) }.getOrDefault(Color(0xFF888780))
+    private fun hexToColor(hex: String): Color =
+        runCatching { Converters.toColor(hex) }.getOrDefault(Color(0xFF888780))
 
     private fun fmtRecur(freq: RecurrenceFrequency, rule: RecurrenceRule) =
         freq.name.lowercase().replaceFirstChar { it.uppercase() } + when (freq) {
-            RecurrenceFrequency.WEEKLY  -> rule.daysOfWeek?.sorted()?.joinToString(", ") { d -> when(d){1->"Mo";2->"Tu";3->"We";4->"Th";5->"Fr";6->"Sa";7->"Su";else->"" } }?.let { " ($it)" } ?: ""
-            RecurrenceFrequency.MONTHLY -> rule.daysOfMonth?.sorted()?.joinToString(", ")?.let { " ($it)" } ?: ""
-            RecurrenceFrequency.YEARLY  -> rule.monthAndDay?.let { " (${java.time.Month.of(it.second).getDisplayName(java.time.format.TextStyle.FULL, java.util.Locale.getDefault())} ${it.first})" } ?: ""
+            RecurrenceFrequency.WEEKLY -> rule.daysOfWeek?.sorted()?.joinToString(", ") { d ->
+                when (d) {
+                    1 -> "Mo";2 -> "Tu";3 -> "We";4 -> "Th";5 -> "Fr";6 -> "Sa";7 -> "Su";else -> ""
+                }
+            }?.let { " ($it)" } ?: ""
+
+            RecurrenceFrequency.MONTHLY -> rule.daysOfMonth?.sorted()?.joinToString(", ")
+                ?.let { " ($it)" } ?: ""
+
+            RecurrenceFrequency.YEARLY -> rule.monthAndDay?.let {
+                " (${
+                    java.time.Month.of(it.second).getDisplayName(
+                        java.time.format.TextStyle.FULL,
+                        java.util.Locale.getDefault()
+                    )
+                } ${it.first})"
+            } ?: ""
+
             else -> ""
         }
 
-    private fun fmtDur(min: Int): String { val h = min/60; val m = min%60; return when { h>0&&m>0->"${h}h ${m}m"; h>0->"${h}h"; else->"${m}m" } }
+    private fun fmtDur(min: Int): String {
+        val h = min / 60;
+        val m = min % 60; return when {
+            h > 0 && m > 0 -> "${h}h ${m}m"; h > 0 -> "${h}h"; else -> "${m}m"
+        }
+    }
 
     // ── Context snapshot ──────────────────────────────────────────
     @RequiresApi(Build.VERSION_CODES.O)
@@ -175,63 +229,107 @@ object VoiceCommandManager {
         val today = LocalDate.now()
         val todayStr = today.format(DateTimeFormatter.ofPattern("EEEE, MMMM d, yyyy"))
         val allMasterTasks = db.taskDao().getAllMasterTasks()
-        val allEvents      = db.eventDao().getAllMasterEvents()
-        val allReminders   = db.reminderDao().getAllMasterReminders()
-        val categories     = db.categoryDao().getAll()
-        val buckets        = db.taskBucketDao().getAllMasterBuckets()
+        val allEvents = db.eventDao().getAllMasterEvents()
+        val allReminders = db.reminderDao().getAllMasterReminders()
+        val categories = db.categoryDao().getAll()
+        val buckets = db.taskBucketDao().getAllMasterBuckets()
 
-        val taskLines = db.taskDao().getAllIntervals().filter { it.occurDate == today }.mapNotNull { interval ->
-            val m = allMasterTasks.find { it.id == interval.masterTaskId } ?: return@mapNotNull null
-            val s = when(m.status){3->"done";2->"in-progress";else->"pending"}
-            "  • Task \"${m.title}\" (id=${m.id}) ${interval.startTime}–${interval.endTime} [$s]"
-        }
-        val eventLines = db.eventDao().getAllOccurrences().filter { it.occurDate == today }.mapNotNull { occ ->
-            val m = allEvents.find { it.id == occ.masterEventId } ?: return@mapNotNull null
-            "  • Event \"${m.title}\" (id=${m.id}) ${occ.startTime}–${occ.endTime}"
-        }
-        val reminderLines = db.reminderDao().getAllOccurrences().filter { it.occurDate == today }.mapNotNull { occ ->
-            val m = allReminders.find { it.id == occ.masterReminderId } ?: return@mapNotNull null
-            "  • Reminder \"${m.title}\" (id=${m.id}) at ${occ.time?.toString() ?: "all-day"}"
-        }
+        val taskLines =
+            db.taskDao().getAllIntervals().filter { it.occurDate == today }.mapNotNull { interval ->
+                val m =
+                    allMasterTasks.find { it.id == interval.masterTaskId } ?: return@mapNotNull null
+                val s = when (m.status) {
+                    3 -> "done";2 -> "in-progress";else -> "pending"
+                }
+                "  • Task \"${m.title}\" (id=${m.id}) ${interval.startTime}–${interval.endTime} [$s]"
+            }
+        val eventLines =
+            db.eventDao().getAllOccurrences().filter { it.occurDate == today }.mapNotNull { occ ->
+                val m = allEvents.find { it.id == occ.masterEventId } ?: return@mapNotNull null
+                "  • Event \"${m.title}\" (id=${m.id}) ${occ.startTime}–${occ.endTime}"
+            }
+        val reminderLines = db.reminderDao().getAllOccurrences().filter { it.occurDate == today }
+            .mapNotNull { occ ->
+                val m =
+                    allReminders.find { it.id == occ.masterReminderId } ?: return@mapNotNull null
+                "  • Reminder \"${m.title}\" (id=${m.id}) at ${occ.time?.toString() ?: "all-day"}"
+            }
         val deadlineLines = db.deadlineDao().getAll()
             .filter { !it.date.isBefore(today) && !it.date.isAfter(today.plusDays(7)) }
             .map { "  • Deadline \"${it.title}\" (id=${it.id}) on ${it.date} at ${it.time}" }
 
         return buildString {
             appendLine("TODAY: $todayStr"); appendLine()
-            if (taskLines.isNotEmpty())     { appendLine("TASKS TODAY:");                      taskLines.forEach     { appendLine(it) }; appendLine() }
-            if (eventLines.isNotEmpty())    { appendLine("EVENTS TODAY:");                     eventLines.forEach    { appendLine(it) }; appendLine() }
-            if (reminderLines.isNotEmpty()) { appendLine("REMINDERS TODAY:");                  reminderLines.forEach { appendLine(it) }; appendLine() }
-            if (deadlineLines.isNotEmpty()) { appendLine("UPCOMING DEADLINES (next 7 days):"); deadlineLines.forEach { appendLine(it) }; appendLine() }
-            appendLine("ALL TASKS (pending):    ${allMasterTasks.filter{it.status!=3}.joinToString(", "){"\"${it.title}\" (id=${it.id})"}}")
-            appendLine("ALL EVENTS:             ${allEvents.joinToString(", "){"\"${it.title}\" (id=${it.id})"}}")
-            appendLine("ALL REMINDERS:          ${allReminders.joinToString(", "){"\"${it.title}\" (id=${it.id})"}}")
-            appendLine("ALL DEADLINES:          ${db.deadlineDao().getAll().joinToString(", "){"\"${it.title}\" (id=${it.id})"}}")
-            appendLine("ALL CATEGORIES:         ${categories.joinToString(", "){"\"${it.title}\" (id=${it.id})"}}")
-            appendLine("ALL TASK BUCKETS:       ${buckets.joinToString(", "){"\"${it.startTime}–${it.endTime} ${it.recurFreq}\" (id=${it.id})"}}")
+            if (taskLines.isNotEmpty()) {
+                appendLine("TASKS TODAY:"); taskLines.forEach { appendLine(it) }; appendLine()
+            }
+            if (eventLines.isNotEmpty()) {
+                appendLine("EVENTS TODAY:"); eventLines.forEach { appendLine(it) }; appendLine()
+            }
+            if (reminderLines.isNotEmpty()) {
+                appendLine("REMINDERS TODAY:"); reminderLines.forEach { appendLine(it) }; appendLine()
+            }
+            if (deadlineLines.isNotEmpty()) {
+                appendLine("UPCOMING DEADLINES (next 7 days):"); deadlineLines.forEach {
+                    appendLine(
+                        it
+                    )
+                }; appendLine()
+            }
+            appendLine(
+                "ALL TASKS (pending):    ${
+                    allMasterTasks.filter { it.status != 3 }
+                        .joinToString(", ") { "\"${it.title}\" (id=${it.id})" }
+                }"
+            )
+            appendLine("ALL EVENTS:             ${allEvents.joinToString(", ") { "\"${it.title}\" (id=${it.id})" }}")
+            appendLine("ALL REMINDERS:          ${allReminders.joinToString(", ") { "\"${it.title}\" (id=${it.id})" }}")
+            appendLine(
+                "ALL DEADLINES:          ${
+                    db.deadlineDao().getAll().joinToString(", ") { "\"${it.title}\" (id=${it.id})" }
+                }"
+            )
+            appendLine("ALL CATEGORIES:         ${categories.joinToString(", ") { "\"${it.title}\" (id=${it.id})" }}")
+            appendLine("ALL TASK BUCKETS:       ${buckets.joinToString(", ") { "\"${it.startTime}–${it.endTime} ${it.recurFreq}\" (id=${it.id})" }}")
         }
     }
 
     // ── Gemini ────────────────────────────────────────────────────
     private suspend fun callGemini(systemPrompt: String, userMessage: String): String =
-        withContext(Dispatchers.IO) {
-            val url  = URL("https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${BuildConfig.GEMINI_API_KEY}")
+        withTimeout(20_000L) {
+            withContext(Dispatchers.IO) {
+            val url =
+                URL("https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${BuildConfig.GEMINI_API_KEY}")
             val conn = (url.openConnection() as HttpURLConnection).apply {
-                requestMethod = "POST"; setRequestProperty("Content-Type","application/json")
-                doOutput=true; connectTimeout=15_000; readTimeout=30_000
+                requestMethod = "POST"; setRequestProperty("Content-Type", "application/json")
+                doOutput = true; connectTimeout = 15_000; readTimeout = 30_000
             }
             val body = JSONObject().apply {
-                put("systemInstruction", JSONObject().apply { put("parts", org.json.JSONArray().put(JSONObject().apply { put("text", systemPrompt) })) })
+                put(
+                    "systemInstruction",
+                    JSONObject().apply {
+                        put(
+                            "parts",
+                            org.json.JSONArray()
+                                .put(JSONObject().apply { put("text", systemPrompt) })
+                        )
+                    })
                 put("contents", org.json.JSONArray().put(JSONObject().apply {
-                    put("role","user"); put("parts", org.json.JSONArray().put(JSONObject().apply { put("text", userMessage) }))
+                    put("role", "user"); put(
+                    "parts",
+                    org.json.JSONArray().put(JSONObject().apply { put("text", userMessage) })
+                )
                 }))
-                put("generationConfig", JSONObject().apply { put("responseMimeType","application/json") })
+                put(
+                    "generationConfig",
+                    JSONObject().apply { put("responseMimeType", "application/json") })
             }.toString()
             conn.outputStream.use { it.write(body.toByteArray()) }
             JSONObject(conn.inputStream.bufferedReader().readText())
                 .getJSONArray("candidates").getJSONObject(0)
                 .getJSONObject("content").getJSONArray("parts").getJSONObject(0).getString("text")
         }
+    }
 
     // ── Build pending action from JSON ────────────────────────────
     @RequiresApi(Build.VERSION_CODES.O)
@@ -715,10 +813,25 @@ Do NOT include markdown in reply strings.
                 onPendingAction(pending)
             }
 
+        } catch (e: TimeoutCancellationException) {
+            withContext(Dispatchers.Main) {
+                val errResult = VoiceResult(
+                    userText = spoken,
+                    replyText = "The request timed out. Please try again.",
+                    actionTaken = null
+                )
+                onResult(errResult)
+                speakOut(errResult.replyText)
+            }
         } catch (e: Exception) {
             withContext(Dispatchers.Main) {
-                val err = VoiceResult(userText = spoken, replyText = "Sorry, something went wrong. Please try again.", actionTaken = null)
-                onResult(err); speakOut(err.replyText)
+                val errResult = VoiceResult(
+                    userText = spoken,
+                    replyText = "Sorry, something went wrong. Please try again.",
+                    actionTaken = null
+                )
+                onResult(errResult)
+                speakOut(errResult.replyText)
             }
         }
     }
