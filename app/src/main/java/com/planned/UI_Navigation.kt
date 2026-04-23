@@ -122,6 +122,11 @@ var taskBucketsSelectedBucket by mutableStateOf<MasterTaskBucket?>(null)
 
 // Internal Settings screen state
 var settingsCurrentView by mutableStateOf("main")
+
+// Academics
+var academicsCurrentView by mutableStateOf("main")
+var academicsSelectedCourse by mutableStateOf<Course?>(null)
+var academicsSelectedCompletedCourse by mutableStateOf<CompletedCourse?>(null)
 //</editor-fold>
 
 /* POMODORO STATE */
@@ -806,6 +811,9 @@ fun NavigationDrawer(
                     onDrawerToggle()
                 }
                 DrawerRow("Academics", { AcademicsIcon() }) {
+                    academicsCurrentView = "main"
+                    academicsSelectedCourse = null
+                    academicsSelectedCompletedCourse = null
                     currentScreen = "Academics"
                     onDrawerToggle()
                 }

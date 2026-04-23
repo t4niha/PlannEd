@@ -78,9 +78,6 @@ fun Settings(db: AppDatabase) {
     val db = remember { AppDatabaseProvider.getDatabase(context) }
     val scope = rememberCoroutineScope()
 
-    // Sub-page navigation
-    // Uses globally hoisted state so navigation away and back preserves subpage position
-
     // Shared DB state for sub-pages
     var categories by remember { mutableStateOf(listOf<Category>()) }
     var masterEvents by remember { mutableStateOf(listOf<MasterEvent>()) }
@@ -1246,6 +1243,15 @@ fun DatabasePage(
     val scrollV = rememberScrollState()
     val scrollH = rememberScrollState()
     val scope = rememberCoroutineScope()
+    var courses by remember { mutableStateOf<List<Course>>(emptyList()) }
+    var gradeItems by remember { mutableStateOf<List<GradeItem>>(emptyList()) }
+    var completedCourses by remember { mutableStateOf<List<CompletedCourse>>(emptyList()) }
+
+    LaunchedEffect(Unit) {
+        courses = db.courseDao().getAll()
+        gradeItems = courses.flatMap { db.gradeItemDao().getByCourseId(it.id) }
+        completedCourses = db.completedCourseDao().getAll()
+    }
 
     Column(
         modifier = Modifier
@@ -1641,6 +1647,42 @@ fun DatabasePage(
                     a.tasksCompleted.toString(), a.predictedPadding.toString(),
                     "%.3f".format(a.paddingSlope), "%.3f".format(a.paddingIntercept)
                 )
+            }
+
+            Table(
+                title   = "Active Courses",
+                data    = courses,
+                headers = listOf("ID", "Title", "Credits", "Year", "Semester")
+            ) { c -> listOf(
+                c.id.toString(),
+                c.title,
+                c.credits.toString(),
+                c.year.toString(),
+                semesterLabel(c.year, c.semester))
+            }
+
+            Table(
+                title   = "Grade Items",
+                data    = gradeItems,
+                headers = listOf("ID", "Course ID", "Type", "Title", "Received", "Total")
+            ) { g -> listOf(
+                g.id.toString(),
+                g.courseId.toString(),
+                gradeItemTypeLabel(g.type),
+                g.title, "%.1f".format(g.marksReceived),
+                "%.1f".format(g.totalMarks))
+            }
+
+            Table(
+                title   = "Completed Courses",
+                data    = completedCourses,
+                headers = listOf("ID", "Title", "Credits", "Semester", "Calc. Grade", "Submitted Grade")
+            ) { c -> listOf(
+                c.id.toString(),
+                c.courseTitle,
+                c.credits.toString(),
+                semesterLabel(c.year, c.semester),
+                "%.1f".format(c.calculatedGrade), c.submitGrade)
             }
 
             Table(
