@@ -37,9 +37,6 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.launch
 
-// ─────────────────────────────────────────────────────────────────
-// VoiceMicButton
-// ─────────────────────────────────────────────────────────────────
 @Composable
 fun VoiceMicButton(
     db: AppDatabase,
@@ -160,9 +157,6 @@ fun VoiceMicButton(
     }
 }
 
-// ─────────────────────────────────────────────────────────────────
-// Action label helper
-// ─────────────────────────────────────────────────────────────────
 private fun actionLabel(action: VoicePendingAction): String {
     val prefix = when {
         action.actionType.startsWith("CREATE") -> "Created"
@@ -174,9 +168,6 @@ private fun actionLabel(action: VoicePendingAction): String {
     return "$prefix ${action.entityLabel}"
 }
 
-// ─────────────────────────────────────────────────────────────────
-// VoiceConfirmationDialog
-// ─────────────────────────────────────────────────────────────────
 @Composable
 fun VoiceConfirmationDialog(
     action:    VoicePendingAction,
@@ -216,14 +207,11 @@ fun VoiceConfirmationDialog(
 
                 HorizontalDivider(color = Color.LightGray, thickness = 0.8.dp)
 
-                // Single info card for all action types
-                // For EDIT: changedFields drives highlighting; for CREATE/DELETE: no fields are highlighted
                 VoiceInfoCard(
                     fields        = action.summaryFields,
                     changedFields = action.changedFields
                 )
 
-                // "No changes" notice for edits with nothing changed
                 if (isEdit && action.changedFields.isEmpty()) {
                     Text(text = "No changes detected.", fontSize = 14.sp, color = Color.Gray)
                 }
@@ -251,11 +239,6 @@ fun VoiceConfirmationDialog(
     }
 }
 
-// ─────────────────────────────────────────────────────────────────
-// VoiceInfoCard
-// changedFields: labels of fields that changed — those rows get
-// their value rendered in PrimaryColor to stand out
-// ─────────────────────────────────────────────────────────────────
 @Composable
 fun VoiceInfoCard(
     fields:        List<Pair<String, String>>,
@@ -288,9 +271,6 @@ fun VoiceInfoCard(
     }
 }
 
-// ─────────────────────────────────────────────────────────────────
-// VoiceResultDialog
-// ─────────────────────────────────────────────────────────────────
 @Composable
 fun VoiceResultDialog(
     result:    VoiceResult,

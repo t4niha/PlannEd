@@ -25,21 +25,15 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.withTimeout
 
-// ─────────────────────────────────────────────────────────────────
-// Voice phases
-// ─────────────────────────────────────────────────────────────────
 enum class VoicePhase {
     IDLE, LISTENING, THINKING, SPEAKING, ERROR
 }
 
-// ─────────────────────────────────────────────────────────────────
-// A fully-resolved pending action
-// ─────────────────────────────────────────────────────────────────
 data class VoicePendingAction(
     val actionType: String,
     val entityLabel: String,
-    val summaryFields: List<Pair<String, String>>,  // used for CREATE, DELETE, and EDIT
-    val changedFields: Set<String>,                 // field labels that changed — for highlighting in UI
+    val summaryFields: List<Pair<String, String>>,
+    val changedFields: Set<String>,
     val replyText: String,
     val execute: suspend () -> Unit
 )
@@ -50,9 +44,6 @@ data class VoiceResult(
     val actionTaken: String? = null
 )
 
-// ─────────────────────────────────────────────────────────────────
-// VoiceCommandManager
-// ─────────────────────────────────────────────────────────────────
 @RequiresApi(Build.VERSION_CODES.O)
 object VoiceCommandManager {
 
@@ -69,7 +60,7 @@ object VoiceCommandManager {
     private val dateFmt = DateTimeFormatter.ofPattern("MMM d, yyyy")
     private val timeFmt = DateTimeFormatter.ofPattern("h:mm a")
 
-    // ── TTS ───────────────────────────────────────────────────────
+    // TTS
     fun initTts(context: Context) {
         if (tts != null) return
         tts = TextToSpeech(context) { status ->
@@ -106,7 +97,7 @@ object VoiceCommandManager {
 
     fun cancelSpeech() { tts?.stop(); onPhaseChange(VoicePhase.IDLE) }
 
-    // ── Listening ─────────────────────────────────────────────────
+    // Listening
     @androidx.annotation.MainThread
     fun startListening(context: Context, db: AppDatabase) {
         cancelSpeech()
@@ -146,7 +137,7 @@ object VoiceCommandManager {
 
     fun stopListening() { speechRecognizer?.stopListening() }
 
-    // ── Helpers ───────────────────────────────────────────────────
+    // Helpers
     private fun parseRecurFreq(v: String) =
         runCatching { RecurrenceFrequency.valueOf(v.uppercase()) }.getOrDefault(RecurrenceFrequency.NONE)
 
@@ -180,11 +171,10 @@ object VoiceCommandManager {
         return when { h > 0 && m > 0 -> "${h}h ${m}m"; h > 0 -> "${h}h"; else -> "${m}m" }
     }
 
-    // Helper: format a field value for edit — shows "old → new" if changed, else just value
     private fun fmtEdit(oldVal: String, newVal: String) =
         if (oldVal != newVal) "$oldVal → $newVal" else newVal
 
-    // ── Context snapshot ──────────────────────────────────────────
+    // Context snapshot
     private suspend fun buildContextSnapshot(db: AppDatabase): String {
         val today = LocalDate.now()
         val todayStr = today.format(DateTimeFormatter.ofPattern("EEEE, MMMM d, yyyy"))
@@ -269,7 +259,7 @@ object VoiceCommandManager {
         }
     }
 
-    // ── Gemini ────────────────────────────────────────────────────
+    // Gemini
     private suspend fun callGemini(systemPrompt: String, userMessage: String): String =
         withTimeout(20_000L) {
             withContext(Dispatchers.IO) {
@@ -295,7 +285,7 @@ object VoiceCommandManager {
             }
         }
 
-    // ── Build pending action ──────────────────────────────────────
+    // Build pending action
     suspend fun buildPendingAction(context: Context, db: AppDatabase, json: JSONObject): VoicePendingAction? {
         val action  = json.optString("action", "REPLY")
         val reply   = json.optString("reply", "Done.")
@@ -306,7 +296,8 @@ object VoiceCommandManager {
 
         when (action) {
 
-            // ── TASK ──────────────────────────────────────────────
+            // TASK
+
             "CREATE_TASK" -> {
                 val title     = json.getString("title")
                 val dur       = json.optInt("duration_minutes", 60)
@@ -422,7 +413,8 @@ object VoiceCommandManager {
                 ), emptySet(), reply) { TaskManager.delete(context=context, db=db, taskId=taskId) }
             }
 
-            // ── EVENT ─────────────────────────────────────────────
+            // EVENT
+
             "CREATE_EVENT" -> {
                 val title    = json.getString("title")
                 val sd       = LocalDate.parse(json.optString("start_date", "").ifBlank { defDate.toString() })
@@ -514,7 +506,8 @@ object VoiceCommandManager {
                 ), emptySet(), reply) { EventManager.delete(context=context, db=db, eventId=evId) }
             }
 
-            // ── REMINDER ──────────────────────────────────────────
+            // REMINDER
+
             "CREATE_REMINDER" -> {
                 val title  = json.getString("title")
                 val sd     = LocalDate.parse(json.optString("start_date", "").ifBlank { defDate.toString() })
@@ -596,7 +589,8 @@ object VoiceCommandManager {
                 ), emptySet(), reply) { ReminderManager.delete(context=context, db=db, reminderId=rId) }
             }
 
-            // ── DEADLINE ──────────────────────────────────────────
+            // DEADLINE
+
             "CREATE_DEADLINE" -> {
                 val title     = json.getString("title")
                 val d         = LocalDate.parse(json.optString("date", "").ifBlank { defDate.toString() })
@@ -687,7 +681,8 @@ object VoiceCommandManager {
                 ), emptySet(), reply) { DeadlineManager.delete(context=context, db=db, deadlineId=dlId) }
             }
 
-            // ── CATEGORY ──────────────────────────────────────────
+            // CATEGORY
+
             "CREATE_CATEGORY" -> {
                 val title    = json.getString("title")
                 val notes    = json.optString("notes", "").ifBlank { null }
@@ -730,7 +725,8 @@ object VoiceCommandManager {
                 ), emptySet(), reply) { CategoryManager.delete(context=context, db=db, categoryId=catId) }
             }
 
-            // ── TASK BUCKET ───────────────────────────────────────
+            // TASK BUCKET
+
             "CREATE_TASK_BUCKET" -> {
                 val sd = LocalDate.parse(json.optString("start_date", "").ifBlank { defDate.toString() })
                 val ed = json.optString("end_date", "").ifBlank { null }?.let { LocalDate.parse(it) }
@@ -790,7 +786,8 @@ object VoiceCommandManager {
                 ), emptySet(), reply) { TaskBucketManager.delete(context=context, db=db, bucketId=bId) }
             }
 
-            // ── SETTINGS ──────────────────────────────────────────
+            // SETTINGS
+
             "CHANGE_SETTING" -> {
                 val sName   = json.getString("setting_name")
                 val valBool = if (json.has("value_boolean") && !json.isNull("value_boolean")) json.getBoolean("value_boolean") else null
@@ -816,7 +813,7 @@ object VoiceCommandManager {
         return null
     }
 
-    // ── Main handler ──────────────────────────────────────────────
+    // Main handler
     suspend fun handleSpokenCommand(context: Context, db: AppDatabase, spoken: String) {
         try {
             val snapshot = buildContextSnapshot(db)

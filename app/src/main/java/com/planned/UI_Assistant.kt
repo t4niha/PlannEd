@@ -42,7 +42,6 @@ fun Assistant(db: AppDatabase) {
     val scope   = rememberCoroutineScope()
     val keyboardController = LocalSoftwareKeyboardController.current
 
-    // ── State ─────────────────────────────────────────────────────
     var inputText         by remember { mutableStateOf("") }
     var userBubbleText    by remember { mutableStateOf<String?>(null) }
     var replyBubbleText   by remember { mutableStateOf<String?>(null) }
@@ -52,7 +51,7 @@ fun Assistant(db: AppDatabase) {
     var pendingAction     by remember { mutableStateOf<VoicePendingAction?>(null) }
     var showPendingDialog by remember { mutableStateOf(false) }
 
-    // ── Wire up VoiceCommandManager ───────────────────────────────
+    // VoiceCommandManager
     DisposableEffect(Unit) {
         VoiceCommandManager.initTts(context)
         VoiceCommandManager.onPhaseChange = { newPhase ->
@@ -73,7 +72,7 @@ fun Assistant(db: AppDatabase) {
         onDispose { VoiceCommandManager.releaseTts() }
     }
 
-    // ── Send handler (shared by text + voice) ─────────────────────
+    // Send handler
     fun sendText(text: String) {
         if (text.isBlank()) return
         keyboardController?.hide()
@@ -94,7 +93,7 @@ fun Assistant(db: AppDatabase) {
         else phase = VoicePhase.ERROR
     }
 
-    // ── Mic pulse animation ───────────────────────────────────────
+    // Mic pulse animation
     val infiniteTransition = rememberInfiniteTransition(label = "micPulse")
     val pulseScale by infiniteTransition.animateFloat(
         initialValue = 1f, targetValue = 1.30f,
@@ -115,7 +114,6 @@ fun Assistant(db: AppDatabase) {
     val isActive     = phase != VoicePhase.IDLE && phase != VoicePhase.ERROR
     val appliedScale = if (phase == VoicePhase.LISTENING) pulseScale else 1f
 
-    // ── Layout ────────────────────────────────────────────────────
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -133,7 +131,7 @@ fun Assistant(db: AppDatabase) {
             )
         }
 
-        // ── Chat area ─────────────────────────────────────────────
+        // Chat area
         Box(
             modifier = Modifier
                 .weight(1f)
@@ -145,7 +143,7 @@ fun Assistant(db: AppDatabase) {
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                // User bubble — only shown after first send
+                // User bubble
                 userBubbleText?.let { text ->
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -226,7 +224,7 @@ fun Assistant(db: AppDatabase) {
 
         HorizontalDivider(thickness = 1.dp, color = Color.LightGray)
 
-        // ── Input bar ─────────────────────────────────────────────
+        // Input bar
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -329,7 +327,7 @@ fun Assistant(db: AppDatabase) {
         }
     }
 
-    // ── Confirmation dialog ───────────────────────────────────────
+    // Confirmation dialog
     if (showPendingDialog) {
         pendingAction?.let { action ->
             VoiceConfirmationDialog(
@@ -354,7 +352,7 @@ fun Assistant(db: AppDatabase) {
     }
 }
 
-// ── Animated thinking dots ────────────────────────────────────────
+// Animated thinking dots
 @Composable
 fun ThinkingDots() {
     val infiniteTransition = rememberInfiniteTransition(label = "dots")

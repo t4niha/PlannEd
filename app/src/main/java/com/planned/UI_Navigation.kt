@@ -202,7 +202,7 @@ fun AppNavigation(db: AppDatabase) {
                         "Assistant" -> Assistant(db)
                         "Academics" -> Academics(db)
 
-                        // ── Task ──────────────────────────────────────────────────────────
+                        // Task
                         "TaskInfo" -> selectedTaskForInfo?.let { task ->
                             TaskInfoPage(
                                 db = db,
@@ -244,9 +244,6 @@ fun AppNavigation(db: AppDatabase) {
                                 onBack = {
                                     val returnTo = pomodoroReturnScreen
                                     pomodoroReturnScreen = "Calendars"
-                                    // Restore previous task only if timer icon was used
-                                    // (previousTaskForInfo set), or if returning somewhere
-                                    // other than TaskInfo (so selectedTaskForInfo isn't needed)
                                     if (previousTaskForInfo != null || returnTo != "TaskInfo") {
                                         selectedTaskForInfo = previousTaskForInfo
                                         taskInfoReturnScreen = previousTaskInfoReturnScreen
@@ -268,8 +265,6 @@ fun AppNavigation(db: AppDatabase) {
                                 }
                             )
                         }
-
-                        // ── All-Day Task ──────────────────────────────────────────────────
                         "AllDayTaskInfo" -> selectedAllDayTaskForInfo?.let { task ->
                             AllDayTaskInfoPage(
                                 db = db,
@@ -319,7 +314,7 @@ fun AppNavigation(db: AppDatabase) {
                             )
                         }
 
-                        // ── Event ─────────────────────────────────────────────────────────
+                        // Event
                         "EventInfo" -> selectedEventForInfo?.let { event ->
                             EventInfoPage(
                                 db = db,
@@ -358,7 +353,7 @@ fun AppNavigation(db: AppDatabase) {
                             }
                         }
 
-                        // ── Reminder ──────────────────────────────────────────────────────
+                        // Reminder
                         "ReminderInfo" -> selectedReminderForInfo?.let { reminder ->
                             ReminderInfoView(
                                 db = db,
@@ -390,7 +385,7 @@ fun AppNavigation(db: AppDatabase) {
                             }
                         }
 
-                        // ── Deadline ──────────────────────────────────────────────────────
+                        // Deadline
                         "DeadlineInfo" -> selectedDeadlineForInfo?.let { deadline ->
                             DeadlineInfoView(
                                 db = db,
@@ -427,7 +422,7 @@ fun AppNavigation(db: AppDatabase) {
                             }
                         }
 
-                        // ── Task Bucket ───────────────────────────────────────────────────
+                        // Task Bucket
                         "BucketInfo" -> selectedBucketForInfo?.let { bucket ->
                             TaskBucketInfoPage(
                                 db = db,
@@ -532,7 +527,7 @@ fun Header(
                         }
                     }
 
-                    // Pulsing timer icon — visible only when a task is running
+                    // Pulsing timer icon
                     AnimatedVisibility(
                         visible = PomodoroState.isRunning,
                         enter = expandHorizontally(),
@@ -574,7 +569,7 @@ fun Header(
                         }
                     }
 
-                    // Create (+) button
+                    // Create button
                     CompositionLocalProvider(LocalRippleConfiguration provides null) {
                         IconButton(onClick = onCreateClick) {
                             Icon(Icons.Filled.Add, contentDescription = "Create", modifier = Modifier.size(32.dp))
