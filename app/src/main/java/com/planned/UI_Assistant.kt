@@ -8,7 +8,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
@@ -20,7 +19,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MicOff
-import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -49,6 +47,7 @@ fun Assistant(db: AppDatabase) {
     var userBubbleText    by remember { mutableStateOf<String?>(null) }
     var replyBubbleText   by remember { mutableStateOf<String?>(null) }
     var isThinking        by remember { mutableStateOf(false) }
+    var hasInteracted     by remember { mutableStateOf(false) }
     var phase             by remember { mutableStateOf(VoicePhase.IDLE) }
     var pendingAction     by remember { mutableStateOf<VoicePendingAction?>(null) }
     var showPendingDialog by remember { mutableStateOf(false) }
@@ -63,11 +62,12 @@ fun Assistant(db: AppDatabase) {
         }
         VoiceCommandManager.onResult = { result ->
             isThinking = false
+            if (result.userText.isNotBlank()) userBubbleText = result.userText
             replyBubbleText = result.replyText
         }
         VoiceCommandManager.onPendingAction = { action ->
-            isThinking = false
-            pendingAction = action
+            isThinking        = false
+            pendingAction     = action
             showPendingDialog = true
         }
         onDispose { VoiceCommandManager.releaseTts() }
@@ -77,6 +77,7 @@ fun Assistant(db: AppDatabase) {
     fun sendText(text: String) {
         if (text.isBlank()) return
         keyboardController?.hide()
+        hasInteracted   = true
         userBubbleText  = text
         replyBubbleText = null
         isThinking      = true
@@ -105,11 +106,11 @@ fun Assistant(db: AppDatabase) {
     )
 
     val micColor = when (phase) {
-        VoicePhase.IDLE      -> Color.LightGray
+        VoicePhase.IDLE      -> Color(0xFF9E9E9E)
         VoicePhase.LISTENING -> PrimaryColor
         VoicePhase.THINKING  -> Color(0xFF9E9E9E)
-        VoicePhase.SPEAKING  -> PrimaryColor
-        VoicePhase.ERROR     -> Color(0xFF9E9E9E)
+        VoicePhase.SPEAKING  -> Color(0xFF9E9E9E)
+        VoicePhase.ERROR     -> Color.LightGray
     }
     val isActive     = phase != VoicePhase.IDLE && phase != VoicePhase.ERROR
     val appliedScale = if (phase == VoicePhase.LISTENING) pulseScale else 1f
@@ -130,7 +131,6 @@ fun Assistant(db: AppDatabase) {
                 fontWeight = FontWeight.Bold,
                 modifier   = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
             )
-            HorizontalDivider(thickness = 1.dp, color = Color.LightGray)
         }
 
         // ── Chat area ─────────────────────────────────────────────
@@ -139,7 +139,7 @@ fun Assistant(db: AppDatabase) {
                 .weight(1f)
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 16.dp),
-            contentAlignment = Alignment.BottomStart
+            contentAlignment = Alignment.TopStart
         ) {
             Column(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -163,7 +163,7 @@ fun Assistant(db: AppDatabase) {
                                 modifier = Modifier
                                     .clip(
                                         RoundedCornerShape(
-                                            topStart = 16.dp, topEnd = 4.dp,
+                                            topStart    = 16.dp, topEnd    = 4.dp,
                                             bottomStart = 16.dp, bottomEnd = 16.dp
                                         )
                                     )
@@ -177,7 +177,7 @@ fun Assistant(db: AppDatabase) {
                     }
                 }
 
-                // Assistant bubble — empty state greeting, thinking dots, or reply
+                // Assistant bubble
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.Start
@@ -194,7 +194,7 @@ fun Assistant(db: AppDatabase) {
                             modifier = Modifier
                                 .clip(
                                     RoundedCornerShape(
-                                        topStart = 4.dp, topEnd = 16.dp,
+                                        topStart    = 4.dp,  topEnd    = 16.dp,
                                         bottomStart = 16.dp, bottomEnd = 16.dp
                                     )
                                 )
@@ -203,19 +203,20 @@ fun Assistant(db: AppDatabase) {
                                 .widthIn(max = 260.dp)
                         ) {
                             when {
-                                isThinking           -> ThinkingDots()
+                                isThinking              -> ThinkingDots()
                                 replyBubbleText != null -> Text(
                                     text       = replyBubbleText!!,
                                     fontSize   = 15.sp,
                                     color      = Color.Black,
                                     lineHeight = 21.sp
                                 )
-                                else -> Text(
+                                !hasInteracted          -> Text(
                                     text       = "How can I help you?",
                                     fontSize   = 15.sp,
                                     color      = Color.Black,
                                     lineHeight = 21.sp
                                 )
+                                else                    -> {}
                             }
                         }
                     }
@@ -257,7 +258,7 @@ fun Assistant(db: AppDatabase) {
                         ) {
                             when (phase) {
                                 VoicePhase.IDLE, VoicePhase.ERROR -> {
-                                    // Clear previous exchange when starting new voice input
+                                    hasInteracted   = true
                                     userBubbleText  = null
                                     replyBubbleText = null
                                     val hasPermission = ContextCompat.checkSelfPermission(
@@ -268,7 +269,7 @@ fun Assistant(db: AppDatabase) {
                                 }
                                 VoicePhase.LISTENING -> {
                                     VoiceCommandManager.stopListening()
-                                    phase     = VoicePhase.THINKING
+                                    phase      = VoicePhase.THINKING
                                     isThinking = true
                                 }
                                 VoicePhase.SPEAKING -> VoiceCommandManager.cancelSpeech()
@@ -294,15 +295,15 @@ fun Assistant(db: AppDatabase) {
                 modifier      = Modifier.weight(1f),
                 shape         = RoundedCornerShape(24.dp),
                 colors        = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor   = PrimaryColor,
-                    unfocusedBorderColor = Color.LightGray,
+                    focusedBorderColor      = PrimaryColor,
+                    unfocusedBorderColor    = Color.LightGray,
                     focusedContainerColor   = BackgroundColor,
                     unfocusedContainerColor = BackgroundColor
                 ),
-                singleLine    = true,
+                singleLine      = true,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
                 keyboardActions = KeyboardActions(onSend = { sendText(inputText) }),
-                textStyle     = LocalTextStyle.current.copy(fontSize = 14.sp)
+                textStyle       = LocalTextStyle.current.copy(fontSize = 14.sp)
             )
 
             // Send button
