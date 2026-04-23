@@ -106,11 +106,11 @@ fun Assistant(db: AppDatabase) {
     )
 
     val micColor = when (phase) {
-        VoicePhase.IDLE      -> Color(0xFF9E9E9E)
+        VoicePhase.IDLE      -> PrimaryColor
         VoicePhase.LISTENING -> PrimaryColor
-        VoicePhase.THINKING  -> Color(0xFF9E9E9E)
-        VoicePhase.SPEAKING  -> Color(0xFF9E9E9E)
-        VoicePhase.ERROR     -> Color.LightGray
+        VoicePhase.THINKING  -> Color.LightGray
+        VoicePhase.SPEAKING  -> Color.LightGray
+        VoicePhase.ERROR     -> Color(0xFF9E9E9E)
     }
     val isActive     = phase != VoicePhase.IDLE && phase != VoicePhase.ERROR
     val appliedScale = if (phase == VoicePhase.LISTENING) pulseScale else 1f
