@@ -69,6 +69,11 @@ fun Assistant(db: AppDatabase) {
             pendingAction     = action
             showPendingDialog = true
         }
+        VoiceCommandManager.onSpokenText = { spoken ->
+            userBubbleText  = spoken
+            replyBubbleText = null
+            hasInteracted   = true
+        }
         onDispose { VoiceCommandManager.releaseTts() }
     }
 
@@ -257,8 +262,6 @@ fun Assistant(db: AppDatabase) {
                             when (phase) {
                                 VoicePhase.IDLE, VoicePhase.ERROR -> {
                                     hasInteracted   = true
-                                    userBubbleText  = null
-                                    replyBubbleText = null
                                     val hasPermission = ContextCompat.checkSelfPermission(
                                         context, Manifest.permission.RECORD_AUDIO
                                     ) == PackageManager.PERMISSION_GRANTED

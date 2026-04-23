@@ -52,6 +52,7 @@ object VoiceCommandManager {
     @Volatile var onPhaseChange: (VoicePhase) -> Unit = {}
     @Volatile var onPendingAction: (VoicePendingAction) -> Unit = {}
     @Volatile var onResult: (VoiceResult) -> Unit = {}
+    @Volatile var onSpokenText: (String) -> Unit = {}
 
     private var tts: TextToSpeech? = null
     private var speechRecognizer: SpeechRecognizer? = null
@@ -69,12 +70,8 @@ object VoiceCommandManager {
                 tts?.setOnUtteranceProgressListener(object :
                     android.speech.tts.UtteranceProgressListener() {
                     override fun onStart(utteranceId: String?) {}
-                    override fun onDone(utteranceId: String?) {
-                        managerScope.launch { onPhaseChange(VoicePhase.IDLE) }
-                    }
-                    override fun onError(utteranceId: String?) {
-                        managerScope.launch { onPhaseChange(VoicePhase.IDLE) }
-                    }
+                    override fun onDone(utteranceId: String?) {}
+                    override fun onError(utteranceId: String?) {}
                 })
                 isTtsReady = true
             }
@@ -90,15 +87,16 @@ object VoiceCommandManager {
         onPhaseChange(VoicePhase.IDLE)
     }
 
-    fun cancelSpeech() { tts?.stop(); onPhaseChange(VoicePhase.IDLE) }
+    fun cancelSpeech() { tts?.stop() }
 
     // Listening
     @androidx.annotation.MainThread
     fun startListening(context: Context, db: AppDatabase) {
         cancelSpeech()
+        speechRecognizer?.destroy()
+        speechRecognizer = null
         if (!SpeechRecognizer.isRecognitionAvailable(context)) { onPhaseChange(VoicePhase.ERROR); return }
         onPhaseChange(VoicePhase.LISTENING)
-        speechRecognizer?.destroy()
         speechRecognizer = SpeechRecognizer.createSpeechRecognizer(context)
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
@@ -124,6 +122,7 @@ object VoiceCommandManager {
                 val spoken = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()
                 if (spoken.isNullOrBlank()) { onPhaseChange(VoicePhase.ERROR); return }
                 onPhaseChange(VoicePhase.THINKING)
+                onSpokenText(spoken)
                 CoroutineScope(Dispatchers.Main).launch { handleSpokenCommand(context, db, spoken) }
             }
         })
