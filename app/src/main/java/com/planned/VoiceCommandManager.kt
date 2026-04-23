@@ -736,7 +736,7 @@ object VoiceCommandManager {
 
     // ── Main handler ──────────────────────────────────────────────
     @RequiresApi(Build.VERSION_CODES.O)
-    private suspend fun handleSpokenCommand(context: Context, db: AppDatabase, spoken: String) {
+    suspend fun handleSpokenCommand(context: Context, db: AppDatabase, spoken: String) {
         try {
             val snapshot = buildContextSnapshot(db)
             val today    = LocalDate.now()
