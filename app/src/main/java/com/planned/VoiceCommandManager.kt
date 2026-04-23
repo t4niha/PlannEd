@@ -87,12 +87,7 @@ object VoiceCommandManager {
     }
 
     fun speakOut(text: String) {
-        if (isTtsReady) {
-            onPhaseChange(VoicePhase.SPEAKING)
-            tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "planned_vc")
-        } else {
-            onPhaseChange(VoicePhase.IDLE)
-        }
+        onPhaseChange(VoicePhase.IDLE)
     }
 
     fun cancelSpeech() { tts?.stop(); onPhaseChange(VoicePhase.IDLE) }
@@ -279,9 +274,17 @@ object VoiceCommandManager {
                     put("generationConfig", JSONObject().apply { put("responseMimeType", "application/json") })
                 }.toString()
                 conn.outputStream.use { it.write(body.toByteArray()) }
-                JSONObject(conn.inputStream.bufferedReader().readText())
+                val responseText = try {
+                    conn.inputStream.bufferedReader().readText()
+                } catch (e: Exception) {
+                    conn.errorStream?.bufferedReader()?.readText() ?: throw e
+                }
+                throw Exception(responseText)
+                /*
+                JSONObject(responseText)
                     .getJSONArray("candidates").getJSONObject(0)
                     .getJSONObject("content").getJSONArray("parts").getJSONObject(0).getString("text")
+                */
             }
         }
 
