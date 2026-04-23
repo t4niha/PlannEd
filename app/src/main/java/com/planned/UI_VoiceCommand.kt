@@ -48,9 +48,9 @@ fun VoiceMicButton(
     val context = LocalContext.current
     val scope   = rememberCoroutineScope()
 
-    var phase           by remember { mutableStateOf(VoicePhase.IDLE) }
-    var lastResult      by remember { mutableStateOf<VoiceResult?>(null) }
-    var pendingAction   by remember { mutableStateOf<VoicePendingAction?>(null) }
+    var phase             by remember { mutableStateOf(VoicePhase.IDLE) }
+    var lastResult        by remember { mutableStateOf<VoiceResult?>(null) }
+    var pendingAction     by remember { mutableStateOf<VoicePendingAction?>(null) }
     var showResultDialog  by remember { mutableStateOf(false) }
     var showPendingDialog by remember { mutableStateOf(false) }
 
@@ -104,23 +104,15 @@ fun VoiceMicButton(
                             val hasPermission = ContextCompat.checkSelfPermission(
                                 context, Manifest.permission.RECORD_AUDIO
                             ) == PackageManager.PERMISSION_GRANTED
-
-                            if (hasPermission) {
-                                VoiceCommandManager.startListening(context, db)
-                            } else {
-                                permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-                            }
+                            if (hasPermission) VoiceCommandManager.startListening(context, db)
+                            else permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
                         }
                         VoicePhase.LISTENING -> {
-                            // User taps to stop listening and process what they said
                             VoiceCommandManager.stopListening()
-                            // Force process the recognized text
                             phase = VoicePhase.THINKING
                         }
-                        VoicePhase.SPEAKING -> {
-                            VoiceCommandManager.cancelSpeech()
-                        }
-                        VoicePhase.THINKING -> { /* Can't interrupt */ }
+                        VoicePhase.SPEAKING  -> VoiceCommandManager.cancelSpeech()
+                        VoicePhase.THINKING  -> { /* Can't interrupt */ }
                     }
                 },
             contentAlignment = Alignment.Center
@@ -139,11 +131,10 @@ fun VoiceMicButton(
         }
     }
 
-    // Confirmation dialog — shown before any DB action
     if (showPendingDialog) {
         pendingAction?.let { action ->
             VoiceConfirmationDialog(
-                action  = action,
+                action    = action,
                 onConfirm = {
                     showPendingDialog = false
                     pendingAction = null
@@ -162,7 +153,6 @@ fun VoiceMicButton(
         }
     }
 
-    // Result dialog — shown after QUERY/REPLY or after confirmed action
     if (showResultDialog) {
         lastResult?.let { result ->
             VoiceResultDialog(result = result, onDismiss = { showResultDialog = false })
@@ -193,17 +183,14 @@ fun VoiceConfirmationDialog(
     onConfirm: () -> Unit,
     onCancel:  () -> Unit
 ) {
-    val isCreate = action.actionType.startsWith("CREATE")
-    val isEdit   = action.actionType.startsWith("EDIT")
-    val isDelete = action.actionType.startsWith("DELETE")
-    val isSetting = action.actionType == "CHANGE_SETTING"
+    val isEdit = action.actionType.startsWith("EDIT")
 
     val titleText = when {
-        isCreate  -> "Create ${action.entityLabel}"
-        isEdit    -> "Update ${action.entityLabel}"
-        isDelete  -> "Delete ${action.entityLabel}"
-        isSetting -> "Change Setting"
-        else      -> action.entityLabel
+        action.actionType.startsWith("CREATE") -> "Create ${action.entityLabel}"
+        isEdit                                 -> "Update ${action.entityLabel}"
+        action.actionType.startsWith("DELETE") -> "Delete ${action.entityLabel}"
+        action.actionType == "CHANGE_SETTING"  -> "Change Setting"
+        else                                   -> action.entityLabel
     }
 
     Dialog(
@@ -221,54 +208,31 @@ fun VoiceConfirmationDialog(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
 
-                // Title
+                // Title — always PrimaryColor
                 Text(
                     text       = titleText,
                     fontSize   = 18.sp,
                     fontWeight = FontWeight.Bold,
-                    color      = if (isDelete) Color(0xFFE53935) else PrimaryColor
+                    color      = PrimaryColor
                 )
 
                 HorizontalDivider(color = Color.LightGray, thickness = 0.8.dp)
 
-                // Info card for CREATE and DELETE — shows all fields
-                if (isCreate || isSetting || (isDelete && action.summaryFields.isNotEmpty())) {
+                // Summary fields — shown for CREATE, DELETE, and CHANGE_SETTING
+                if (action.summaryFields.isNotEmpty()) {
                     VoiceInfoCard(fields = action.summaryFields)
                 }
 
-                // For DELETE — extra warning
-                if (isDelete) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(Color(0xFFE53935).copy(alpha = 0.08f))
-                            .border(1.dp, Color(0xFFE53935).copy(alpha = 0.3f), RoundedCornerShape(8.dp))
-                            .padding(horizontal = 12.dp, vertical = 8.dp)
-                    ) {
-                        Text(
-                            text      = "This action cannot be undone.",
-                            fontSize  = 12.sp,
-                            color     = Color(0xFFE53935),
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                }
-
-                // For EDIT — show changes table
+                // Change fields — shown for EDIT
                 if (isEdit && action.changeFields.isNotEmpty()) {
                     VoiceChangesCard(changes = action.changeFields)
                 }
 
                 if (isEdit && action.changeFields.isEmpty()) {
-                    Text(
-                        text     = "No changes detected.",
-                        fontSize = 14.sp,
-                        color    = Color.Gray
-                    )
+                    Text(text = "No changes detected.", fontSize = 14.sp, color = Color.Gray)
                 }
 
-                // Buttons
+                // Buttons — always PrimaryColor confirm
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -283,9 +247,7 @@ fun VoiceConfirmationDialog(
                     Button(
                         onClick  = onConfirm,
                         modifier = Modifier.weight(1f),
-                        colors   = ButtonDefaults.buttonColors(
-                            containerColor = if (isDelete) Color(0xFFE53935) else PrimaryColor
-                        ),
+                        colors   = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
                         contentPadding = PaddingValues(14.dp)
                     ) { Text("Confirm", fontSize = 15.sp, color = Color.White) }
                 }
@@ -295,7 +257,7 @@ fun VoiceConfirmationDialog(
 }
 
 // ─────────────────────────────────────────────────────────────────
-// VoiceInfoCard — matches existing InfoCard style
+// VoiceInfoCard
 // ─────────────────────────────────────────────────────────────────
 @Composable
 fun VoiceInfoCard(fields: List<Pair<String, String>>) {
@@ -316,7 +278,7 @@ fun VoiceInfoCard(fields: List<Pair<String, String>>) {
 }
 
 // ─────────────────────────────────────────────────────────────────
-// VoiceChangesCard — shows old → new for each changed field
+// VoiceChangesCard
 // ─────────────────────────────────────────────────────────────────
 @Composable
 fun VoiceChangesCard(changes: List<Triple<String, String, String>>) {
@@ -334,22 +296,9 @@ fun VoiceChangesCard(changes: List<Triple<String, String, String>>) {
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Old value — strikethrough style with muted color
-                    Text(
-                        text       = oldVal,
-                        fontSize   = 15.sp,
-                        color      = Color.Gray,
-                        modifier   = Modifier.weight(1f)
-                    )
+                    Text(text = oldVal, fontSize = 15.sp, color = Color.Gray, modifier = Modifier.weight(1f))
                     Text(text = "→", fontSize = 14.sp, color = Color.Gray)
-                    // New value — highlighted
-                    Text(
-                        text       = newVal,
-                        fontSize   = 15.sp,
-                        color      = PrimaryColor,
-                        fontWeight = FontWeight.Medium,
-                        modifier   = Modifier.weight(1f)
-                    )
+                    Text(text = newVal, fontSize = 15.sp, color = PrimaryColor, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
                 }
             }
             if (index < changes.lastIndex) HorizontalDivider(thickness = 1.dp, color = Color.LightGray)
@@ -358,7 +307,7 @@ fun VoiceChangesCard(changes: List<Triple<String, String, String>>) {
 }
 
 // ─────────────────────────────────────────────────────────────────
-// VoiceResultDialog — shown after QUERY/REPLY or confirmed action
+// VoiceResultDialog
 // ─────────────────────────────────────────────────────────────────
 @Composable
 fun VoiceResultDialog(
@@ -405,7 +354,8 @@ fun VoiceResultDialog(
                             .padding(horizontal = 12.dp, vertical = 6.dp)
                     ) {
                         Text(text = "\u2713 $action", fontSize = 12.sp, color = PrimaryColor,
-                            fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+                            fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth())
                     }
                 }
 
