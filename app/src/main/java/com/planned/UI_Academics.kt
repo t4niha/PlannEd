@@ -282,6 +282,7 @@ fun AcademicsActiveList(
             )
             Button(
                 onClick = onAddCourse,
+                modifier = Modifier.align(Alignment.Bottom),
                 colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
             ) {
