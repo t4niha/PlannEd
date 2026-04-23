@@ -907,15 +907,23 @@ Do NOT include markdown in reply strings.
             }
 
         } catch (e: TimeoutCancellationException) {
-            withContext(Dispatchers.Main) {
-                val errResult = VoiceResult(userText = spoken, replyText = "The request timed out. Please try again.", actionTaken = null)
-                onResult(errResult); speakOut(errResult.replyText)
-            }
-        } catch (e: Exception) {
-            withContext(Dispatchers.Main) {
-                val errResult = VoiceResult(userText = spoken, replyText = "Sorry, something went wrong. Please try again.", actionTaken = null)
-                onResult(errResult); speakOut(errResult.replyText)
-            }
+        withContext(Dispatchers.Main) {
+            val errResult = VoiceResult(
+                userText = spoken,
+                replyText = "Request timed out: ${e.message}",
+                actionTaken = null
+            )
+            onResult(errResult); speakOut(errResult.replyText)
         }
+    } catch (e: Exception) {
+        withContext(Dispatchers.Main) {
+            val errResult = VoiceResult(
+                userText = spoken,
+                replyText = "Error: ${e.javaClass.simpleName} — ${e.message}",
+                actionTaken = null
+            )
+            onResult(errResult); speakOut(errResult.replyText)
+        }
+    }
     }
 }
