@@ -1980,6 +1980,11 @@ fun ATIScatterPlot(
         val lineColor = PrimaryColor
         val axisColor = Color.DarkGray
         val gridColor = Color(0xFFE0E0E0)
+        val baseModelPoints = remember {
+            (0..240 step 1).map { dur ->
+                Pair(dur.toFloat(), BaseModel.predictPadding(dur).toFloat())
+            }
+        }
         val mL = 124f
         val mB = 64f
         val mT = 12f
@@ -2040,6 +2045,21 @@ fun ATIScatterPlot(
                     rotate(-90f, pivotX, mT + h / 2f)
                     labelPaint.textAlign = android.graphics.Paint.Align.CENTER
                     drawText("Overtime (min)", pivotX, mT + h / 2f + textPx / 2f, labelPaint)
+                }
+            }
+
+            // Base model curve
+            val baseColor = Color(0xFFBDBDBD)
+            for (i in 0 until baseModelPoints.size - 1) {
+                val (x1, y1) = baseModelPoints[i]
+                val (x2, y2) = baseModelPoints[i + 1]
+                if (x1 <= maxX && y1 <= maxY) {
+                    drawLine(
+                        baseColor,
+                        Offset(px(x1), py(y1.coerceIn(0f, maxY))),
+                        Offset(px(x2), py(y2.coerceIn(0f, maxY))),
+                        strokeWidth = 2f
+                    )
                 }
             }
 
