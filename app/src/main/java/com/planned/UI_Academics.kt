@@ -322,7 +322,16 @@ fun AcademicsCourseItem(course: Course, grade: Float?, onClick: () -> Unit) {
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(course.title, fontSize = 16.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(2.dp))
+            if (!course.courseCode.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    course.courseCode,
+                    fontSize = 14.sp,
+                    color = Color.Gray
+                )
+            }
+            Spacer(modifier = Modifier.height(2.dp))
             Text(
                 if (grade != null) "${"%.1f".format(grade)}%" else "No grades yet",
                 fontSize = 14.sp,
@@ -346,6 +355,8 @@ fun AcademicsAddCourseForm(
     val scrollState = rememberScrollState()
 
     var title by remember { mutableStateOf("") }
+    var courseCode by remember { mutableStateOf("") }
+    var description by remember { mutableStateOf("") }
     var creditsText by remember { mutableStateOf("1") }
     var year by remember { mutableIntStateOf(java.time.Year.now().value) }
     var semester by remember { mutableIntStateOf(1) }
@@ -410,64 +421,93 @@ fun AcademicsAddCourseForm(
                 }
                 Spacer(modifier = Modifier.height(12.dp))
 
+                // Course Code
+                Box(modifier = Modifier.fillMaxWidth().background(Color(CardColor), RoundedCornerShape(12.dp)).padding(16.dp)) {
+                    Column {
+                        Text("Course Code", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        TextField(
+                            value = courseCode,
+                            onValueChange = { courseCode = it },
+                            modifier = Modifier.fillMaxWidth().background(BackgroundColor, RoundedCornerShape(8.dp)).border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)),
+                            textStyle = LocalTextStyle.current.copy(fontSize = 16.sp),
+                            colors = TextFieldDefaults.colors(focusedContainerColor = BackgroundColor, unfocusedContainerColor = BackgroundColor, focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent)
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Description
+                Box(modifier = Modifier.fillMaxWidth().background(Color(CardColor), RoundedCornerShape(12.dp)).padding(16.dp)) {
+                    Column {
+                        Text("Description", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        TextField(
+                            value = description,
+                            onValueChange = { description = it },
+                            modifier = Modifier.fillMaxWidth().background(BackgroundColor, RoundedCornerShape(8.dp)).border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)),
+                            textStyle = LocalTextStyle.current.copy(fontSize = 16.sp),
+                            colors = TextFieldDefaults.colors(focusedContainerColor = BackgroundColor, unfocusedContainerColor = BackgroundColor, focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent),
+                            minLines = 3
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+
                 // Credits
                 Box(modifier = Modifier.fillMaxWidth().background(Color(CardColor), RoundedCornerShape(12.dp)).padding(16.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                         Text("Credits", fontSize = 16.sp, fontWeight = FontWeight.Medium)
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier.size(32.dp).clip(CircleShape).background(PrimaryColor)
-                                    .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
-                                        val v = creditsText.toIntOrNull() ?: 1
-                                        if (v > 1) creditsText = (v - 1).toString()
-                                    },
-                                contentAlignment = Alignment.Center
-                            ) { Text("−", fontSize = 18.sp, color = Color.White, fontWeight = FontWeight.Bold) }
-
-                            Text(
-                                creditsText,
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.widthIn(min = 24.dp),
-                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                            )
-
-                            Box(
-                                modifier = Modifier.size(32.dp).clip(CircleShape).background(PrimaryColor)
-                                    .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
-                                        val v = creditsText.toIntOrNull() ?: 1
-                                        if (v < 9) creditsText = (v + 1).toString()
-                                    },
-                                contentAlignment = Alignment.Center
-                            ) { Text("+", fontSize = 18.sp, color = Color.White, fontWeight = FontWeight.Bold) }
-                        }
+                        Spacer(modifier = Modifier.weight(1f))
+                        Button(
+                            onClick = { val v = creditsText.toIntOrNull() ?: 1; if (v > 1) creditsText = (v - 1).toString() },
+                            shape = CircleShape,
+                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor, contentColor = BackgroundColor),
+                            modifier = Modifier.size(40.dp),
+                            contentPadding = PaddingValues(0.dp)
+                        ) { Text("-", fontSize = 20.sp) }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Box(
+                            modifier = Modifier.width(50.dp).background(BackgroundColor, RoundedCornerShape(8.dp)).padding(vertical = 8.dp),
+                            contentAlignment = Alignment.Center
+                        ) { Text(creditsText, fontSize = 18.sp) }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Button(
+                            onClick = { val v = creditsText.toIntOrNull() ?: 1; if (v < 9) creditsText = (v + 1).toString() },
+                            shape = CircleShape,
+                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor, contentColor = BackgroundColor),
+                            modifier = Modifier.size(40.dp),
+                            contentPadding = PaddingValues(0.dp)
+                        ) { Text("+", fontSize = 20.sp) }
                     }
                 }
                 Spacer(modifier = Modifier.height(12.dp))
 
                 // Year
                 Box(modifier = Modifier.fillMaxWidth().background(Color(CardColor), RoundedCornerShape(12.dp)).padding(16.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                         Text("Year", fontSize = 16.sp, fontWeight = FontWeight.Medium)
                         Spacer(modifier = Modifier.weight(1f))
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Box(
-                                modifier = Modifier.size(36.dp).clip(CircleShape).background(PrimaryColor).clickable { year-- },
-                                contentAlignment = Alignment.Center
-                            ) { Text("−", fontSize = 20.sp, color = Color.White) }
-                            Text(year.toString(), fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                            Box(
-                                modifier = Modifier.size(36.dp).clip(CircleShape).background(PrimaryColor).clickable { year++ },
-                                contentAlignment = Alignment.Center
-                            ) { Text("+", fontSize = 20.sp, color = Color.White) }
-                        }
+                        Button(
+                            onClick = { year-- },
+                            shape = CircleShape,
+                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor, contentColor = BackgroundColor),
+                            modifier = Modifier.size(40.dp),
+                            contentPadding = PaddingValues(0.dp)
+                        ) { Text("-", fontSize = 20.sp) }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Box(
+                            modifier = Modifier.width(70.dp).background(BackgroundColor, RoundedCornerShape(8.dp)).padding(vertical = 8.dp),
+                            contentAlignment = Alignment.Center
+                        ) { Text(year.toString(), fontSize = 18.sp) }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Button(
+                            onClick = { year++ },
+                            shape = CircleShape,
+                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor, contentColor = BackgroundColor),
+                            modifier = Modifier.size(40.dp),
+                            contentPadding = PaddingValues(0.dp)
+                        ) { Text("+", fontSize = 20.sp) }
                     }
                 }
                 Spacer(modifier = Modifier.height(12.dp))
@@ -546,7 +586,8 @@ fun AcademicsAddCourseForm(
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Button(
                         onClick = {
-                            title = ""; creditsText = "1"; year = java.time.Year.now().value; semester = 1
+                            title = ""; courseCode = ""; description = ""
+                            creditsText = "1"; year = java.time.Year.now().value; semester = 1
                             wQuiz = "0"; wMid = "0"; wAssignment = "0"; wProject = "0"; wFinal = "0"
                             wLab = "0"; wAttendance = "0"; wParticipation = "0"; wReport = "0"; wOther = "0"
                         },
@@ -573,7 +614,10 @@ fun AcademicsAddCourseForm(
                             if (allZero) { showBanner("All weights cannot be 0"); return@Button }
                             scope.launch {
                                 db.courseDao().insert(Course(
-                                    title = title.trim(), credits = credits, year = year, semester = semester,
+                                    title = title.trim(),
+                                    courseCode = courseCode.trim(),
+                                    description = description.trim().ifBlank { null },
+                                    credits = credits, year = year, semester = semester,
                                     weightQuiz = q, weightMid = m, weightAssignment = a, weightProject = p,
                                     weightFinal = f, weightLab = l, weightAttendance = at,
                                     weightParticipation = pa, weightReport = r, weightOther = o
@@ -655,11 +699,13 @@ fun AcademicsCourseInfoPage(
                 }
 
                 // Info card
-                InfoCard(listOf(
-                    "Semester" to semesterLabel(course.year, course.semester),
-                    "Credits"  to course.credits.toString(),
-                    "Current Grade" to (if (currentGrade != null) "${"%.1f".format(currentGrade)}%" else "No grades yet")
-                ))
+                InfoCard(buildList {
+                    if (!course.courseCode.isNullOrBlank())add("Course Code" to course.courseCode)
+                    if (!course.description.isNullOrBlank()) add("Description" to course.description)
+                    add("Semester" to semesterLabel(course.year, course.semester))
+                    add("Credits"  to course.credits.toString())
+                    add("Current Grade" to (if (currentGrade != null) "${"%.1f".format(currentGrade)}%" else "No grades yet"))
+                })
                 Spacer(modifier = Modifier.height(18.dp))
 
                 // Weights card
@@ -752,11 +798,13 @@ fun AcademicsCourseInfoPage(
                             Button(
                                 onClick = {
                                     if (finalGradeText.isBlank()) { showMsg("Enter a grade first"); return@Button }
-                                    val gradeRegex = Regex("^[A-Fa-f][+-]?$")
+                                    val gradeRegex = Regex("^([A-Fa-f][+-]?|[Uu]|[Ww]|[Ii]|[Ss]|[Nn][Cc]?|[Pp])$")
                                     if (!gradeRegex.matches(finalGradeText.trim())) { showMsg("Invalid letter grade"); return@Button }
                                     scope.launch {
                                         db.completedCourseDao().insert(CompletedCourse(
                                             courseTitle = course.title,
+                                            courseCode = course.courseCode,
+                                            description = course.description,
                                             credits = course.credits,
                                             year = course.year,
                                             semester = course.semester,
@@ -1161,12 +1209,14 @@ fun AcademicsCompletedInfoPage(
                 Text(course.courseTitle, fontSize = 20.sp, fontWeight = FontWeight.Medium)
             }
 
-            InfoCard(listOf(
-                "Semester"         to semesterLabel(course.year, course.semester),
-                "Credits"          to course.credits.toString(),
-                "Calculated Grade" to "${"%.1f".format(course.calculatedGrade)}%",
-                "Submitted Grade"  to course.submitGrade
-            ))
+            InfoCard(buildList {
+                if (!course.courseCode.isNullOrBlank()) add("Course Code" to course.courseCode!!)
+                if (!course.description.isNullOrBlank()) add("Description" to course.description!!)
+                add("Semester" to semesterLabel(course.year, course.semester))
+                add("Credits" to course.credits.toString())
+                add("Calculated Grade" to "${"%.1f".format(course.calculatedGrade)}%")
+                add("Submitted Grade" to course.submitGrade)
+            })
         }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -1184,7 +1234,7 @@ fun AcademicsCompletedInfoPage(
             onDismissRequest = { showDeleteDialog = false },
             containerColor = BackgroundColor,
             title = null,
-            text = { Text("Delete this completed course record?", fontSize = 16.sp) },
+            text = { Text("Delete this course record?", fontSize = 16.sp) },
             confirmButton = {},
             dismissButton = {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {

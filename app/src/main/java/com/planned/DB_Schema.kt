@@ -351,11 +351,12 @@ data class Course(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
 
     val title: String,
+    val courseCode: String? = null,
+    val description: String? = null,
     val credits: Int = 1,
     val year: Int,
     val semester: Int,          // 1=Spring, 2=Summer, 3=Fall, 4=Winter
 
-    // Percentage weights (can be any values, user's responsibility to sum correctly)
     val weightQuiz: Float = 0f,
     val weightMid: Float = 0f,
     val weightAssignment: Float = 0f,
@@ -396,14 +397,15 @@ enum class GradeItemType {
 data class CompletedCourse(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
 
-    // Copied from Course at time of completion
     val courseTitle: String,
+    val courseCode: String? = null,
+    val description: String? = null,
     val credits: Int,
     val year: Int,
-    val semester: Int,          // 1=Spring, 2=Summer, 3=Fall, 4=Winter
+    val semester: Int,
 
-    val calculatedGrade: Float, // currentGrade float at time of submission
-    val submitGrade: String     // free text entered by user e.g. "A-"
+    val calculatedGrade: Float,
+    val submitGrade: String
 )
 //</editor-fold>
 

@@ -1652,10 +1652,12 @@ fun DatabasePage(
             Table(
                 title   = "Active Courses",
                 data    = courses,
-                headers = listOf("ID", "Title", "Credits", "Year", "Semester")
+                headers = listOf("ID", "Title", "Code", "Description", "Credits", "Year", "Semester")
             ) { c -> listOf(
                 c.id.toString(),
                 c.title,
+                c.courseCode ?: "",
+                c.description ?: "",
                 c.credits.toString(),
                 c.year.toString(),
                 semesterLabel(c.year, c.semester))
@@ -1676,10 +1678,12 @@ fun DatabasePage(
             Table(
                 title   = "Completed Courses",
                 data    = completedCourses,
-                headers = listOf("ID", "Title", "Credits", "Semester", "Calc. Grade", "Submitted Grade")
+                headers = listOf("ID", "Title", "Code", "Description", "Credits", "Semester", "Calc. Grade", "Submitted Grade")
             ) { c -> listOf(
                 c.id.toString(),
                 c.courseTitle,
+                c.courseCode ?: "",
+                c.description ?: "",
                 c.credits.toString(),
                 semesterLabel(c.year, c.semester),
                 "%.1f".format(c.calculatedGrade), c.submitGrade)
