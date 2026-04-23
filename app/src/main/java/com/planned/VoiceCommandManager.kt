@@ -263,7 +263,7 @@ object VoiceCommandManager {
     private suspend fun callGemini(systemPrompt: String, userMessage: String): String =
         withTimeout(20_000L) {
             withContext(Dispatchers.IO) {
-                val url = URL("https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${BuildConfig.GEMINI_API_KEY}")
+                val url = URL("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${BuildConfig.GEMINI_API_KEY}")
                 val conn = (url.openConnection() as HttpURLConnection).apply {
                     requestMethod = "POST"; setRequestProperty("Content-Type", "application/json")
                     doOutput = true; connectTimeout = 15_000; readTimeout = 30_000
