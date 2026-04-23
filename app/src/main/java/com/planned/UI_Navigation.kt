@@ -199,6 +199,8 @@ fun AppNavigation(db: AppDatabase) {
                         "Reminders" -> Reminders(db)
                         "Settings" -> Settings(db)
                         "Creation" -> Creation(db)
+                        "Assistant" -> Assistant(db)
+                        "Academics" -> Academics(db)
 
                         // ── Task ──────────────────────────────────────────────────────────
                         "TaskInfo" -> selectedTaskForInfo?.let { task ->
