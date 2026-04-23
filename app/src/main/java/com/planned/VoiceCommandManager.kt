@@ -21,9 +21,7 @@ import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.withTimeout
 
@@ -40,8 +38,8 @@ enum class VoicePhase {
 data class VoicePendingAction(
     val actionType: String,
     val entityLabel: String,
-    val summaryFields: List<Pair<String, String>>,
-    val changeFields: List<Triple<String, String, String>>,
+    val summaryFields: List<Pair<String, String>>,  // used for CREATE, DELETE, and EDIT
+    val changedFields: Set<String>,                 // field labels that changed — for highlighting in UI
     val replyText: String,
     val execute: suspend () -> Unit
 )
@@ -167,11 +165,11 @@ object VoiceCommandManager {
 
     private fun fmtRecur(freq: RecurrenceFrequency, rule: RecurrenceRule) =
         freq.name.lowercase().replaceFirstChar { it.uppercase() } + when (freq) {
-            RecurrenceFrequency.WEEKLY -> rule.daysOfWeek?.sorted()?.joinToString(", ") { d ->
+            RecurrenceFrequency.WEEKLY  -> rule.daysOfWeek?.sorted()?.joinToString(", ") { d ->
                 when (d) { 1->"Mo";2->"Tu";3->"We";4->"Th";5->"Fr";6->"Sa";7->"Su";else->"" }
             }?.let { " ($it)" } ?: ""
             RecurrenceFrequency.MONTHLY -> rule.daysOfMonth?.sorted()?.joinToString(", ")?.let { " ($it)" } ?: ""
-            RecurrenceFrequency.YEARLY -> rule.monthAndDay?.let {
+            RecurrenceFrequency.YEARLY  -> rule.monthAndDay?.let {
                 " (${java.time.Month.of(it.second).getDisplayName(java.time.format.TextStyle.FULL, java.util.Locale.getDefault())} ${it.first})"
             } ?: ""
             else -> ""
@@ -181,6 +179,10 @@ object VoiceCommandManager {
         val h = min / 60; val m = min % 60
         return when { h > 0 && m > 0 -> "${h}h ${m}m"; h > 0 -> "${h}h"; else -> "${m}m" }
     }
+
+    // Helper: format a field value for edit — shows "old → new" if changed, else just value
+    private fun fmtEdit(oldVal: String, newVal: String) =
+        if (oldVal != newVal) "$oldVal → $newVal" else newVal
 
     // ── Context snapshot ──────────────────────────────────────────
     private suspend fun buildContextSnapshot(db: AppDatabase): String {
@@ -210,32 +212,30 @@ object VoiceCommandManager {
             .filter { !it.date.isBefore(today) && !it.date.isAfter(today.plusDays(7)) }
             .map { "  • Deadline \"${it.title}\" (id=${it.id}) on ${it.date} at ${it.time}" }
 
-        // Helper to format recurrence rule into readable string
-        fun fmtRuleInline(freq: RecurrenceFrequency, rule: RecurrenceRule): String {
-            return when (freq) {
-                RecurrenceFrequency.NONE    -> "once"
-                RecurrenceFrequency.DAILY   -> "daily"
-                RecurrenceFrequency.WEEKLY  -> "weekly on ${rule.daysOfWeek?.sorted()?.joinToString(",") { d ->
-                    when (d) { 1->"Mon";2->"Tue";3->"Wed";4->"Thu";5->"Fri";6->"Sat";7->"Sun";else->"" }
-                } ?: "?"}"
-                RecurrenceFrequency.MONTHLY -> "monthly on day(s) ${rule.daysOfMonth?.sorted()?.joinToString(",") ?: "?"}"
-                RecurrenceFrequency.YEARLY  -> rule.monthAndDay?.let { "yearly on ${java.time.Month.of(it.second).getDisplayName(java.time.format.TextStyle.SHORT, java.util.Locale.getDefault())} ${it.first}" } ?: "yearly"
-            }
+        fun fmtRuleInline(freq: RecurrenceFrequency, rule: RecurrenceRule): String = when (freq) {
+            RecurrenceFrequency.NONE    -> "once"
+            RecurrenceFrequency.DAILY   -> "daily"
+            RecurrenceFrequency.WEEKLY  -> "weekly on ${rule.daysOfWeek?.sorted()?.joinToString(",") { d ->
+                when (d) { 1->"Mon";2->"Tue";3->"Wed";4->"Thu";5->"Fri";6->"Sat";7->"Sun";else->"" }
+            } ?: "?"}"
+            RecurrenceFrequency.MONTHLY -> "monthly on day(s) ${rule.daysOfMonth?.sorted()?.joinToString(",") ?: "?"}"
+            RecurrenceFrequency.YEARLY  -> rule.monthAndDay?.let {
+                "yearly on ${java.time.Month.of(it.second).getDisplayName(java.time.format.TextStyle.SHORT, java.util.Locale.getDefault())} ${it.first}"
+            } ?: "yearly"
         }
 
         return buildString {
             appendLine("TODAY: $todayStr"); appendLine()
-            if (taskLines.isNotEmpty())    { appendLine("TASKS TODAY:");                    taskLines.forEach    { appendLine(it) }; appendLine() }
-            if (eventLines.isNotEmpty())   { appendLine("EVENTS TODAY:");                   eventLines.forEach   { appendLine(it) }; appendLine() }
-            if (reminderLines.isNotEmpty()){ appendLine("REMINDERS TODAY:");                reminderLines.forEach{ appendLine(it) }; appendLine() }
-            if (deadlineLines.isNotEmpty()){ appendLine("UPCOMING DEADLINES (next 7 days):"); deadlineLines.forEach{ appendLine(it) }; appendLine() }
+            if (taskLines.isNotEmpty())     { appendLine("TASKS TODAY:");                     taskLines.forEach     { appendLine(it) }; appendLine() }
+            if (eventLines.isNotEmpty())    { appendLine("EVENTS TODAY:");                    eventLines.forEach    { appendLine(it) }; appendLine() }
+            if (reminderLines.isNotEmpty()) { appendLine("REMINDERS TODAY:");                 reminderLines.forEach { appendLine(it) }; appendLine() }
+            if (deadlineLines.isNotEmpty()) { appendLine("UPCOMING DEADLINES (next 7 days):"); deadlineLines.forEach { appendLine(it) }; appendLine() }
 
-            // All entities — full detail
             appendLine("ALL TASKS (pending):")
             allMasterTasks.filter { it.status != 3 }.forEach { t ->
-                val catT = t.categoryId?.let { categories.find { c -> c.id == it }?.title } ?: "None"
-                val evT  = t.eventId?.let { allEvents.find { e -> e.id == it }?.title } ?: "None"
-                val dlT  = t.deadlineId?.let { allDeadlines.find { d -> d.id == it }?.title } ?: "None"
+                val catT  = t.categoryId?.let { categories.find { c -> c.id == it }?.title } ?: "None"
+                val evT   = t.eventId?.let   { allEvents.find   { e -> e.id == it }?.title } ?: "None"
+                val dlT   = t.deadlineId?.let { allDeadlines.find { d -> d.id == it }?.title } ?: "None"
                 val sched = if (t.startDate != null && t.startTime != null) "${t.startDate} at ${t.startTime}" else "auto-scheduled"
                 appendLine("  • \"${t.title}\" (id=${t.id}, duration=${t.predictedDuration}min, breakable=${t.breakable ?: false}, schedule=$sched, deadline=$dlT, event=$evT, category=$catT, notes=${t.notes ?: "—"})")
             }
@@ -244,24 +244,22 @@ object VoiceCommandManager {
             appendLine("ALL EVENTS:")
             allEvents.forEach { e ->
                 val catT = e.categoryId?.let { categories.find { c -> c.id == it }?.title } ?: "None"
-                val endDateStr = e.endDate?.toString() ?: "N/A"
-                appendLine("  • \"${e.title}\" (id=${e.id}, date=${e.startDate}, endDate=$endDateStr, time=${e.startTime}–${e.endTime}, recurrence=${fmtRuleInline(e.recurFreq, e.recurRule)}, category=$catT, notes=${e.notes ?: "—"})")
+                appendLine("  • \"${e.title}\" (id=${e.id}, date=${e.startDate}, endDate=${e.endDate ?: "N/A"}, time=${e.startTime}–${e.endTime}, recurrence=${fmtRuleInline(e.recurFreq, e.recurRule)}, category=$catT, notes=${e.notes ?: "—"})")
             }
             appendLine()
 
             appendLine("ALL REMINDERS:")
             allReminders.forEach { r ->
-                val catT = r.categoryId?.let { categories.find { c -> c.id == it }?.title } ?: "None"
+                val catT    = r.categoryId?.let { categories.find { c -> c.id == it }?.title } ?: "None"
                 val timeStr = if (r.allDay) "all-day" else r.time?.toString() ?: "—"
-                val endDateStr = r.endDate?.toString() ?: "N/A"
-                appendLine("  • \"${r.title}\" (id=${r.id}, date=${r.startDate}, endDate=$endDateStr, time=$timeStr, recurrence=${fmtRuleInline(r.recurFreq, r.recurRule)}, category=$catT, notes=${r.notes ?: "—"})")
+                appendLine("  • \"${r.title}\" (id=${r.id}, date=${r.startDate}, endDate=${r.endDate ?: "N/A"}, time=$timeStr, recurrence=${fmtRuleInline(r.recurFreq, r.recurRule)}, category=$catT, notes=${r.notes ?: "—"})")
             }
             appendLine()
 
             appendLine("ALL DEADLINES:")
             allDeadlines.forEach { d ->
                 val catT = d.categoryId?.let { categories.find { c -> c.id == it }?.title } ?: "None"
-                val evT  = d.eventId?.let { allEvents.find { e -> e.id == it }?.title } ?: "None"
+                val evT  = d.eventId?.let   { allEvents.find   { e -> e.id == it }?.title } ?: "None"
                 appendLine("  • \"${d.title}\" (id=${d.id}, date=${d.date}, time=${d.time}, event=$evT, category=$catT, notes=${d.notes ?: "—"})")
             }
             appendLine()
@@ -299,9 +297,9 @@ object VoiceCommandManager {
 
     // ── Build pending action ──────────────────────────────────────
     suspend fun buildPendingAction(context: Context, db: AppDatabase, json: JSONObject): VoicePendingAction? {
-        val action = json.optString("action", "REPLY")
-        val reply  = json.optString("reply", "Done.")
-        val today  = LocalDate.now()
+        val action  = json.optString("action", "REPLY")
+        val reply   = json.optString("reply", "Done.")
+        val today   = LocalDate.now()
         val defDate = today.plusDays(1)
         val defTime = LocalTime.of(10, 0)
         val defEndT = LocalTime.of(11, 0)
@@ -310,14 +308,14 @@ object VoiceCommandManager {
 
             // ── TASK ──────────────────────────────────────────────
             "CREATE_TASK" -> {
-                val title    = json.getString("title")
-                val dur      = json.optInt("duration_minutes", 60)
-                val sdStr    = json.optString("start_date", "")
-                val stStr    = json.optString("start_time", "")
-                val notes    = json.optString("notes", "").ifBlank { null }
+                val title     = json.getString("title")
+                val dur       = json.optInt("duration_minutes", 60)
                 val breakable = json.optBoolean("breakable", false)
-                val eventId  = json.optInt("event_id", -1).takeIf { it != -1 }
-                val dlId     = json.optInt("deadline_id", -1).takeIf { it != -1 }
+                val sdStr     = json.optString("start_date", "")
+                val stStr     = json.optString("start_time", "")
+                val notes     = json.optString("notes", "").ifBlank { null }
+                val eventId   = json.optInt("event_id", -1).takeIf { it != -1 }
+                val dlId      = json.optInt("deadline_id", -1).takeIf { it != -1 }
                 val sd = if (sdStr.isNotBlank()) LocalDate.parse(sdStr) else null
                 val st = if (stStr.isNotBlank()) LocalTime.parse(stStr) else null
                 val resolvedDl    = dlId?.let { db.deadlineDao().getDeadlineById(it) }
@@ -341,7 +339,7 @@ object VoiceCommandManager {
                     "Event"     to evT,
                     "Category"  to catT,
                     "Notes"     to (notes ?: "—")
-                ), emptyList(), reply) {
+                ), emptySet(), reply) {
                     TaskManager.insert(context=context, db=db, title=title, notes=notes, allDay=null,
                         breakable=breakable, startDate=sd, startTime=st, predictedDuration=dur,
                         categoryId=catId, eventId=resolvedEvId, deadlineId=dlId, dependencyTaskId=null)
@@ -349,18 +347,18 @@ object VoiceCommandManager {
             }
 
             "EDIT_TASK" -> {
-                val taskId = json.getInt("task_id")
-                val task   = db.taskDao().getMasterTaskById(taskId) ?: return null
-                val title    = json.optString("title", "").ifBlank { task.title }
-                val dur      = if (json.has("duration_minutes") && !json.isNull("duration_minutes")) json.getInt("duration_minutes") else task.predictedDuration
+                val taskId    = json.getInt("task_id")
+                val task      = db.taskDao().getMasterTaskById(taskId) ?: return null
+                val title     = json.optString("title", "").ifBlank { task.title }
+                val dur       = if (json.has("duration_minutes") && !json.isNull("duration_minutes")) json.getInt("duration_minutes") else task.predictedDuration
                 val breakable = if (json.has("breakable") && !json.isNull("breakable")) json.getBoolean("breakable") else (task.breakable ?: false)
-                val sdStr    = json.optString("start_date", "")
-                val stStr    = json.optString("start_time", "")
-                val notes    = json.optString("notes", "").ifBlank { task.notes }
-                val evId     = json.optInt("event_id", -1).takeIf { it != -1 } ?: task.eventId
-                val dlId     = json.optInt("deadline_id", -1).takeIf { it != -1 } ?: task.deadlineId
-                val nsd      = if (sdStr.isNotBlank()) LocalDate.parse(sdStr) else task.startDate
-                val nst      = if (stStr.isNotBlank()) LocalTime.parse(stStr) else task.startTime
+                val sdStr     = json.optString("start_date", "")
+                val stStr     = json.optString("start_time", "")
+                val notes     = json.optString("notes", "").ifBlank { task.notes }
+                val evId      = json.optInt("event_id", -1).takeIf { it != -1 } ?: task.eventId
+                val dlId      = json.optInt("deadline_id", -1).takeIf { it != -1 } ?: task.deadlineId
+                val nsd       = if (sdStr.isNotBlank()) LocalDate.parse(sdStr) else task.startDate
+                val nst       = if (stStr.isNotBlank()) LocalTime.parse(stStr) else task.startTime
                 val resolvedDl    = dlId?.let { db.deadlineDao().getDeadlineById(it) }
                 val resolvedEvId  = resolvedDl?.eventId ?: evId
                 val resolvedEvent = resolvedEvId?.let { db.eventDao().getMasterEventById(it) }
@@ -369,39 +367,48 @@ object VoiceCommandManager {
                     resolvedDl    != null -> resolvedDl.categoryId
                     else                  -> json.optInt("category_id", -1).takeIf { it != -1 } ?: task.categoryId
                 }
-                val oldCat = task.categoryId?.let { db.categoryDao().getCategoryById(it)?.title } ?: "None"
-                val newCat = catId?.let { db.categoryDao().getCategoryById(it)?.title } ?: "None"
-                val oldEv  = task.eventId?.let { db.eventDao().getMasterEventById(it)?.title } ?: "None"
-                val newEv  = resolvedEvId?.let { db.eventDao().getMasterEventById(it)?.title } ?: "None"
-                val oldDl  = task.deadlineId?.let { db.deadlineDao().getDeadlineById(it)?.title } ?: "None"
-                val newDl  = dlId?.let { db.deadlineDao().getDeadlineById(it)?.title } ?: "None"
-                val oldSch = if (task.startDate != null && task.startTime != null) "${task.startDate.format(dateFmt)} at ${task.startTime.format(timeFmt)}" else "Auto-scheduled"
-                val newSch = if (nsd != null && nst != null) "${nsd.format(dateFmt)} at ${nst.format(timeFmt)}" else "Auto-scheduled"
+                val oldCat   = task.categoryId?.let { db.categoryDao().getCategoryById(it)?.title } ?: "None"
+                val newCat   = catId?.let { db.categoryDao().getCategoryById(it)?.title } ?: "None"
+                val oldEv    = task.eventId?.let { db.eventDao().getMasterEventById(it)?.title } ?: "None"
+                val newEv    = resolvedEvId?.let { db.eventDao().getMasterEventById(it)?.title } ?: "None"
+                val oldDl    = task.deadlineId?.let { db.deadlineDao().getDeadlineById(it)?.title } ?: "None"
+                val newDl    = dlId?.let { db.deadlineDao().getDeadlineById(it)?.title } ?: "None"
+                val oldSch   = if (task.startDate != null && task.startTime != null) "${task.startDate.format(dateFmt)} at ${task.startTime.format(timeFmt)}" else "Auto-scheduled"
+                val newSch   = if (nsd != null && nst != null) "${nsd.format(dateFmt)} at ${nst.format(timeFmt)}" else "Auto-scheduled"
                 val oldBreak = if (task.breakable == true) "Yes" else "No"
                 val newBreak = if (breakable) "Yes" else "No"
-                val ch = mutableListOf<Triple<String, String, String>>()
-                if (title != task.title)                    ch.add(Triple("Title",     task.title,                          title))
-                if (dur != task.predictedDuration)          ch.add(Triple("Duration",  fmtDur(task.predictedDuration),      fmtDur(dur)))
-                if (oldBreak != newBreak)                   ch.add(Triple("Breakable", oldBreak,                            newBreak))
-                if (oldSch != newSch)                       ch.add(Triple("Schedule",  oldSch,                              newSch))
-                if (oldDl != newDl)                         ch.add(Triple("Deadline",  oldDl,                               newDl))
-                if (oldEv != newEv)                         ch.add(Triple("Event",     oldEv,                               newEv))
-                if (oldCat != newCat)                       ch.add(Triple("Category",  oldCat,                              newCat))
-                if (notes != task.notes)                    ch.add(Triple("Notes",     task.notes ?: "—",                   notes ?: "—"))
-                return VoicePendingAction(action, "Task", emptyList(), ch, reply) {
+                val changed = mutableSetOf<String>()
+                if (title != task.title)               changed.add("Title")
+                if (dur != task.predictedDuration)     changed.add("Duration")
+                if (oldBreak != newBreak)              changed.add("Breakable")
+                if (oldSch != newSch)                  changed.add("Schedule")
+                if (oldDl != newDl)                    changed.add("Deadline")
+                if (oldEv != newEv)                    changed.add("Event")
+                if (oldCat != newCat)                  changed.add("Category")
+                if (notes != task.notes)               changed.add("Notes")
+                return VoicePendingAction(action, "Task", listOf(
+                    "Title"     to fmtEdit(task.title,                          title),
+                    "Duration"  to fmtEdit(fmtDur(task.predictedDuration),      fmtDur(dur)),
+                    "Breakable" to fmtEdit(oldBreak,                            newBreak),
+                    "Schedule"  to fmtEdit(oldSch,                              newSch),
+                    "Deadline"  to fmtEdit(oldDl,                               newDl),
+                    "Event"     to fmtEdit(oldEv,                               newEv),
+                    "Category"  to fmtEdit(oldCat,                              newCat),
+                    "Notes"     to fmtEdit(task.notes ?: "—",                   notes ?: "—")
+                ), changed, reply) {
                     TaskManager.update(context=context, db=db, task=task.copy(
                         title=title, predictedDuration=dur, breakable=breakable,
-                        startDate=nsd, startTime=nst, notes=notes, categoryId=catId,
-                        eventId=resolvedEvId, deadlineId=dlId))
+                        startDate=nsd, startTime=nst, notes=notes,
+                        categoryId=catId, eventId=resolvedEvId, deadlineId=dlId))
                 }
             }
 
             "DELETE_TASK" -> {
-                val taskId = json.getInt("task_id")
-                val task   = db.taskDao().getMasterTaskById(taskId) ?: return null
-                val catT   = task.categoryId?.let { db.categoryDao().getCategoryById(it)?.title } ?: "None"
-                val evT    = task.eventId?.let { db.eventDao().getMasterEventById(it)?.title } ?: "None"
-                val dlT    = task.deadlineId?.let { db.deadlineDao().getDeadlineById(it)?.title } ?: "None"
+                val taskId   = json.getInt("task_id")
+                val task     = db.taskDao().getMasterTaskById(taskId) ?: return null
+                val catT     = task.categoryId?.let { db.categoryDao().getCategoryById(it)?.title } ?: "None"
+                val evT      = task.eventId?.let { db.eventDao().getMasterEventById(it)?.title } ?: "None"
+                val dlT      = task.deadlineId?.let { db.deadlineDao().getDeadlineById(it)?.title } ?: "None"
                 val schedStr = if (task.startDate != null && task.startTime != null) "${task.startDate.format(dateFmt)} at ${task.startTime.format(timeFmt)}" else "Auto-scheduled"
                 return VoicePendingAction(action, "Task", listOf(
                     "Title"     to task.title,
@@ -412,67 +419,78 @@ object VoiceCommandManager {
                     "Event"     to evT,
                     "Category"  to catT,
                     "Notes"     to (task.notes ?: "—")
-                ), emptyList(), reply) { TaskManager.delete(context=context, db=db, taskId=taskId) }
+                ), emptySet(), reply) { TaskManager.delete(context=context, db=db, taskId=taskId) }
             }
 
             // ── EVENT ─────────────────────────────────────────────
             "CREATE_EVENT" -> {
-                val title = json.getString("title")
-                val sd    = LocalDate.parse(json.optString("start_date", "").ifBlank { defDate.toString() })
-                val ed    = json.optString("end_date", "").ifBlank { null }?.let { LocalDate.parse(it) }
-                val st    = LocalTime.parse(json.optString("start_time", "").ifBlank { defTime.toString() })
-                val et    = LocalTime.parse(json.optString("end_time", "").ifBlank { defEndT.toString() })
-                val notes = json.optString("notes", "").ifBlank { null }
-                val catId = json.optInt("category_id", -1).takeIf { it != -1 }
+                val title    = json.getString("title")
+                val sd       = LocalDate.parse(json.optString("start_date", "").ifBlank { defDate.toString() })
+                val ed       = json.optString("end_date", "").ifBlank { null }?.let { LocalDate.parse(it) }
+                val st       = LocalTime.parse(json.optString("start_time", "").ifBlank { defTime.toString() })
+                val et       = LocalTime.parse(json.optString("end_time", "").ifBlank { defEndT.toString() })
+                val notes    = json.optString("notes", "").ifBlank { null }
+                val catId    = json.optInt("category_id", -1).takeIf { it != -1 }
                 val colorHex = json.optString("color", "").ifBlank { null }
                 val color    = colorHex?.let { hexToColor(it) }
-                val rf    = parseRecurFreq(json.optString("recur_freq", "NONE")); val rr = parseRecurRule(json)
-                val catT  = catId?.let { db.categoryDao().getCategoryById(it)?.title } ?: "None"
+                val rf       = parseRecurFreq(json.optString("recur_freq", "NONE")); val rr = parseRecurRule(json)
+                val catT     = catId?.let { db.categoryDao().getCategoryById(it)?.title } ?: "None"
                 return VoicePendingAction(action, "Event", listOf(
-                    "Title"       to title,
-                    "Date"        to sd.format(dateFmt),
-                    "End Date"    to (ed?.format(dateFmt) ?: "N/A"),
-                    "Start Time"  to st.format(timeFmt),
-                    "End Time"    to et.format(timeFmt),
-                    "Recurrence"  to fmtRecur(rf, rr),
-                    "Color"       to (colorHex ?: "Default"),
-                    "Category"    to catT,
-                    "Notes"       to (notes ?: "—")
-                ), emptyList(), reply) {
+                    "Title"      to title,
+                    "Date"       to sd.format(dateFmt),
+                    "End Date"   to (ed?.format(dateFmt) ?: "N/A"),
+                    "Start Time" to st.format(timeFmt),
+                    "End Time"   to et.format(timeFmt),
+                    "Recurrence" to fmtRecur(rf, rr),
+                    "Color"      to (colorHex ?: "Default"),
+                    "Category"   to catT,
+                    "Notes"      to (notes ?: "—")
+                ), emptySet(), reply) {
                     EventManager.insert(context=context, db=db, title=title, notes=notes, color=color,
-                        startDate=sd, endDate=ed, startTime=st, endTime=et, recurFreq=rf, recurRule=rr, categoryId=catId)
+                        startDate=sd, endDate=ed, startTime=st, endTime=et,
+                        recurFreq=rf, recurRule=rr, categoryId=catId)
                 }
             }
 
             "EDIT_EVENT" -> {
-                val evId  = json.getInt("event_id")
-                val ev    = db.eventDao().getMasterEventById(evId) ?: return null
-                val title = json.optString("title", "").ifBlank { ev.title }
-                val sdStr = json.optString("start_date", ""); val edStr = json.optString("end_date", "")
-                val stStr = json.optString("start_time", ""); val etStr = json.optString("end_time", "")
-                val notes = json.optString("notes", "").ifBlank { ev.notes }
-                val catId = json.optInt("category_id", -1).takeIf { it != -1 } ?: ev.categoryId
+                val evId     = json.getInt("event_id")
+                val ev       = db.eventDao().getMasterEventById(evId) ?: return null
+                val title    = json.optString("title", "").ifBlank { ev.title }
+                val sdStr    = json.optString("start_date", ""); val edStr = json.optString("end_date", "")
+                val stStr    = json.optString("start_time", ""); val etStr = json.optString("end_time", "")
+                val notes    = json.optString("notes", "").ifBlank { ev.notes }
+                val catId    = json.optInt("category_id", -1).takeIf { it != -1 } ?: ev.categoryId
                 val colorHex = json.optString("color", "").ifBlank { null }
                 val newColor = colorHex?.let { Converters.fromColor(hexToColor(it)) } ?: ev.color
-                val rf    = if (json.has("recur_freq")) parseRecurFreq(json.getString("recur_freq")) else ev.recurFreq
-                val rr    = if (json.has("recur_freq")) parseRecurRule(json) else ev.recurRule
-                val nsd   = if (sdStr.isNotBlank()) LocalDate.parse(sdStr) else ev.startDate
-                val ned   = if (edStr.isNotBlank()) LocalDate.parse(edStr) else ev.endDate
-                val nst   = if (stStr.isNotBlank()) LocalTime.parse(stStr) else ev.startTime
-                val net   = if (etStr.isNotBlank()) LocalTime.parse(etStr) else ev.endTime
-                val oldC  = ev.categoryId?.let { db.categoryDao().getCategoryById(it)?.title } ?: "None"
-                val newC  = catId?.let { db.categoryDao().getCategoryById(it)?.title } ?: "None"
-                val ch = mutableListOf<Triple<String, String, String>>()
-                if (title != ev.title)          ch.add(Triple("Title",       ev.title,                         title))
-                if (nsd != ev.startDate)        ch.add(Triple("Date",        ev.startDate.format(dateFmt),     nsd.format(dateFmt)))
-                if (ned != ev.endDate)          ch.add(Triple("End Date",    ev.endDate?.format(dateFmt) ?: "N/A", ned?.format(dateFmt) ?: "N/A"))
-                if (nst != ev.startTime)        ch.add(Triple("Start Time",  ev.startTime.format(timeFmt),     nst.format(timeFmt)))
-                if (net != ev.endTime)          ch.add(Triple("End Time",    ev.endTime.format(timeFmt),       net.format(timeFmt)))
-                if (rf != ev.recurFreq)         ch.add(Triple("Recurrence",  fmtRecur(ev.recurFreq, ev.recurRule), fmtRecur(rf, rr)))
-                if (newColor != ev.color)       ch.add(Triple("Color",       ev.color ?: "Default",            colorHex ?: "Default"))
-                if (oldC != newC)               ch.add(Triple("Category",    oldC,                             newC))
-                if (notes != ev.notes)          ch.add(Triple("Notes",       ev.notes ?: "—",                  notes ?: "—"))
-                return VoicePendingAction(action, "Event", emptyList(), ch, reply) {
+                val rf       = if (json.has("recur_freq")) parseRecurFreq(json.getString("recur_freq")) else ev.recurFreq
+                val rr       = if (json.has("recur_freq")) parseRecurRule(json) else ev.recurRule
+                val nsd      = if (sdStr.isNotBlank()) LocalDate.parse(sdStr) else ev.startDate
+                val ned      = if (edStr.isNotBlank()) LocalDate.parse(edStr) else ev.endDate
+                val nst      = if (stStr.isNotBlank()) LocalTime.parse(stStr) else ev.startTime
+                val net      = if (etStr.isNotBlank()) LocalTime.parse(etStr) else ev.endTime
+                val oldC     = ev.categoryId?.let { db.categoryDao().getCategoryById(it)?.title } ?: "None"
+                val newC     = catId?.let { db.categoryDao().getCategoryById(it)?.title } ?: "None"
+                val changed  = mutableSetOf<String>()
+                if (title != ev.title)        changed.add("Title")
+                if (nsd != ev.startDate)      changed.add("Date")
+                if (ned != ev.endDate)        changed.add("End Date")
+                if (nst != ev.startTime)      changed.add("Start Time")
+                if (net != ev.endTime)        changed.add("End Time")
+                if (rf != ev.recurFreq)       changed.add("Recurrence")
+                if (newColor != ev.color)     changed.add("Color")
+                if (oldC != newC)             changed.add("Category")
+                if (notes != ev.notes)        changed.add("Notes")
+                return VoicePendingAction(action, "Event", listOf(
+                    "Title"      to fmtEdit(ev.title,                                    title),
+                    "Date"       to fmtEdit(ev.startDate.format(dateFmt),                nsd.format(dateFmt)),
+                    "End Date"   to fmtEdit(ev.endDate?.format(dateFmt) ?: "N/A",        ned?.format(dateFmt) ?: "N/A"),
+                    "Start Time" to fmtEdit(ev.startTime.format(timeFmt),                nst.format(timeFmt)),
+                    "End Time"   to fmtEdit(ev.endTime.format(timeFmt),                  net.format(timeFmt)),
+                    "Recurrence" to fmtEdit(fmtRecur(ev.recurFreq, ev.recurRule),        fmtRecur(rf, rr)),
+                    "Color"      to fmtEdit(ev.color ?: "Default",                       colorHex ?: "Default"),
+                    "Category"   to fmtEdit(oldC,                                        newC),
+                    "Notes"      to fmtEdit(ev.notes ?: "—",                             notes ?: "—")
+                ), changed, reply) {
                     EventManager.update(context=context, db=db, event=ev.copy(
                         title=title, startDate=nsd, endDate=ned, startTime=nst, endTime=net,
                         notes=notes, categoryId=catId, recurFreq=rf, recurRule=rr, color=newColor))
@@ -493,7 +511,7 @@ object VoiceCommandManager {
                     "Color"      to (ev.color ?: "Default"),
                     "Category"   to catT,
                     "Notes"      to (ev.notes ?: "—")
-                ), emptyList(), reply) { EventManager.delete(context=context, db=db, eventId=evId) }
+                ), emptySet(), reply) { EventManager.delete(context=context, db=db, eventId=evId) }
             }
 
             // ── REMINDER ──────────────────────────────────────────
@@ -515,9 +533,10 @@ object VoiceCommandManager {
                     "Recurrence" to fmtRecur(rf, rr),
                     "Category"   to catT,
                     "Notes"      to (notes ?: "—")
-                ), emptyList(), reply) {
+                ), emptySet(), reply) {
                     ReminderManager.insert(context=context, db=db, title=title, notes=notes,
-                        startDate=sd, endDate=ed, time=t, allDay=allDay, recurFreq=rf, recurRule=rr, categoryId=catId)
+                        startDate=sd, endDate=ed, time=t, allDay=allDay,
+                        recurFreq=rf, recurRule=rr, categoryId=catId)
                 }
             }
 
@@ -539,15 +558,23 @@ object VoiceCommandManager {
                 val newC  = catId?.let { db.categoryDao().getCategoryById(it)?.title } ?: "None"
                 val oldTS = if (rem.allDay) "All Day" else rem.time?.format(timeFmt) ?: "—"
                 val newTS = if (nad) "All Day" else nt?.format(timeFmt) ?: "—"
-                val ch = mutableListOf<Triple<String, String, String>>()
-                if (title != rem.title)         ch.add(Triple("Title",       rem.title,                        title))
-                if (nsd != rem.startDate)       ch.add(Triple("Date",        rem.startDate.format(dateFmt),    nsd.format(dateFmt)))
-                if (ned != rem.endDate)         ch.add(Triple("End Date",    rem.endDate?.format(dateFmt) ?: "N/A", ned?.format(dateFmt) ?: "N/A"))
-                if (oldTS != newTS)             ch.add(Triple("Time",        oldTS,                            newTS))
-                if (rf != rem.recurFreq)        ch.add(Triple("Recurrence",  fmtRecur(rem.recurFreq, rem.recurRule), fmtRecur(rf, rr)))
-                if (oldC != newC)               ch.add(Triple("Category",    oldC,                             newC))
-                if (notes != rem.notes)         ch.add(Triple("Notes",       rem.notes ?: "—",                 notes ?: "—"))
-                return VoicePendingAction(action, "Reminder", emptyList(), ch, reply) {
+                val changed = mutableSetOf<String>()
+                if (title != rem.title)       changed.add("Title")
+                if (nsd != rem.startDate)     changed.add("Date")
+                if (ned != rem.endDate)       changed.add("End Date")
+                if (oldTS != newTS)           changed.add("Time")
+                if (rf != rem.recurFreq)      changed.add("Recurrence")
+                if (oldC != newC)             changed.add("Category")
+                if (notes != rem.notes)       changed.add("Notes")
+                return VoicePendingAction(action, "Reminder", listOf(
+                    "Title"      to fmtEdit(rem.title,                                   title),
+                    "Date"       to fmtEdit(rem.startDate.format(dateFmt),               nsd.format(dateFmt)),
+                    "End Date"   to fmtEdit(rem.endDate?.format(dateFmt) ?: "N/A",       ned?.format(dateFmt) ?: "N/A"),
+                    "Time"       to fmtEdit(oldTS,                                       newTS),
+                    "Recurrence" to fmtEdit(fmtRecur(rem.recurFreq, rem.recurRule),      fmtRecur(rf, rr)),
+                    "Category"   to fmtEdit(oldC,                                        newC),
+                    "Notes"      to fmtEdit(rem.notes ?: "—",                            notes ?: "—")
+                ), changed, reply) {
                     ReminderManager.update(context=context, db=db, reminder=rem.copy(
                         title=title, startDate=nsd, endDate=ned, time=nt, allDay=nad,
                         notes=notes, categoryId=catId, recurFreq=rf, recurRule=rr))
@@ -566,23 +593,23 @@ object VoiceCommandManager {
                     "Recurrence" to fmtRecur(rem.recurFreq, rem.recurRule),
                     "Category"   to catT,
                     "Notes"      to (rem.notes ?: "—")
-                ), emptyList(), reply) { ReminderManager.delete(context=context, db=db, reminderId=rId) }
+                ), emptySet(), reply) { ReminderManager.delete(context=context, db=db, reminderId=rId) }
             }
 
             // ── DEADLINE ──────────────────────────────────────────
             "CREATE_DEADLINE" -> {
-                val title      = json.getString("title")
-                val d          = LocalDate.parse(json.optString("date", "").ifBlank { defDate.toString() })
-                val t          = LocalTime.parse(json.optString("time", "").ifBlank { defTime.toString() })
-                val notes      = json.optString("notes", "").ifBlank { null }
-                val evId       = json.optInt("event_id", -1).takeIf { it != -1 }
-                val autoTask   = json.optBoolean("auto_schedule_task", false)
-                val taskDur    = json.optInt("task_duration_minutes", 60)
-                val taskBreak  = json.optBoolean("task_breakable", false)
-                val taskSdStr  = json.optString("task_start_date", "")
-                val taskStStr  = json.optString("task_start_time", "")
-                val taskSd     = if (taskSdStr.isNotBlank()) LocalDate.parse(taskSdStr) else null
-                val taskSt     = if (taskStStr.isNotBlank()) LocalTime.parse(taskStStr) else null
+                val title     = json.getString("title")
+                val d         = LocalDate.parse(json.optString("date", "").ifBlank { defDate.toString() })
+                val t         = LocalTime.parse(json.optString("time", "").ifBlank { defTime.toString() })
+                val notes     = json.optString("notes", "").ifBlank { null }
+                val evId      = json.optInt("event_id", -1).takeIf { it != -1 }
+                val autoTask  = json.optBoolean("auto_schedule_task", false)
+                val taskDur   = json.optInt("task_duration_minutes", 60)
+                val taskBreak = json.optBoolean("task_breakable", false)
+                val taskSdStr = json.optString("task_start_date", "")
+                val taskStStr = json.optString("task_start_time", "")
+                val taskSd    = if (taskSdStr.isNotBlank()) LocalDate.parse(taskSdStr) else null
+                val taskSt    = if (taskStStr.isNotBlank()) LocalTime.parse(taskStStr) else null
                 val resolvedEvent = evId?.let { db.eventDao().getMasterEventById(it) }
                 val catId = resolvedEvent?.categoryId ?: json.optInt("category_id", -1).takeIf { it != -1 }
                 val catT  = catId?.let { db.categoryDao().getCategoryById(it)?.title } ?: "None"
@@ -599,9 +626,9 @@ object VoiceCommandManager {
                     val taskSchedStr = if (taskSd != null && taskSt != null) "${taskSd.format(dateFmt)} at ${taskSt.format(timeFmt)}" else "Auto-scheduled"
                     summaryFields.add("Auto-create Task" to "Yes, ${fmtDur(taskDur)}${if (taskBreak) ", breakable" else ""}, $taskSchedStr")
                 }
-                return VoicePendingAction(action, "Deadline", summaryFields, emptyList(), reply) {
-                    val insertedDlId = DeadlineManager.insert(context=context, db=db, title=title, notes=notes,
-                        date=d, time=t, categoryId=catId, eventId=evId)
+                return VoicePendingAction(action, "Deadline", summaryFields, emptySet(), reply) {
+                    val insertedDlId = DeadlineManager.insert(context=context, db=db, title=title,
+                        notes=notes, date=d, time=t, categoryId=catId, eventId=evId)
                     if (autoTask) {
                         TaskManager.insert(context=context, db=db, title=title, notes=notes, allDay=null,
                             breakable=taskBreak, startDate=taskSd, startTime=taskSt, predictedDuration=taskDur,
@@ -625,14 +652,21 @@ object VoiceCommandManager {
                 val newC  = catId?.let { db.categoryDao().getCategoryById(it)?.title } ?: "None"
                 val oldE  = dl.eventId?.let { db.eventDao().getMasterEventById(it)?.title } ?: "None"
                 val newE  = evId?.let { db.eventDao().getMasterEventById(it)?.title } ?: "None"
-                val ch = mutableListOf<Triple<String, String, String>>()
-                if (title != dl.title)  ch.add(Triple("Title",    dl.title,               title))
-                if (nd != dl.date)      ch.add(Triple("Date",     dl.date.format(dateFmt), nd.format(dateFmt)))
-                if (nt != dl.time)      ch.add(Triple("Time",     dl.time.format(timeFmt), nt.format(timeFmt)))
-                if (oldE != newE)       ch.add(Triple("Event",    oldE,                   newE))
-                if (oldC != newC)       ch.add(Triple("Category", oldC,                   newC))
-                if (notes != dl.notes)  ch.add(Triple("Notes",    dl.notes ?: "—",        notes ?: "—"))
-                return VoicePendingAction(action, "Deadline", emptyList(), ch, reply) {
+                val changed = mutableSetOf<String>()
+                if (title != dl.title)  changed.add("Title")
+                if (nd != dl.date)      changed.add("Date")
+                if (nt != dl.time)      changed.add("Time")
+                if (oldE != newE)       changed.add("Event")
+                if (oldC != newC)       changed.add("Category")
+                if (notes != dl.notes)  changed.add("Notes")
+                return VoicePendingAction(action, "Deadline", listOf(
+                    "Title"    to fmtEdit(dl.title,               title),
+                    "Date"     to fmtEdit(dl.date.format(dateFmt), nd.format(dateFmt)),
+                    "Time"     to fmtEdit(dl.time.format(timeFmt), nt.format(timeFmt)),
+                    "Event"    to fmtEdit(oldE,                   newE),
+                    "Category" to fmtEdit(oldC,                   newC),
+                    "Notes"    to fmtEdit(dl.notes ?: "—",        notes ?: "—")
+                ), changed, reply) {
                     DeadlineManager.update(context=context, db=db,
                         deadline=dl.copy(title=title, date=nd, time=nt, notes=notes, categoryId=catId, eventId=evId))
                 }
@@ -650,7 +684,7 @@ object VoiceCommandManager {
                     "Event"    to evT,
                     "Category" to catT,
                     "Notes"    to (dl.notes ?: "—")
-                ), emptyList(), reply) { DeadlineManager.delete(context=context, db=db, deadlineId=dlId) }
+                ), emptySet(), reply) { DeadlineManager.delete(context=context, db=db, deadlineId=dlId) }
             }
 
             // ── CATEGORY ──────────────────────────────────────────
@@ -663,21 +697,25 @@ object VoiceCommandManager {
                     "Title" to title,
                     "Color" to (colorHex ?: "Default"),
                     "Notes" to (notes ?: "—")
-                ), emptyList(), reply) { CategoryManager.insert(db=db, title=title, notes=notes, color=color) }
+                ), emptySet(), reply) { CategoryManager.insert(db=db, title=title, notes=notes, color=color) }
             }
 
             "EDIT_CATEGORY" -> {
-                val catId    = json.getInt("category_id")
-                val cat      = db.categoryDao().getCategoryById(catId) ?: return null
-                val title    = json.optString("title", "").ifBlank { cat.title }
-                val notes    = json.optString("notes", "").ifBlank { cat.notes }
-                val colorHex = json.optString("color", "").ifBlank { null }
+                val catId       = json.getInt("category_id")
+                val cat         = db.categoryDao().getCategoryById(catId) ?: return null
+                val title       = json.optString("title", "").ifBlank { cat.title }
+                val notes       = json.optString("notes", "").ifBlank { cat.notes }
+                val colorHex    = json.optString("color", "").ifBlank { null }
                 val newColorStr = if (colorHex != null) Converters.fromColor(hexToColor(colorHex)) else cat.color
-                val ch = mutableListOf<Triple<String, String, String>>()
-                if (title != cat.title)         ch.add(Triple("Title", cat.title,       title))
-                if (newColorStr != cat.color)   ch.add(Triple("Color", cat.color,       colorHex ?: cat.color))
-                if (notes != cat.notes)         ch.add(Triple("Notes", cat.notes ?: "—", notes ?: "—"))
-                return VoicePendingAction(action, "Category", emptyList(), ch, reply) {
+                val changed = mutableSetOf<String>()
+                if (title != cat.title)         changed.add("Title")
+                if (newColorStr != cat.color)   changed.add("Color")
+                if (notes != cat.notes)         changed.add("Notes")
+                return VoicePendingAction(action, "Category", listOf(
+                    "Title" to fmtEdit(cat.title,        title),
+                    "Color" to fmtEdit(cat.color,        colorHex ?: cat.color),
+                    "Notes" to fmtEdit(cat.notes ?: "—", notes ?: "—")
+                ), changed, reply) {
                     CategoryManager.update(db=db, category=cat.copy(title=title, notes=notes, color=newColorStr))
                 }
             }
@@ -689,31 +727,31 @@ object VoiceCommandManager {
                     "Title" to cat.title,
                     "Color" to cat.color,
                     "Notes" to (cat.notes ?: "—")
-                ), emptyList(), reply) { CategoryManager.delete(context=context, db=db, categoryId=catId) }
+                ), emptySet(), reply) { CategoryManager.delete(context=context, db=db, categoryId=catId) }
             }
 
             // ── TASK BUCKET ───────────────────────────────────────
             "CREATE_TASK_BUCKET" -> {
-                val sd  = LocalDate.parse(json.optString("start_date", "").ifBlank { defDate.toString() })
-                val ed  = json.optString("end_date", "").ifBlank { null }?.let { LocalDate.parse(it) }
-                val st  = LocalTime.parse(json.optString("start_time", "").ifBlank { defTime.toString() })
-                val et  = LocalTime.parse(json.optString("end_time", "").ifBlank { defEndT.toString() })
-                val rf  = parseRecurFreq(json.optString("recur_freq", "NONE")); val rr = parseRecurRule(json)
+                val sd = LocalDate.parse(json.optString("start_date", "").ifBlank { defDate.toString() })
+                val ed = json.optString("end_date", "").ifBlank { null }?.let { LocalDate.parse(it) }
+                val st = LocalTime.parse(json.optString("start_time", "").ifBlank { defTime.toString() })
+                val et = LocalTime.parse(json.optString("end_time", "").ifBlank { defEndT.toString() })
+                val rf = parseRecurFreq(json.optString("recur_freq", "NONE")); val rr = parseRecurRule(json)
                 return VoicePendingAction(action, "Task Bucket", listOf(
-                    "Date"        to sd.format(dateFmt),
-                    "End Date"    to (ed?.format(dateFmt) ?: "N/A"),
-                    "Start Time"  to st.format(timeFmt),
-                    "End Time"    to et.format(timeFmt),
-                    "Recurrence"  to fmtRecur(rf, rr)
-                ), emptyList(), reply) {
+                    "Date"       to sd.format(dateFmt),
+                    "End Date"   to (ed?.format(dateFmt) ?: "N/A"),
+                    "Start Time" to st.format(timeFmt),
+                    "End Time"   to et.format(timeFmt),
+                    "Recurrence" to fmtRecur(rf, rr)
+                ), emptySet(), reply) {
                     TaskBucketManager.insert(context=context, db=db, startDate=sd, endDate=ed,
                         startTime=st, endTime=et, recurFreq=rf, recurRule=rr)
                 }
             }
 
             "EDIT_TASK_BUCKET" -> {
-                val bId  = json.getInt("bucket_id")
-                val b    = db.taskBucketDao().getMasterBucketById(bId) ?: return null
+                val bId   = json.getInt("bucket_id")
+                val b     = db.taskBucketDao().getMasterBucketById(bId) ?: return null
                 val sdStr = json.optString("start_date", ""); val edStr = json.optString("end_date", "")
                 val stStr = json.optString("start_time", ""); val etStr = json.optString("end_time", "")
                 val rf    = if (json.has("recur_freq")) parseRecurFreq(json.getString("recur_freq")) else b.recurFreq
@@ -722,13 +760,19 @@ object VoiceCommandManager {
                 val ned   = if (edStr.isNotBlank()) LocalDate.parse(edStr) else b.endDate
                 val nst   = if (stStr.isNotBlank()) LocalTime.parse(stStr) else b.startTime
                 val net   = if (etStr.isNotBlank()) LocalTime.parse(etStr) else b.endTime
-                val ch = mutableListOf<Triple<String, String, String>>()
-                if (nsd != b.startDate)  ch.add(Triple("Date",        b.startDate.format(dateFmt),    nsd.format(dateFmt)))
-                if (ned != b.endDate)    ch.add(Triple("End Date",    b.endDate?.format(dateFmt) ?: "N/A", ned?.format(dateFmt) ?: "N/A"))
-                if (nst != b.startTime)  ch.add(Triple("Start Time",  b.startTime.format(timeFmt),    nst.format(timeFmt)))
-                if (net != b.endTime)    ch.add(Triple("End Time",    b.endTime.format(timeFmt),      net.format(timeFmt)))
-                if (rf != b.recurFreq)   ch.add(Triple("Recurrence",  fmtRecur(b.recurFreq, b.recurRule), fmtRecur(rf, rr)))
-                return VoicePendingAction(action, "Task Bucket", emptyList(), ch, reply) {
+                val changed = mutableSetOf<String>()
+                if (nsd != b.startDate)  changed.add("Date")
+                if (ned != b.endDate)    changed.add("End Date")
+                if (nst != b.startTime)  changed.add("Start Time")
+                if (net != b.endTime)    changed.add("End Time")
+                if (rf != b.recurFreq)   changed.add("Recurrence")
+                return VoicePendingAction(action, "Task Bucket", listOf(
+                    "Date"       to fmtEdit(b.startDate.format(dateFmt),               nsd.format(dateFmt)),
+                    "End Date"   to fmtEdit(b.endDate?.format(dateFmt) ?: "N/A",       ned?.format(dateFmt) ?: "N/A"),
+                    "Start Time" to fmtEdit(b.startTime.format(timeFmt),               nst.format(timeFmt)),
+                    "End Time"   to fmtEdit(b.endTime.format(timeFmt),                 net.format(timeFmt)),
+                    "Recurrence" to fmtEdit(fmtRecur(b.recurFreq, b.recurRule),        fmtRecur(rf, rr))
+                ), changed, reply) {
                     TaskBucketManager.update(context=context, db=db,
                         bucket=b.copy(startDate=nsd, endDate=ned, startTime=nst, endTime=net, recurFreq=rf, recurRule=rr))
                 }
@@ -743,7 +787,7 @@ object VoiceCommandManager {
                     "Start Time" to b.startTime.format(timeFmt),
                     "End Time"   to b.endTime.format(timeFmt),
                     "Recurrence" to fmtRecur(b.recurFreq, b.recurRule)
-                ), emptyList(), reply) { TaskBucketManager.delete(context=context, db=db, bucketId=bId) }
+                ), emptySet(), reply) { TaskBucketManager.delete(context=context, db=db, bucketId=bId) }
             }
 
             // ── SETTINGS ──────────────────────────────────────────
@@ -755,7 +799,7 @@ object VoiceCommandManager {
                 return VoicePendingAction(action, "Setting", listOf(
                     "Setting"   to sName,
                     "New Value" to valStr
-                ), emptyList(), reply) {
+                ), emptySet(), reply) {
                     when (sName) {
                         "startWeekOnMonday"     -> valBool?.let { SettingsManager.setStartWeek(db, it) }
                         "atiPaddingEnabled"     -> valBool?.let { SettingsManager.setAtiPaddingEnabled(db, it); generateTaskIntervals(context, db) }

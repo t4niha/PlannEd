@@ -207,8 +207,6 @@ fun VoiceConfirmationDialog(
                 modifier = Modifier.padding(24.dp).verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-
-                // Title — always PrimaryColor
                 Text(
                     text       = titleText,
                     fontSize   = 18.sp,
@@ -218,36 +216,33 @@ fun VoiceConfirmationDialog(
 
                 HorizontalDivider(color = Color.LightGray, thickness = 0.8.dp)
 
-                // Summary fields — shown for CREATE, DELETE, and CHANGE_SETTING
-                if (action.summaryFields.isNotEmpty()) {
-                    VoiceInfoCard(fields = action.summaryFields)
-                }
+                // Single info card for all action types
+                // For EDIT: changedFields drives highlighting; for CREATE/DELETE: no fields are highlighted
+                VoiceInfoCard(
+                    fields        = action.summaryFields,
+                    changedFields = action.changedFields
+                )
 
-                // Change fields — shown for EDIT
-                if (isEdit && action.changeFields.isNotEmpty()) {
-                    VoiceChangesCard(changes = action.changeFields)
-                }
-
-                if (isEdit && action.changeFields.isEmpty()) {
+                // "No changes" notice for edits with nothing changed
+                if (isEdit && action.changedFields.isEmpty()) {
                     Text(text = "No changes detected.", fontSize = 14.sp, color = Color.Gray)
                 }
 
-                // Buttons — always PrimaryColor confirm
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Button(
-                        onClick  = onCancel,
-                        modifier = Modifier.weight(1f),
-                        colors   = ButtonDefaults.buttonColors(containerColor = Color.Gray),
+                        onClick        = onCancel,
+                        modifier       = Modifier.weight(1f),
+                        colors         = ButtonDefaults.buttonColors(containerColor = Color.Gray),
                         contentPadding = PaddingValues(14.dp)
                     ) { Text("Cancel", fontSize = 15.sp, color = Color.White) }
 
                     Button(
-                        onClick  = onConfirm,
-                        modifier = Modifier.weight(1f),
-                        colors   = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
+                        onClick        = onConfirm,
+                        modifier       = Modifier.weight(1f),
+                        colors         = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
                         contentPadding = PaddingValues(14.dp)
                     ) { Text("Confirm", fontSize = 15.sp, color = Color.White) }
                 }
@@ -258,50 +253,37 @@ fun VoiceConfirmationDialog(
 
 // ─────────────────────────────────────────────────────────────────
 // VoiceInfoCard
+// changedFields: labels of fields that changed — those rows get
+// their value rendered in PrimaryColor to stand out
 // ─────────────────────────────────────────────────────────────────
 @Composable
-fun VoiceInfoCard(fields: List<Pair<String, String>>) {
+fun VoiceInfoCard(
+    fields:        List<Pair<String, String>>,
+    changedFields: Set<String> = emptySet()
+) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .background(Color(CardColor), RoundedCornerShape(12.dp))
     ) {
         fields.forEachIndexed { index, (label, value) ->
+            val isChanged = label in changedFields
             Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
-                Text(text = label, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color.Gray)
+                Text(
+                    text       = label,
+                    fontSize   = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    color      = Color.Gray
+                )
                 Spacer(modifier = Modifier.height(6.dp))
-                Text(text = value, fontSize = 16.sp)
+                Text(
+                    text       = value,
+                    fontSize   = 16.sp,
+                    color      = if (isChanged) PrimaryColor else Color.Unspecified,
+                    fontWeight = if (isChanged) FontWeight.Medium else FontWeight.Normal
+                )
             }
             if (index < fields.lastIndex) HorizontalDivider(thickness = 1.dp, color = Color.LightGray)
-        }
-    }
-}
-
-// ─────────────────────────────────────────────────────────────────
-// VoiceChangesCard
-// ─────────────────────────────────────────────────────────────────
-@Composable
-fun VoiceChangesCard(changes: List<Triple<String, String, String>>) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Color(CardColor), RoundedCornerShape(12.dp))
-    ) {
-        changes.forEachIndexed { index, (label, oldVal, newVal) ->
-            Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
-                Text(text = label, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color.Gray)
-                Spacer(modifier = Modifier.height(6.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(text = oldVal, fontSize = 15.sp, color = Color.Gray, modifier = Modifier.weight(1f))
-                    Text(text = "→", fontSize = 14.sp, color = Color.Gray)
-                    Text(text = newVal, fontSize = 15.sp, color = PrimaryColor, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
-                }
-            }
-            if (index < changes.lastIndex) HorizontalDivider(thickness = 1.dp, color = Color.LightGray)
         }
     }
 }
@@ -346,16 +328,21 @@ fun VoiceResultDialog(
                     Text(text = result.replyText, fontSize = 14.sp, lineHeight = 20.sp)
                 }
 
-                result.actionTaken?.let { action ->
+                result.actionTaken?.let { actionTaken ->
                     Box(
                         modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp))
                             .background(PrimaryColor.copy(alpha = 0.10f))
                             .border(1.dp, PrimaryColor.copy(alpha = 0.30f), RoundedCornerShape(8.dp))
                             .padding(horizontal = 12.dp, vertical = 6.dp)
                     ) {
-                        Text(text = "\u2713 $action", fontSize = 12.sp, color = PrimaryColor,
-                            fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center,
-                            modifier = Modifier.fillMaxWidth())
+                        Text(
+                            text       = "\u2713 $actionTaken",
+                            fontSize   = 12.sp,
+                            color      = PrimaryColor,
+                            fontWeight = FontWeight.SemiBold,
+                            textAlign  = TextAlign.Center,
+                            modifier   = Modifier.fillMaxWidth()
+                        )
                     }
                 }
 
