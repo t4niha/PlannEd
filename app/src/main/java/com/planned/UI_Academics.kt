@@ -1140,7 +1140,7 @@ fun AcademicsHistoryList(
     val sortedKeys = grouped.keys.sortedWith(compareByDescending<String> {
         val parts = it.split(" ")
         val yr = parts.lastOrNull()?.toIntOrNull() ?: 0
-        val sem = when (parts.firstOrNull()) { "Spring" -> 1; "Summer" -> 2; "Fall" -> 3; "Winter" -> 4; else -> 0 }
+        val sem = when (parts.firstOrNull()) { "Winter" -> 1; "Spring" -> 2; "Summer" -> 3; "Fall" -> 4; else -> 0 }
         yr * 10 + sem
     })
 
