@@ -21,6 +21,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Chat
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Timer
@@ -44,6 +46,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Chat
+import androidx.compose.material.icons.filled.Article
+import androidx.compose.material.icons.filled.MenuBook
 
 /* VARIABLES */
 //<editor-fold desc="Variables">
@@ -735,6 +740,24 @@ fun NavigationDrawer(
                         tint = PrimaryColor
                     )
                 }
+                @Composable
+                fun ChatIcon() {
+                    Icon(
+                        Icons.AutoMirrored.Filled.Chat,
+                        contentDescription = "Assistant",
+                        modifier = Modifier.size(24.dp),
+                        tint = PrimaryColor
+                    )
+                }
+                @Composable
+                fun AcademicsIcon() {
+                    Icon(
+                        Icons.AutoMirrored.Filled.MenuBook,
+                        contentDescription = "Academics",
+                        modifier = Modifier.size(24.dp),
+                        tint = PrimaryColor
+                    )
+                }
 
 
                 DrawerRow("Categories", { CalendarIcon() }) {
@@ -786,6 +809,14 @@ fun NavigationDrawer(
                     taskBucketsCurrentView = "list"
                     taskBucketsSelectedBucket = null
                     currentScreen = "TaskBuckets"
+                    onDrawerToggle()
+                }
+                DrawerRow("Assistant", { ChatIcon() }) {
+                    currentScreen = "Assistant"
+                    onDrawerToggle()
+                }
+                DrawerRow("Academics", { AcademicsIcon() }) {
+                    currentScreen = "Academics"
                     onDrawerToggle()
                 }
                 DrawerRow("Settings", { GearIcon() }) {

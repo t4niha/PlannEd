@@ -82,9 +82,9 @@ fun VoiceMicButton(
 
     val buttonColor = when (phase) {
         VoicePhase.IDLE      -> Color.LightGray
-        VoicePhase.LISTENING -> Color(0xFFE53935)
-        VoicePhase.THINKING  -> Color(0xFFFB8C00)
-        VoicePhase.SPEAKING  -> Color(0xFF43A047)
+        VoicePhase.LISTENING -> PrimaryColor
+        VoicePhase.THINKING  -> Color(0xFF9E9E9E)
+        VoicePhase.SPEAKING  -> PrimaryColor
         VoicePhase.ERROR     -> Color(0xFF9E9E9E)
     }
 
