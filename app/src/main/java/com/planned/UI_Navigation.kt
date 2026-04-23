@@ -801,7 +801,7 @@ fun NavigationDrawer(
                     currentScreen = "TaskBuckets"
                     onDrawerToggle()
                 }
-                DrawerRow("Assistant", { ChatIcon() }) {
+                DrawerRow("AI Assistant", { ChatIcon() }) {
                     currentScreen = "Assistant"
                     onDrawerToggle()
                 }
