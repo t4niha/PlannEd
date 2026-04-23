@@ -38,7 +38,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.LaunchedEffect
 
-@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun Assistant(db: AppDatabase) {
     val context = LocalContext.current
@@ -132,7 +131,7 @@ fun Assistant(db: AppDatabase) {
         Column(modifier = Modifier.background(BackgroundColor)) {
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text       = "Assistant",
+                text       = "AI Assistant",
                 fontSize   = 22.sp,
                 fontWeight = FontWeight.Bold,
                 modifier   = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
