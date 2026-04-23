@@ -34,6 +34,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.runtime.LaunchedEffect
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
@@ -144,9 +147,13 @@ fun Assistant(db: AppDatabase) {
                 .padding(horizontal = 16.dp, vertical = 16.dp),
             contentAlignment = Alignment.TopStart
         ) {
+            val scrollState = rememberScrollState()
+            LaunchedEffect(userBubbleText, replyBubbleText, isThinking) {
+                scrollState.animateScrollTo(scrollState.maxValue)
+            }
             Column(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth().verticalScroll(scrollState)
             ) {
                 // User bubble
                 userBubbleText?.let { text ->
