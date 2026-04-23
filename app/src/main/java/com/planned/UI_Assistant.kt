@@ -126,18 +126,6 @@ fun Assistant(db: AppDatabase) {
             .fillMaxSize()
             .background(BackgroundColor)
     ) {
-
-        // Title bar
-        Column(modifier = Modifier.background(BackgroundColor)) {
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text       = "AI Assistant",
-                fontSize   = 22.sp,
-                fontWeight = FontWeight.Bold,
-                modifier   = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
-            )
-        }
-
         // Chat area
         Box(
             modifier = Modifier
