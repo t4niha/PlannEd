@@ -30,6 +30,7 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
+import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
 data class DeadlineUpdateFormData(
@@ -46,19 +47,37 @@ data class DeadlineUpdateFormData(
 @Composable
 fun Deadlines(db: AppDatabase) {
     when (deadlinesCurrentView) {
-        "list" -> DeadlinesListView(
+        "main" -> DeadlinesMainView(
             db = db,
+            onUpcomingClick = { deadlinesCurrentView = "upcoming" },
+            onPassedClick = { deadlinesCurrentView = "passed" }
+        )
+        "upcoming" -> DeadlinesListView(
+            db = db,
+            showPassed = false,
             onDeadlineClick = { deadline ->
                 deadlinesSelectedDeadline = deadline
+                deadlinesListSource = "upcoming"
                 deadlinesCurrentView = "info"
-            }
+            },
+            onBack = { deadlinesCurrentView = "main" }
+        )
+        "passed" -> DeadlinesListView(
+            db = db,
+            showPassed = true,
+            onDeadlineClick = { deadline ->
+                deadlinesSelectedDeadline = deadline
+                deadlinesListSource = "passed"
+                deadlinesCurrentView = "info"
+            },
+            onBack = { deadlinesCurrentView = "main" }
         )
         "info" -> deadlinesSelectedDeadline?.let { deadline ->
             DeadlineInfoView(
                 db = db,
                 deadline = deadline,
                 onBack = {
-                    deadlinesCurrentView = "list"
+                    deadlinesCurrentView = deadlinesListSource
                     deadlinesSelectedDeadline = null
                     deadlinesUpdateFormData = null
                 },
@@ -85,17 +104,117 @@ fun Deadlines(db: AppDatabase) {
     }
 }
 
+/* MAIN HUB VIEW */
+@RequiresApi(Build.VERSION_CODES.O)
+@Composable
+fun DeadlinesMainView(
+    db: AppDatabase,
+    onUpcomingClick: () -> Unit,
+    onPassedClick: () -> Unit
+) {
+    val today = LocalDate.now()
+    var upcomingCount by remember { mutableIntStateOf(0) }
+    var passedCount by remember { mutableIntStateOf(0) }
+
+    LaunchedEffect(Unit) {
+        val all = DeadlineManager.getAll(db)
+        upcomingCount = all.count { it.date >= today }
+        passedCount = all.count { it.date < today }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(BackgroundColor)
+            .padding(12.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            DeadlineCategoryBox(
+                title = "Passed\nDeadlines",
+                count = passedCount,
+                modifier = Modifier.weight(1f),
+                onClick = onPassedClick
+            )
+            DeadlineCategoryBox(
+                title = "Upcoming\nDeadlines",
+                count = upcomingCount,
+                modifier = Modifier.weight(1f),
+                onClick = onUpcomingClick
+            )
+        }
+    }
+}
+
+@Composable
+fun DeadlineCategoryBox(
+    title: String,
+    count: Int,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = modifier
+            .aspectRatio(1f)
+            .clip(RoundedCornerShape(16.dp))
+            .background(Color(CardColor))
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null
+            ) { onClick() }
+            .padding(16.dp)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.Top
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(if (count > 0) PrimaryColor else Color.LightGray),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = count.toString(),
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = title,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Medium,
+                color = Color.Black
+            )
+        }
+    }
+}
+
+/* SHARED LIST VIEW — used for both upcoming and passed */
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun DeadlinesListView(
     db: AppDatabase,
-    onDeadlineClick: (Deadline) -> Unit
+    showPassed: Boolean,
+    onDeadlineClick: (Deadline) -> Unit,
+    onBack: () -> Unit
 ) {
+    val today = LocalDate.now()
     var deadlines by remember { mutableStateOf<List<Deadline>>(emptyList()) }
     var categories by remember { mutableStateOf<List<Category>>(emptyList()) }
 
     LaunchedEffect(Unit) {
-        deadlines = DeadlineManager.getAll(db).sortedBy { it.date }
+        val all = DeadlineManager.getAll(db)
+        deadlines = if (showPassed) {
+            all.filter { it.date < today }.sortedByDescending { it.date }
+        } else {
+            all.filter { it.date >= today }.sortedBy { it.date }
+        }
         categories = CategoryManager.getAll(db)
     }
 
@@ -103,25 +222,65 @@ fun DeadlinesListView(
     val sortedCategoryIds = categories.map { it.id as Int? }.filter { grouped.containsKey(it) } +
             if (grouped.containsKey(null)) listOf(null) else emptyList()
 
-    Column(modifier = Modifier.fillMaxSize().background(BackgroundColor).padding(16.dp)) {
-        Text("Deadlines", fontSize = 24.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 16.dp, top = 4.dp))
+    val title = if (showPassed) "Passed Deadlines" else "Upcoming Deadlines"
 
-        if (deadlines.isEmpty()) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(text = "No deadlines", fontSize = 18.sp, color = Color.Gray)
-            }
-        } else {
-            LazyColumn(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                sortedCategoryIds.forEach { catId ->
-                    val categoryName = if (catId == null) "No Category"
-                    else categories.find { it.id == catId }?.title ?: "No Category"
-                    val categoryDeadlines = grouped[catId] ?: emptyList()
-                    item {
-                        Text(text = categoryName, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.Gray, modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 4.dp))
+    Column(modifier = Modifier.fillMaxSize().background(BackgroundColor)) {
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+            contentDescription = "Back",
+            tint = PrimaryColor,
+            modifier = Modifier
+                .padding(16.dp)
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null
+                ) { onBack() }
+                .size(40.dp)
+        )
+
+        Column(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
+            Text(
+                title,
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 16.dp, top = 4.dp)
+            )
+
+            if (deadlines.isEmpty()) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text(
+                        text = if (showPassed) "No passed deadlines" else "No upcoming deadlines",
+                        fontSize = 18.sp,
+                        color = Color.Gray
+                    )
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    sortedCategoryIds.forEach { catId ->
+                        val categoryName = if (catId == null) "No Category"
+                        else categories.find { it.id == catId }?.title ?: "No Category"
+                        val categoryDeadlines = grouped[catId] ?: emptyList()
+                        item {
+                            Text(
+                                text = categoryName,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.Gray,
+                                modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 4.dp)
+                            )
+                        }
+                        items(categoryDeadlines) { deadline ->
+                            DeadlineItemView(
+                                db = db,
+                                deadline = deadline,
+                                onClick = { onDeadlineClick(deadline) }
+                            )
+                        }
                     }
-                    items(categoryDeadlines) { deadline ->
-                        DeadlineItemView(db = db, deadline = deadline, onClick = { onDeadlineClick(deadline) })
-                    }
+                    item { Spacer(modifier = Modifier.height(8.dp)) }
                 }
             }
         }
@@ -158,18 +317,38 @@ fun DeadlineItemView(
     val timeFormatter = java.time.format.DateTimeFormatter.ofPattern("h:mm a")
 
     Row(
-        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Color(CardColor)).clickable { onClick() }.padding(12.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color(CardColor))
+            .clickable { onClick() }
+            .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(modifier = Modifier.size(INNER_CIRCLE_SIZE).background(deadlineColor, CircleShape))
         Spacer(modifier = Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text(text = deadline.title, fontSize = 16.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+            Text(
+                text = deadline.title,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Medium,
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+            )
             Spacer(modifier = Modifier.height(8.dp))
-            Text(text = "${deadline.time.format(timeFormatter)}, ${deadline.date.format(dateFormatter)}", fontSize = 14.sp, color = Color.Gray)
+            Text(
+                text = "${deadline.time.format(timeFormatter)}, ${deadline.date.format(dateFormatter)}",
+                fontSize = 14.sp,
+                color = Color.Gray
+            )
         }
         Spacer(modifier = Modifier.width(8.dp))
-        Icon(imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(20.dp))
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = null,
+            tint = Color.Gray,
+            modifier = Modifier.size(20.dp)
+        )
     }
 }
 
@@ -317,7 +496,7 @@ fun DeadlineInfoView(
                             Row(
                                 modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Color(CardColor))
                                     .clickable {
-                                        com.planned.deadlinesCurrentView = "list"
+                                        com.planned.deadlinesCurrentView = "main"
                                         com.planned.deadlinesSelectedDeadline = null
                                         com.planned.selectedDeadlineForInfo = currentDeadline
                                         com.planned.deadlineInfoReturnScreen = deadlineReturnScreen
@@ -398,7 +577,6 @@ fun DeadlineUpdateView(
     var resetTrigger by remember { mutableIntStateOf(0) }
     var showNotification by remember { mutableStateOf(false) }
 
-    // Lock category and cascade course when event changes
     LaunchedEffect(selectedEvent, events.size) {
         val currentEventIndex = selectedEvent
         val previousEventIndex = previousEvent
@@ -406,18 +584,15 @@ fun DeadlineUpdateView(
             if (currentEventIndex != null && events.isNotEmpty()) {
                 val event = events.getOrNull(currentEventIndex)
                 if (event != null) {
-                    // Cascade category
                     val eventCategoryId = event.categoryId
                     val categoryIndex = if (eventCategoryId != null) categories.indexOfFirst { it.id == eventCategoryId } else null
                     if (categoryIndex != null) selectedCategory = if (categoryIndex >= 0) categoryIndex else null
 
-                    // Cascade course from event
                     val eventCourseId = event.courseId
                     val courseIndex = if (eventCourseId != null) courses.indexOfFirst { it.id == eventCourseId } else null
                     selectedCourse = if (courseIndex != null && courseIndex >= 0) courseIndex else null
                 }
             } else if (currentEventIndex == null) {
-                // Event cleared — unlock course
                 selectedCourse = null
             }
             previousEvent = currentEventIndex
@@ -458,7 +633,6 @@ fun DeadlineUpdateView(
                 if (eventValue != selectedEvent) selectedEvent = eventValue
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Course locked when event has a course, free otherwise
                 val courseValue = dropdownField(
                     label = "Course",
                     items = courses.map { c -> c.courseCode?.let { "$it – ${c.title}" } ?: c.title },

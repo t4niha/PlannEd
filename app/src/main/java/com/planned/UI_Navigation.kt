@@ -107,9 +107,10 @@ var eventsSelectedEvent by mutableStateOf<MasterEvent?>(null)
 var eventsUpdateFormData by mutableStateOf<EventUpdateFormData?>(null)
 
 // Internal Deadlines screen state
-var deadlinesCurrentView by mutableStateOf("list")
+var deadlinesCurrentView by mutableStateOf("main")
 var deadlinesSelectedDeadline by mutableStateOf<Deadline?>(null)
 var deadlinesUpdateFormData by mutableStateOf<DeadlineUpdateFormData?>(null)
+var deadlinesListSource by mutableStateOf("upcoming") // "upcoming" or "passed" — tracks which list to return to from info
 
 // Internal Reminders screen state
 var remindersCurrentView by mutableStateOf("list")
@@ -407,7 +408,8 @@ fun AppNavigation(db: AppDatabase) {
                                     navDeadlineUpdateFormData = null
                                     selectedDeadlineForInfo = null
                                     if (returnTo == "Deadlines") {
-                                        deadlinesCurrentView = "list"
+                                        // Return to whichever list the deadline belonged to
+                                        deadlinesCurrentView = deadlinesListSource
                                         deadlinesSelectedDeadline = null
                                     }
                                     currentScreen = returnTo
@@ -782,9 +784,10 @@ fun NavigationDrawer(
                 CheckableDrawerRow("Deadlines", showDeadlines, {
                     showDeadlines = !showDeadlines
                 }) {
-                    deadlinesCurrentView = "list"
+                    deadlinesCurrentView = "main"
                     deadlinesSelectedDeadline = null
                     deadlinesUpdateFormData = null
+                    deadlinesListSource = "upcoming"
                     currentScreen = "Deadlines"
                     onDrawerToggle()
                 }
