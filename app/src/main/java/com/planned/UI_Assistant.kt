@@ -196,7 +196,7 @@ fun Assistant(db: AppDatabase) {
                                         bottomStart = 16.dp, bottomEnd = 16.dp
                                     )
                                 )
-                                .background(Color.LightGray)
+                                .background(Color(CardColor))
                                 .padding(horizontal = 14.dp, vertical = 10.dp)
                                 .widthIn(max = 260.dp)
                         ) {
