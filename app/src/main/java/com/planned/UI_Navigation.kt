@@ -50,7 +50,7 @@ import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Article
 import androidx.compose.material.icons.filled.MenuBook
 
-/* VARIABLES */
+/* GLOBAL VARIABLES */
 //<editor-fold desc="Variables">
 var currentScreen by mutableStateOf("Calendars")
 var currentCalendarView by mutableStateOf("Month")
@@ -127,6 +127,7 @@ var settingsCurrentView by mutableStateOf("main")
 var academicsCurrentView by mutableStateOf("main")
 var academicsSelectedCourse by mutableStateOf<Course?>(null)
 var academicsSelectedCompletedCourse by mutableStateOf<CompletedCourse?>(null)
+var academicsCourseUpdateFormData by mutableStateOf<CourseUpdateFormData?>(null)
 //</editor-fold>
 
 /* POMODORO STATE */
