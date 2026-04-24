@@ -737,6 +737,12 @@ fun AcademicsAddCourseForm(
 }
 
 data class CompletedCourseUpdateData(
+    val courseTitle: String,
+    val courseCode: String,
+    val description: String,
+    val credits: Int,
+    val year: Int,
+    val semester: Int,
     val submitGrade: String
 )
 data class CourseUpdateFormData(
@@ -1949,7 +1955,17 @@ fun AcademicsCompletedCourseUpdateForm(
     onSaved: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
+    val scrollState = rememberScrollState()
+
+    var courseTitle by remember { mutableStateOf(preloadedData.courseTitle) }
+    var courseCode by remember { mutableStateOf(preloadedData.courseCode) }
+    var description by remember { mutableStateOf(preloadedData.description) }
+    var creditsText by remember { mutableStateOf(preloadedData.credits.toString()) }
+    var year by remember { mutableIntStateOf(preloadedData.year) }
+    var semester by remember { mutableIntStateOf(preloadedData.semester) }
+    var showSemesterDropdown by remember { mutableStateOf(false) }
     var submitGrade by remember { mutableStateOf(preloadedData.submitGrade) }
+
     var showBanner by remember { mutableStateOf(false) }
     var bannerMessage by remember { mutableStateOf("") }
 
@@ -1959,23 +1975,121 @@ fun AcademicsCompletedCourseUpdateForm(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        Column(modifier = Modifier.fillMaxSize().background(BackgroundColor).padding(16.dp)) {
+        Column(modifier = Modifier.fillMaxSize().background(BackgroundColor).padding(12.dp)) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
                 contentDescription = "Back",
                 tint = PrimaryColor,
-                modifier = Modifier.clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { onBack() }.size(40.dp)
+                modifier = Modifier
+                    .padding(4.dp)
+                    .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { onBack() }
+                    .size(40.dp)
             )
 
-            Column(modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState())) {
-                Box(modifier = Modifier.fillMaxWidth().padding(start = 18.dp, end = 18.dp, bottom = 18.dp, top = 8.dp)) {
-                    Text(course.courseTitle, fontSize = 20.sp, fontWeight = FontWeight.Medium)
+            Column(modifier = Modifier.weight(1f).verticalScroll(scrollState)) {
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Box(modifier = Modifier.fillMaxWidth().background(Color(CardColor), RoundedCornerShape(12.dp)).padding(16.dp)) {
+                    Column {
+                        Text("Title", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        TextField(
+                            value = courseTitle, onValueChange = { courseTitle = it },
+                            modifier = Modifier.fillMaxWidth().background(BackgroundColor, RoundedCornerShape(8.dp)).border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)),
+                            textStyle = LocalTextStyle.current.copy(fontSize = 16.sp),
+                            colors = TextFieldDefaults.colors(focusedContainerColor = BackgroundColor, unfocusedContainerColor = BackgroundColor, focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent)
+                        )
+                    }
                 }
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Box(modifier = Modifier.fillMaxWidth().background(Color(CardColor), RoundedCornerShape(12.dp)).padding(16.dp)) {
+                    Column {
+                        Text("Course Code", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        TextField(
+                            value = courseCode, onValueChange = { courseCode = it },
+                            modifier = Modifier.fillMaxWidth().background(BackgroundColor, RoundedCornerShape(8.dp)).border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)),
+                            textStyle = LocalTextStyle.current.copy(fontSize = 16.sp),
+                            colors = TextFieldDefaults.colors(focusedContainerColor = BackgroundColor, unfocusedContainerColor = BackgroundColor, focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent)
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Box(modifier = Modifier.fillMaxWidth().background(Color(CardColor), RoundedCornerShape(12.dp)).padding(16.dp)) {
+                    Column {
+                        Text("Description", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        TextField(
+                            value = description, onValueChange = { description = it },
+                            modifier = Modifier.fillMaxWidth().background(BackgroundColor, RoundedCornerShape(8.dp)).border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)),
+                            textStyle = LocalTextStyle.current.copy(fontSize = 16.sp),
+                            colors = TextFieldDefaults.colors(focusedContainerColor = BackgroundColor, unfocusedContainerColor = BackgroundColor, focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent),
+                            minLines = 3
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Box(modifier = Modifier.fillMaxWidth().background(Color(CardColor), RoundedCornerShape(12.dp)).padding(16.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                        Text("Credits", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                        Spacer(modifier = Modifier.weight(1f))
+                        Button(onClick = { val v = creditsText.toIntOrNull() ?: 1; if (v > 0) creditsText = (v - 1).toString() }, shape = CircleShape, colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor, contentColor = BackgroundColor), modifier = Modifier.size(40.dp), contentPadding = PaddingValues(0.dp)) { Text("-", fontSize = 20.sp) }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Box(modifier = Modifier.width(50.dp).background(BackgroundColor, RoundedCornerShape(8.dp)).padding(vertical = 8.dp), contentAlignment = Alignment.Center) { Text(creditsText, fontSize = 18.sp) }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Button(onClick = { val v = creditsText.toIntOrNull() ?: 1; if (v < 9) creditsText = (v + 1).toString() }, shape = CircleShape, colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor, contentColor = BackgroundColor), modifier = Modifier.size(40.dp), contentPadding = PaddingValues(0.dp)) { Text("+", fontSize = 20.sp) }
+                    }
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Box(modifier = Modifier.fillMaxWidth().background(Color(CardColor), RoundedCornerShape(12.dp)).padding(16.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                        Text("Year", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                        Spacer(modifier = Modifier.weight(1f))
+                        Button(onClick = { year-- }, shape = CircleShape, colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor, contentColor = BackgroundColor), modifier = Modifier.size(40.dp), contentPadding = PaddingValues(0.dp)) { Text("-", fontSize = 20.sp) }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Box(modifier = Modifier.width(70.dp).background(BackgroundColor, RoundedCornerShape(8.dp)).padding(vertical = 8.dp), contentAlignment = Alignment.Center) { Text(year.toString(), fontSize = 18.sp) }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Button(onClick = { year++ }, shape = CircleShape, colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor, contentColor = BackgroundColor), modifier = Modifier.size(40.dp), contentPadding = PaddingValues(0.dp)) { Text("+", fontSize = 20.sp) }
+                    }
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Box(
+                    modifier = Modifier.fillMaxWidth().background(Color(CardColor), RoundedCornerShape(12.dp))
+                        .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { showSemesterDropdown = !showSemesterDropdown }
+                        .padding(16.dp)
+                ) {
+                    Column {
+                        Text("Semester", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Box(modifier = Modifier.fillMaxWidth().background(BackgroundColor, RoundedCornerShape(8.dp)).border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)).padding(12.dp)) {
+                            Text(semesterName(semester), fontSize = 16.sp)
+                        }
+                        AnimatedVisibility(visible = showSemesterDropdown, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) {
+                            Column(modifier = Modifier.padding(top = 8.dp)) {
+                                listOf(4 to "Winter", 1 to "Spring", 2 to "Summer", 3 to "Fall").forEach { (num, name) ->
+                                    val isSelected = semester == num
+                                    Box(
+                                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+                                            .background(if (isSelected) PrimaryColor else Color.LightGray, RoundedCornerShape(8.dp))
+                                            .clickable { semester = num; showSemesterDropdown = false }
+                                            .padding(12.dp)
+                                    ) { Text(name, fontSize = 16.sp, color = if (isSelected) BackgroundColor else Color.Black, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) }
+                                }
+                            }
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(12.dp))
 
                 Box(modifier = Modifier.fillMaxWidth().background(Color(CardColor), RoundedCornerShape(12.dp)).padding(16.dp)) {
                     Column {
                         Text("Submitted Grade", fontSize = 16.sp, fontWeight = FontWeight.Medium)
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
                         TextField(
                             value = submitGrade,
                             onValueChange = { submitGrade = it },
@@ -1987,34 +2101,52 @@ fun AcademicsCompletedCourseUpdateForm(
                         )
                     }
                 }
-            }
 
-            Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
-            Row(modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Button(
-                    onClick = { submitGrade = preloadedData.submitGrade },
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
-                    contentPadding = PaddingValues(16.dp)
-                ) { Text("Reset", fontSize = 16.sp, color = Color.White) }
-                Button(
-                    onClick = {
-                        if (submitGrade.isBlank()) { showMsg("Enter a grade first"); return@Button }
-                        val gradeRegex = Regex("^(A[+-]?|B[+-]?|C[+-]?|D[+-]?|F|U|P|NP|S|W|I|N|NC)$")
-                        if (!gradeRegex.matches(submitGrade.trim())) { showMsg("Invalid letter grade"); return@Button }
-                        scope.launch {
-                            db.completedCourseDao().update(
-                                course.copy(submitGrade = submitGrade.trim().uppercase())
-                            )
-                            academicsSelectedCompletedCourse = db.completedCourseDao().getById(course.id)
-                            onSaved()
-                        }
-                    },
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
-                    contentPadding = PaddingValues(16.dp)
-                ) { Text("Save", fontSize = 16.sp, color = Color.White) }
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Button(
+                        onClick = {
+                            courseTitle = preloadedData.courseTitle
+                            courseCode = preloadedData.courseCode
+                            description = preloadedData.description
+                            creditsText = preloadedData.credits.toString()
+                            year = preloadedData.year
+                            semester = preloadedData.semester
+                            submitGrade = preloadedData.submitGrade
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
+                        modifier = Modifier.weight(1f), contentPadding = PaddingValues(16.dp)
+                    ) { Text("Reset", fontSize = 16.sp) }
+                    Button(
+                        onClick = {
+                            if (courseTitle.isBlank()) { showMsg("Title is required"); return@Button }
+                            val credits = creditsText.toIntOrNull()
+                            if (credits == null || credits < 0) { showMsg("Invalid credit count"); return@Button }
+                            if (submitGrade.isBlank()) { showMsg("Enter a grade first"); return@Button }
+                            val gradeRegex = Regex("^(A[+-]?|B[+-]?|C[+-]?|D[+-]?|F|U|P|NP|S|W|I|N|NC)$")
+                            if (!gradeRegex.matches(submitGrade.trim())) { showMsg("Invalid letter grade"); return@Button }
+                            scope.launch {
+                                db.completedCourseDao().update(
+                                    course.copy(
+                                        courseTitle = courseTitle.trim(),
+                                        courseCode = courseCode.trim().ifBlank { null },
+                                        description = description.trim().ifBlank { null },
+                                        credits = credits,
+                                        year = year,
+                                        semester = semester,
+                                        submitGrade = submitGrade.trim().uppercase()
+                                    )
+                                )
+                                academicsSelectedCompletedCourse = db.completedCourseDao().getById(course.id)
+                                onSaved()
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
+                        modifier = Modifier.weight(1f), contentPadding = PaddingValues(16.dp)
+                    ) { Text("Save", fontSize = 16.sp) }
+                }
+                Spacer(modifier = Modifier.height(12.dp))
             }
         }
 
@@ -2056,7 +2188,15 @@ fun AcademicsCompletedInfoPage(
     var updateDataReady by remember { mutableStateOf(false) }
 
     LaunchedEffect(course.id) {
-        onUpdateDataReady(CompletedCourseUpdateData(submitGrade = course.submitGrade))
+        onUpdateDataReady(CompletedCourseUpdateData(
+            courseTitle = course.courseTitle,
+            courseCode = course.courseCode ?: "",
+            description = course.description ?: "",
+            credits = course.credits,
+            year = course.year,
+            semester = course.semester,
+            submitGrade = course.submitGrade
+        ))
         updateDataReady = true
     }
 
