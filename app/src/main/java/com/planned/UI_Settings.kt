@@ -1721,9 +1721,9 @@ fun DatabasePage(
             Table(
                 title = "Grading Scale",
                 data = listOfNotNull(gradingScale),
-                headers = listOf("A+", "A", "A-", "B+", "B", "B-", "C+", "C", "C-", "D+", "D", "D-", "F", "U", "P", "NP", "S", "W", "I", "N", "NC")
+                headers = listOf("CGPA", "A+", "A", "A-", "B+", "B", "B-", "C+", "C", "C-", "D+", "D", "D-", "F", "U", "P", "NP", "S", "W", "I", "N", "NC")
             ) { g -> listOf(
-                "%.2f".format(g.cgpa),
+                if (g.cgpa != 0f) "%.2f".format(g.cgpa) else "",
                 g.gpaAPlus?.toString() ?: "", g.gpaA?.toString() ?: "", g.gpaAMinus?.toString() ?: "",
                 g.gpaBPlus?.toString() ?: "", g.gpaB?.toString() ?: "", g.gpaBMinus?.toString() ?: "",
                 g.gpaCPlus?.toString() ?: "", g.gpaC?.toString() ?: "", g.gpaCMinus?.toString() ?: "",
