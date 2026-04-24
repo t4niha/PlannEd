@@ -129,6 +129,7 @@ var academicsSelectedCourse by mutableStateOf<Course?>(null)
 var academicsSelectedCompletedCourse by mutableStateOf<CompletedCourse?>(null)
 var academicsCourseUpdateFormData by mutableStateOf<CourseUpdateFormData?>(null)
 var academicsGradingScale by mutableStateOf<GradingScale?>(null)
+var academicsCompletedCourseUpdateData by mutableStateOf<CompletedCourseUpdateData?>(null)
 //</editor-fold>
 
 /* POMODORO STATE */

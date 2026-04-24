@@ -1702,15 +1702,15 @@ fun DatabasePage(
             Table(
                 title = "Grading Scale",
                 data = listOfNotNull(gradingScale),
-                headers = listOf("CGPA", "A+", "A", "A-", "B+", "B", "B-", "C+", "C", "C-", "D+", "D", "D-", "F", "U", "P", "S", "W", "I", "N", "NC")
+                headers = listOf("A+", "A", "A-", "B+", "B", "B-", "C+", "C", "C-", "D+", "D", "D-", "F", "U", "P", "NP", "S", "W", "I", "N", "NC")
             ) { g -> listOf(
                 "%.2f".format(g.cgpa),
                 g.gpaAPlus?.toString() ?: "", g.gpaA?.toString() ?: "", g.gpaAMinus?.toString() ?: "",
                 g.gpaBPlus?.toString() ?: "", g.gpaB?.toString() ?: "", g.gpaBMinus?.toString() ?: "",
                 g.gpaCPlus?.toString() ?: "", g.gpaC?.toString() ?: "", g.gpaCMinus?.toString() ?: "",
                 g.gpaDPlus?.toString() ?: "", g.gpaD?.toString() ?: "", g.gpaDMinus?.toString() ?: "",
-                g.gpaF?.toString() ?: "", g.gpaU?.toString() ?: "",
-                g.gpaP?.toString() ?: "", g.gpaS?.toString() ?: "", g.gpaW?.toString() ?: "",
+                g.gpaF?.toString() ?: "", g.gpaU?.toString() ?: "", g.gpaP?.toString() ?: "",
+                g.gpaNp?.toString() ?: "", g.gpaS?.toString() ?: "", g.gpaW?.toString() ?: "",
                 g.gpaI?.toString() ?: "", g.gpaN?.toString() ?: "", g.gpaNC?.toString() ?: ""
             )}
 

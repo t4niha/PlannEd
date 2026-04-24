@@ -435,6 +435,7 @@ data class GradingScale(
     val gpaW: Float? = null,
     val gpaI: Float? = null,
     val gpaN: Float? = null,
+    val gpaNp: Float? = null,
     val gpaNC: Float? = null
 )
 //</editor-fold>
@@ -596,6 +597,7 @@ interface CompletedCourseDao {
     @Insert suspend fun insert(course: CompletedCourse): Long
     @Query("SELECT * FROM CompletedCourse ORDER BY year DESC, semester DESC, courseTitle ASC") suspend fun getAll(): List<CompletedCourse>
     @Query("SELECT * FROM CompletedCourse WHERE id = :id") suspend fun getById(id: Int): CompletedCourse?
+    @Update suspend fun update(course: CompletedCourse)
     @Query("DELETE FROM CompletedCourse WHERE id = :id") suspend fun deleteById(id: Int)
 }
 

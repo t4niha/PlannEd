@@ -53,7 +53,7 @@ fun calculateCgpa(completedCourses: List<CompletedCourse>, scale: GradingScale):
         "B+" to scale.gpaBPlus, "B" to scale.gpaB, "B-" to scale.gpaBMinus,
         "C+" to scale.gpaCPlus, "C" to scale.gpaC, "C-" to scale.gpaCMinus,
         "D+" to scale.gpaDPlus, "D" to scale.gpaD, "D-" to scale.gpaDMinus,
-        "F" to scale.gpaF, "U" to scale.gpaU, "P" to scale.gpaP,
+        "F" to scale.gpaF, "U" to scale.gpaU, "P" to scale.gpaP, "NP" to scale.gpaNp,
         "S" to scale.gpaS, "W" to scale.gpaW, "I" to scale.gpaI,
         "N" to scale.gpaN, "NC" to scale.gpaNC
     )
@@ -216,8 +216,21 @@ fun Academics(db: AppDatabase) {
                 onDeleted = {
                     academicsSelectedCompletedCourse = null
                     academicsCurrentView = "history"
-                }
+                },
+                onUpdateDataReady = { data -> academicsCompletedCourseUpdateData = data },
+                onUpdate = { academicsCurrentView = "updateCompletedCourse" }
             )
+        }
+        "updateCompletedCourse" -> academicsSelectedCompletedCourse?.let { completed ->
+            academicsCompletedCourseUpdateData?.let { formData ->
+                AcademicsCompletedCourseUpdateForm(
+                    db = db,
+                    course = completed,
+                    preloadedData = formData,
+                    onBack = { academicsCurrentView = "completedInfo" },
+                    onSaved = { academicsCurrentView = "completedInfo" }
+                )
+            }
         }
     }
 }
@@ -724,7 +737,9 @@ fun AcademicsAddCourseForm(
     }
 }
 
-// Course info page
+data class CompletedCourseUpdateData(
+    val submitGrade: String
+)
 data class CourseUpdateFormData(
     val title: String,
     val courseCode: String,
@@ -930,7 +945,7 @@ fun AcademicsCourseInfoPage(
                             Button(
                                 onClick = {
                                     if (finalGradeText.isBlank()) { showMsg("Enter a grade first"); return@Button }
-                                    val gradeRegex = Regex("^(A[+-]?|B[+-]?|C[+-]?|D[+-]?|F|U|P|S|W|I|N|NC)$")
+                                    val gradeRegex = Regex("^(A[+-]?|B[+-]?|C[+-]?|D[+-]?|F|U|P|NP|S|W|I|N|NC)$")
                                     if (!gradeRegex.matches(finalGradeText.trim())) { showMsg("Invalid letter grade"); return@Button }
                                     scope.launch {
                                         db.completedCourseDao().insert(CompletedCourse(
@@ -1386,7 +1401,22 @@ fun AcademicsAddGradeForm(
         GradeItemType.ATTENDANCE to course.weightAttendance, GradeItemType.PARTICIPATION to course.weightParticipation,
         GradeItemType.REPORT to course.weightReport, GradeItemType.OTHER to course.weightOther
     )
-    val availableTypes = GradeItemType.entries
+    val availableTypes = listOf(
+        GradeItemType.QUIZ,
+        GradeItemType.HOMEWORK,
+        GradeItemType.ASSIGNMENT,
+        GradeItemType.MID,
+        GradeItemType.FINAL,
+        GradeItemType.PROJECT,
+        GradeItemType.REPORT,
+        GradeItemType.PRESENTATION,
+        GradeItemType.LAB,
+        GradeItemType.PRACTICAL,
+        GradeItemType.TUTORIAL,
+        GradeItemType.ATTENDANCE,
+        GradeItemType.PARTICIPATION,
+        GradeItemType.OTHER
+    )
 
     // Make sure selectedType is valid
     LaunchedEffect(Unit) { if (selectedType !in availableTypes) selectedType = availableTypes.first() }
@@ -1727,6 +1757,7 @@ fun AcademicsGradingScaleForm(
     var gpaF by remember { mutableStateOf(scale.gpaF.toScaleString()) }
     var gpaU by remember { mutableStateOf(scale.gpaU.toScaleString()) }
     var gpaP by remember { mutableStateOf(scale.gpaP.toScaleString()) }
+    var gpaNp by remember { mutableStateOf(scale.gpaNp.toScaleString()) }
     var gpaS by remember { mutableStateOf(scale.gpaS.toScaleString()) }
     var gpaW by remember { mutableStateOf(scale.gpaW.toScaleString()) }
     var gpaI by remember { mutableStateOf(scale.gpaI.toScaleString()) }
@@ -1790,11 +1821,12 @@ fun AcademicsGradingScaleForm(
                             "D" to Pair(gpaD) { v: String -> gpaD = v },
                             "D-" to Pair(gpaDMinus) { v: String -> gpaDMinus = v },
                             "F" to Pair(gpaF) { v: String -> gpaF = v },
-                            "U" to Pair(gpaU) { v: String -> gpaU = v },
-                            "P" to Pair(gpaP) { v: String -> gpaP = v },
-                            "S" to Pair(gpaS) { v: String -> gpaS = v },
                             "W" to Pair(gpaW) { v: String -> gpaW = v },
                             "I" to Pair(gpaI) { v: String -> gpaI = v },
+                            "U" to Pair(gpaU) { v: String -> gpaU = v },
+                            "S" to Pair(gpaS) { v: String -> gpaS = v },
+                            "P" to Pair(gpaP) { v: String -> gpaP = v },
+                            "NP" to Pair(gpaNp) { v: String -> gpaNp = v },
                             "N" to Pair(gpaN) { v: String -> gpaN = v },
                             "NC" to Pair(gpaNC) { v: String -> gpaNC = v }
                         )
@@ -1830,7 +1862,8 @@ fun AcademicsGradingScaleForm(
                             gpaCMinus = scale.gpaCMinus.toScaleString(); gpaDPlus = scale.gpaDPlus.toScaleString()
                             gpaD = scale.gpaD.toScaleString(); gpaDMinus = scale.gpaDMinus.toScaleString()
                             gpaF = scale.gpaF.toScaleString(); gpaU = scale.gpaU.toScaleString()
-                            gpaP = scale.gpaP.toScaleString(); gpaS = scale.gpaS.toScaleString()
+                            gpaP = scale.gpaP.toScaleString(); gpaNp = scale.gpaNp.toScaleString()
+                            gpaS = scale.gpaS.toScaleString()
                             gpaW = scale.gpaW.toScaleString(); gpaI = scale.gpaI.toScaleString()
                             gpaN = scale.gpaN.toScaleString(); gpaNC = scale.gpaNC.toScaleString()
                         },
@@ -1855,6 +1888,7 @@ fun AcademicsGradingScaleForm(
                             val (okF, vF) = validate(gpaF, "F"); if (!okF) return@Button
                             val (okU, vU) = validate(gpaU, "U"); if (!okU) return@Button
                             val (okP, vP) = validate(gpaP, "P"); if (!okP) return@Button
+                            val (okNP, vNP) = validate(gpaNp, "NP"); if (!okNP) return@Button
                             val (okS, vS) = validate(gpaS, "S"); if (!okS) return@Button
                             val (okW, vW) = validate(gpaW, "W"); if (!okW) return@Button
                             val (okI, vI) = validate(gpaI, "I"); if (!okI) return@Button
@@ -1867,7 +1901,7 @@ fun AcademicsGradingScaleForm(
                                     gpaBPlus = vBp, gpaB = vB, gpaBMinus = vBm,
                                     gpaCPlus = vCp, gpaC = vC, gpaCMinus = vCm,
                                     gpaDPlus = vDp, gpaD = vD, gpaDMinus = vDm,
-                                    gpaF = vF, gpaU = vU, gpaP = vP,
+                                    gpaF = vF, gpaU = vU, gpaP = vP, gpaNp = vNP,
                                     gpaS = vS, gpaW = vW, gpaI = vI,
                                     gpaN = vN, gpaNC = vNC
                                 ))
@@ -1905,6 +1939,108 @@ fun AcademicsGradingScaleForm(
     }
 }
 
+// Completed course update form
+@RequiresApi(Build.VERSION_CODES.O)
+@Composable
+fun AcademicsCompletedCourseUpdateForm(
+    db: AppDatabase,
+    course: CompletedCourse,
+    preloadedData: CompletedCourseUpdateData,
+    onBack: () -> Unit,
+    onSaved: () -> Unit
+) {
+    val scope = rememberCoroutineScope()
+    var submitGrade by remember { mutableStateOf(preloadedData.submitGrade) }
+    var showBanner by remember { mutableStateOf(false) }
+    var bannerMessage by remember { mutableStateOf("") }
+
+    fun showMsg(msg: String) {
+        bannerMessage = msg; showBanner = true
+        scope.launch { delay(3000); showBanner = false }
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize().background(BackgroundColor).padding(16.dp)) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                contentDescription = "Back",
+                tint = PrimaryColor,
+                modifier = Modifier.clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { onBack() }.size(40.dp)
+            )
+
+            Column(modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState())) {
+                Box(modifier = Modifier.fillMaxWidth().padding(start = 18.dp, end = 18.dp, bottom = 18.dp, top = 8.dp)) {
+                    Text(course.courseTitle, fontSize = 20.sp, fontWeight = FontWeight.Medium)
+                }
+
+                Box(modifier = Modifier.fillMaxWidth().background(Color(CardColor), RoundedCornerShape(12.dp)).padding(16.dp)) {
+                    Column {
+                        Text("Submitted Grade", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                        Spacer(modifier = Modifier.height(12.dp))
+                        TextField(
+                            value = submitGrade,
+                            onValueChange = { submitGrade = it },
+                            placeholder = { Text("e.g. A-", color = Color.Gray) },
+                            modifier = Modifier.fillMaxWidth().background(BackgroundColor, RoundedCornerShape(8.dp)).border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)),
+                            textStyle = LocalTextStyle.current.copy(fontSize = 16.sp),
+                            colors = TextFieldDefaults.colors(focusedContainerColor = BackgroundColor, unfocusedContainerColor = BackgroundColor, focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent),
+                            singleLine = true
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Row(modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Button(
+                    onClick = { submitGrade = preloadedData.submitGrade },
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
+                    contentPadding = PaddingValues(16.dp)
+                ) { Text("Reset", fontSize = 16.sp, color = Color.White) }
+                Button(
+                    onClick = {
+                        if (submitGrade.isBlank()) { showMsg("Enter a grade first"); return@Button }
+                        val gradeRegex = Regex("^(A[+-]?|B[+-]?|C[+-]?|D[+-]?|F|U|P|NP|S|W|I|N|NC)$")
+                        if (!gradeRegex.matches(submitGrade.trim())) { showMsg("Invalid letter grade"); return@Button }
+                        scope.launch {
+                            db.completedCourseDao().update(
+                                course.copy(submitGrade = submitGrade.trim().uppercase())
+                            )
+                            academicsSelectedCompletedCourse = db.completedCourseDao().getById(course.id)
+                            onSaved()
+                        }
+                    },
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
+                    contentPadding = PaddingValues(16.dp)
+                ) { Text("Save", fontSize = 16.sp, color = Color.White) }
+            }
+        }
+
+        AnimatedVisibility(
+            visible = showBanner,
+            enter = slideInVertically(initialOffsetY = { -it }) + fadeIn(),
+            exit = slideOutVertically(targetOffsetY = { -it }) + fadeOut(),
+            modifier = Modifier.align(Alignment.TopCenter)
+        ) {
+            val dragOffset = remember { mutableFloatStateOf(0f) }
+            Box(modifier = Modifier.offset(y = dragOffset.floatValue.coerceAtMost(0f).dp).draggable(
+                orientation = androidx.compose.foundation.gestures.Orientation.Vertical,
+                state = androidx.compose.foundation.gestures.rememberDraggableState { delta -> dragOffset.floatValue += delta; if (dragOffset.floatValue < -80f) showBanner = false },
+                onDragStopped = { dragOffset.floatValue = 0f }
+            )) {
+                Surface(color = PrimaryColor, modifier = Modifier.fillMaxWidth().padding(16.dp), shadowElevation = 8.dp, shape = MaterialTheme.shapes.medium) {
+                    Box(modifier = Modifier.padding(16.dp), contentAlignment = Alignment.Center) {
+                        Text(bannerMessage, color = BackgroundColor, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+    }
+}
+
 // Completed course info page
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
@@ -1912,21 +2048,38 @@ fun AcademicsCompletedInfoPage(
     db: AppDatabase,
     course: CompletedCourse,
     onBack: () -> Unit,
-    onDeleted: () -> Unit
+    onDeleted: () -> Unit,
+    onUpdateDataReady: (CompletedCourseUpdateData) -> Unit,
+    onUpdate: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var updateDataReady by remember { mutableStateOf(false) }
 
-    Column(modifier = Modifier.fillMaxSize().background(BackgroundColor).padding(16.dp)) {
-        Icon(
-            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
-            contentDescription = "Back",
-            tint = PrimaryColor,
-            modifier = Modifier.clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { onBack() }.size(40.dp)
-        )
+    LaunchedEffect(course.id) {
+        onUpdateDataReady(CompletedCourseUpdateData(submitGrade = course.submitGrade))
+        updateDataReady = true
+    }
 
-        Column(modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState())) {
-            Box(modifier = Modifier.fillMaxWidth().padding(18.dp)) {
+    Column(modifier = Modifier.fillMaxSize().background(BackgroundColor)) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(start = 4.dp, end = 16.dp, top = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                contentDescription = "Back",
+                tint = PrimaryColor,
+                modifier = Modifier
+                    .padding(12.dp)
+                    .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { onBack() }
+                    .size(40.dp)
+            )
+        }
+
+        Column(modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp)) {
+            Box(modifier = Modifier.fillMaxWidth().padding(start = 18.dp, end = 18.dp, bottom = 18.dp, top = 8.dp)) {
                 Text(course.courseTitle, fontSize = 20.sp, fontWeight = FontWeight.Medium)
             }
 
@@ -1942,13 +2095,20 @@ fun AcademicsCompletedInfoPage(
         }
 
         Spacer(modifier = Modifier.height(16.dp))
-
-        Button(
-            onClick = { showDeleteDialog = true },
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
-            contentPadding = PaddingValues(16.dp)
-        ) { Text("Delete", fontSize = 16.sp, color = Color.White) }
+        Row(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Button(
+                onClick = { showDeleteDialog = true },
+                modifier = Modifier.weight(1f),
+                colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
+                contentPadding = PaddingValues(16.dp)
+            ) { Text("Delete", fontSize = 16.sp, color = Color.White) }
+            Button(
+                onClick = { if (updateDataReady) onUpdate() },
+                modifier = Modifier.weight(1f),
+                colors = ButtonDefaults.buttonColors(containerColor = if (updateDataReady) PrimaryColor else Color.LightGray),
+                contentPadding = PaddingValues(16.dp)
+            ) { Text("Update", fontSize = 16.sp, color = Color.White) }
+        }
     }
 
     if (showDeleteDialog) {
