@@ -231,6 +231,31 @@ fun Academics(db: AppDatabase) {
                 )
             }
         }
+        "enterGrade" -> academicsSelectedCourse?.let { course ->
+            EnterGradeForm(
+                db = db,
+                course = course,
+                initialTitle = academicsEnterGradeDeadlineTitle,
+                deadlineId = academicsEnterGradeDeadlineId,
+                onBack = {
+                    val returnTo = academicsEnterGradeReturnScreen
+                    academicsEnterGradeDeadlineTitle = ""
+                    academicsEnterGradeDeadlineId = 0
+                    academicsEnterGradeReturnScreen = "courseInfo"
+                    if (returnTo == "DeadlineInfo") {
+                        currentScreen = "DeadlineInfo"
+                    } else {
+                        academicsCurrentView = "courseInfo"
+                    }
+                },
+                onSaved = {
+                    academicsEnterGradeDeadlineTitle = ""
+                    academicsEnterGradeDeadlineId = 0
+                    academicsEnterGradeReturnScreen = "courseInfo"
+                    academicsCurrentView = "courseInfo"
+                }
+            )
+        }
     }
 }
 

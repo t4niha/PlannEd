@@ -30,6 +30,12 @@ data class Category(
             parentColumns = ["id"],
             childColumns = ["categoryId"],
             onDelete = ForeignKey.SET_NULL
+        ),
+        ForeignKey(
+            entity = Course::class,
+            parentColumns = ["id"],
+            childColumns = ["courseId"],
+            onDelete = ForeignKey.SET_NULL
         )
     ]
 )
@@ -40,16 +46,17 @@ data class MasterEvent(
     val notes: String? = null,
     val color: String? = null,
 
-    val startDate: LocalDate,
-    val endDate: LocalDate? = null,
+    val startDate: LocalDate,               // date when event occurs
+    val endDate: LocalDate? = null,         // for recurring events only, date when occurrences stop
 
     val startTime: LocalTime,
     val endTime: LocalTime,
 
-    val recurFreq: RecurrenceFrequency,
-    val recurRule: RecurrenceRule,
+    val recurFreq: RecurrenceFrequency,     // only once / daily / weekly / monthly / yearly
+    val recurRule: RecurrenceRule,          // none / days of week 1-7 / date 1-31 / date DD-MM
 
     val categoryId: Int? = null,
+    val courseId: Int? = null,
 )
 
 @Entity(
@@ -91,6 +98,12 @@ data class EventOccurrence(
             parentColumns = ["id"],
             childColumns = ["eventId"],
             onDelete = ForeignKey.SET_NULL
+        ),
+        ForeignKey(
+            entity = Course::class,
+            parentColumns = ["id"],
+            childColumns = ["courseId"],
+            onDelete = ForeignKey.SET_NULL
         )
     ]
 )
@@ -104,7 +117,8 @@ data class Deadline(
     val time: LocalTime,
 
     val categoryId: Int? = null,
-    val eventId: Int? = null
+    val eventId: Int? = null,
+    val courseId: Int? = null,
 )
 //</editor-fold>
 
@@ -115,14 +129,14 @@ data class Deadline(
 data class MasterTaskBucket(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
 
-    val startDate: LocalDate,
-    val endDate: LocalDate? = null,
+    val startDate: LocalDate,               // date when event occurs
+    val endDate: LocalDate? = null,         // for recurring events only, date when occurrences stop
 
     val startTime: LocalTime,
     val endTime: LocalTime,
 
-    val recurFreq: RecurrenceFrequency,
-    val recurRule: RecurrenceRule,
+    val recurFreq: RecurrenceFrequency,     // only once / daily / weekly / monthly / yearly
+    val recurRule: RecurrenceRule,          // none / days of week 1-7 / date 1-31 / date DD-MM
 )
 
 @Entity(
@@ -144,7 +158,7 @@ data class TaskBucketOccurrence(
     val startTime: LocalTime,
     val endTime: LocalTime,
 
-    val isException: Boolean = false
+    val isException: Boolean = false      //  back-end access only, if individually changed
 )
 //</editor-fold>
 
@@ -184,23 +198,23 @@ data class MasterTask(
 
     val title: String,
     val notes: String? = null,
-    val allDay: LocalDate? = null,
-    val breakable: Boolean? = false,
-    val noIntervals: Int,
+    val allDay: LocalDate? = null,          // null = not all-day; date = all-day task for that date
+    val breakable: Boolean? = false,        // can be checked true
+    val noIntervals: Int,                   // back-end only, how many intervals, 1 if not breakable
 
-    val startDate: LocalDate? = null,
-    val startTime: LocalTime? = null,
+    val startDate: LocalDate? = null,       // null = auto, otherwise manual
+    val startTime: LocalTime? = null,       // null = auto, otherwise manual
 
     val predictedDuration: Int,
-    val actualDuration: Int? = null,
+    val actualDuration: Int? = null,        // back-end access to this only, total final duration
 
-    val status: Int? = 1,
-    val timeLeft: Int? = null,
-    val overTime: Int? = null,
-    val deadlineMissed: Boolean = false,
-    val completedAt: LocalDateTime? = null,
+    val status: Int? = 1,                   // 1 = not started, 2 = in progress, 3 = completed
+    val timeLeft: Int? = null,              // auto calculated
+    val overTime: Int? = null,              // auto-calculated
+    val deadlineMissed: Boolean = false,    // set at completion time
+    val completedAt: LocalDateTime? = null, // set at completion time
 
-    val dependencyTaskId: Int? = null,
+    val dependencyTaskId: Int? = null,      // task that must be completed before this one
     val eventId: Int? = null,
     val deadlineId: Int? = null,
     val categoryId: Int? = null
@@ -221,24 +235,25 @@ data class TaskInterval(
 
     val masterTaskId: Int,
 
-    val intervalNo: Int,
+    val intervalNo: Int,                    // interval number out of all intervals
     val notes: String? = null,
 
     val occurDate: LocalDate,
 
-    val startTime: LocalTime,
+    val startTime: LocalTime,               // updates as task progresses
     val endTime: LocalTime,
 
     val status: Int? = 1,
-    val timeLeft: Int? = null,
-    val overTime: Int? = null,
-    val atiPadding: Int = 0
+    val timeLeft: Int? = null,              // auto calculated
+    val overTime: Int? = null,              // auto-calculated
+    val atiPadding: Int = 0                 // padding added by ATI at scheduling time
 )
 //</editor-fold>
 
 // Reminder
 //<editor-fold desc="Reminder">
 
+// Reminder - MASTER
 @Entity(
     foreignKeys = [
         ForeignKey(
@@ -297,24 +312,24 @@ data class ReminderOccurrence(
 data class CategoryATI(
     @PrimaryKey val categoryId: Int,
     val score: Float = 0f,
-    val deadlineMissCount: Int = 0,
-    val avgOvertime: Float = 0f,
-    val tasksCompleted: Int = 0,
-    val predictedPadding: Int = 0,
-    val paddingSlope: Float = 0f,
-    val paddingIntercept: Float = 0f
+    val deadlineMissCount: Int = 0,     // out of last 10 completed tasks
+    val avgOvertime: Float = 0f,        // average overtime in minutes, last 10 tasks
+    val tasksCompleted: Int = 0,        // total completed tasks for this category
+    val predictedPadding: Int = 0,      // evaluated at avgX, for display only
+    val paddingSlope: Float = 0f,       // regression slope
+    val paddingIntercept: Float = 0f    // regression intercept
 )
 
 @Entity
 data class EventATI(
     @PrimaryKey val eventId: Int,
     val score: Float = 0f,
-    val deadlineMissCount: Int = 0,
-    val avgOvertime: Float = 0f,
-    val tasksCompleted: Int = 0,
-    val predictedPadding: Int = 0,
-    val paddingSlope: Float = 0f,
-    val paddingIntercept: Float = 0f
+    val deadlineMissCount: Int = 0,     // out of last 10 completed tasks
+    val avgOvertime: Float = 0f,        // average overtime in minutes, last 10 tasks
+    val tasksCompleted: Int = 0,        // total completed tasks for this event
+    val predictedPadding: Int = 0,      // evaluated at avgX, for display only
+    val paddingSlope: Float = 0f,       // regression slope
+    val paddingIntercept: Float = 0f    // regression intercept
 )
 //</editor-fold>
 
@@ -330,6 +345,7 @@ data class AppSetting(
     val breakEvery: Int = 30,
     val atiPaddingEnabled: Boolean = true,
 
+    // Notifications
     val notifTasksEnabled: Boolean = true,
     val notifTaskAllDayTime: Int = 25200,
     val notifEventsEnabled: Boolean = true,
@@ -412,6 +428,7 @@ data class CompletedCourse(
     val calculatedGrade: Float,
     val submitGrade: String
 )
+
 @Entity
 data class GradingScale(
     @PrimaryKey val id: Int = 0,
@@ -712,7 +729,7 @@ data class CategoryWithMasterReminders(
         Course::class, GradeItem::class, CompletedCourse::class,
         GradingScale::class
     ],
-    version = 17
+    version = 21
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {

@@ -130,6 +130,9 @@ var academicsSelectedCompletedCourse by mutableStateOf<CompletedCourse?>(null)
 var academicsCourseUpdateFormData by mutableStateOf<CourseUpdateFormData?>(null)
 var academicsGradingScale by mutableStateOf<GradingScale?>(null)
 var academicsCompletedCourseUpdateData by mutableStateOf<CompletedCourseUpdateData?>(null)
+var academicsEnterGradeDeadlineTitle by mutableStateOf("")
+var academicsEnterGradeDeadlineId by mutableIntStateOf(0)
+var academicsEnterGradeReturnScreen by mutableStateOf("courseInfo")
 //</editor-fold>
 
 /* POMODORO STATE */

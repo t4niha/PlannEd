@@ -32,7 +32,9 @@ import kotlinx.coroutines.runBlocking
 
 data class EventUpdateFormData(
     val categories: List<Category>,
-    val selectedCategory: Int?
+    val courses: List<Course>,
+    val selectedCategory: Int?,
+    val selectedCourse: Int?
 )
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -114,9 +116,7 @@ fun EventsList(
                     item {
                         Text(
                             text = categoryName,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.Gray,
+                            fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.Gray,
                             modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 4.dp)
                         )
                     }
@@ -173,12 +173,7 @@ fun EventListItem(
             Text(text = "$timeText, $recurrenceText", fontSize = 14.sp, color = Color.Gray)
         }
         Spacer(modifier = Modifier.width(8.dp))
-        Icon(
-            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-            contentDescription = null,
-            tint = Color.Gray,
-            modifier = Modifier.size(20.dp)
-        )
+        Icon(imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(20.dp))
     }
 }
 
@@ -197,8 +192,10 @@ fun EventInfoPage(
     val scope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
     var category by remember { mutableStateOf<Category?>(null) }
+    var course by remember { mutableStateOf<Course?>(null) }
     var currentEvent by remember { mutableStateOf(event) }
     var relatedTasks by remember { mutableStateOf<List<MasterTask>>(emptyList()) }
+    var relatedDeadlines by remember { mutableStateOf<List<Deadline>>(emptyList()) }
     var updateDataReady by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     val dateFormatter = java.time.format.DateTimeFormatter.ofPattern("MMMM d, yyyy")
@@ -207,30 +204,32 @@ fun EventInfoPage(
     LaunchedEffect(event.id) {
         currentEvent = db.eventDao().getMasterEventById(event.id) ?: event
         category = currentEvent.categoryId?.let { db.categoryDao().getCategoryById(it) }
+        course = currentEvent.courseId?.let { db.courseDao().getById(it) }
         relatedTasks = db.taskDao().getAllMasterTasks().filter { it.eventId == event.id && it.status != 3 }
+        relatedDeadlines = db.deadlineDao().getAll().filter { it.eventId == event.id }
 
-        // Preload update form data
         val categories = CategoryManager.getAll(db)
+        val courses = db.courseDao().getAll()
         val selectedCategory = currentEvent.categoryId?.let { catId ->
             categories.indexOfFirst { it.id == catId }.takeIf { it >= 0 }
         }
-        onUpdateDataReady(EventUpdateFormData(categories = categories, selectedCategory = selectedCategory))
+        val selectedCourse = currentEvent.courseId?.let { cId ->
+            courses.indexOfFirst { it.id == cId }.takeIf { it >= 0 }
+        }
+        onUpdateDataReady(EventUpdateFormData(
+            categories = categories,
+            courses = courses,
+            selectedCategory = selectedCategory,
+            selectedCourse = selectedCourse
+        ))
         updateDataReady = true
     }
 
-    Column(
-        modifier = Modifier.fillMaxSize().background(BackgroundColor).padding(16.dp)
-    ) {
+    Column(modifier = Modifier.fillMaxSize().background(BackgroundColor).padding(16.dp)) {
         Icon(
             imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
-            contentDescription = "Back",
-            tint = PrimaryColor,
-            modifier = Modifier
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null
-                ) { onBack() }
-                .size(40.dp)
+            contentDescription = "Back", tint = PrimaryColor,
+            modifier = Modifier.clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { onBack() }.size(40.dp)
         )
 
         Column(modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(scrollState)) {
@@ -246,25 +245,21 @@ fun EventInfoPage(
             }
 
             if (occurrence != null) {
-                Column(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
+                Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
                         text = "${occurrence.startTime.format(timeFormatter)} - ${occurrence.endTime.format(timeFormatter)}, ${occurrence.occurDate.format(dateFormatter)}",
-                        fontSize = 16.sp,
-                        color = Color.Gray
+                        fontSize = 16.sp, color = Color.Gray
                     )
                 }
                 Spacer(modifier = Modifier.height(18.dp))
             }
 
-            InfoCard(listOf(
-                "Start Date" to currentEvent.startDate.format(dateFormatter),
-                "End Date" to (currentEvent.endDate?.format(dateFormatter) ?: "N/A"),
-                "Start Time" to currentEvent.startTime.format(timeFormatter),
-                "End Time" to currentEvent.endTime.format(timeFormatter),
-                "Recurrence" to (currentEvent.recurFreq.name.lowercase().replaceFirstChar { it.uppercase() } +
+            InfoCard(buildList {
+                add("Start Date" to currentEvent.startDate.format(dateFormatter))
+                add("End Date" to (currentEvent.endDate?.format(dateFormatter) ?: "N/A"))
+                add("Start Time" to currentEvent.startTime.format(timeFormatter))
+                add("End Time" to currentEvent.endTime.format(timeFormatter))
+                add("Recurrence" to (currentEvent.recurFreq.name.lowercase().replaceFirstChar { it.uppercase() } +
                         when (currentEvent.recurFreq) {
                             RecurrenceFrequency.WEEKLY -> currentEvent.recurRule.daysOfWeek?.sorted()?.joinToString(", ") { d ->
                                 when (d) { 1 -> "Mo"; 2 -> "Tu"; 3 -> "We"; 4 -> "Th"; 5 -> "Fr"; 6 -> "Sa"; 7 -> "Su"; else -> "" }
@@ -272,19 +267,17 @@ fun EventInfoPage(
                             RecurrenceFrequency.MONTHLY -> currentEvent.recurRule.daysOfMonth?.sorted()?.joinToString(", ")?.let { " ($it)" } ?: ""
                             RecurrenceFrequency.YEARLY -> currentEvent.recurRule.monthAndDay?.let { " (${java.time.Month.of(it.second).getDisplayName(java.time.format.TextStyle.FULL, java.util.Locale.getDefault())} ${it.first})" } ?: ""
                             else -> ""
-                        }),
-                "Category" to (category?.title ?: "None")
-            ))
+                        }))
+                if (course != null) add("Course" to (course!!.courseCode?.let { "$it – ${course!!.title}" } ?: course!!.title))
+                add("Category" to (category?.title ?: "None"))
+            })
 
             Spacer(modifier = Modifier.height(18.dp))
 
-            // Related tasks section
             Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp)) {
                 Text(
                     text = if (relatedTasks.isEmpty()) "No Related Tasks" else "Related Tasks",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Gray,
+                    fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.Gray,
                     modifier = Modifier.padding(start = 4.dp, bottom = 8.dp)
                 )
                 if (relatedTasks.isNotEmpty()) {
@@ -294,9 +287,9 @@ fun EventInfoPage(
                                 runBlocking {
                                     when {
                                         task.eventId != null -> {
-                                            val event = db.eventDao().getAllMasterEvents().find { it.id == task.eventId }
-                                            event?.color?.let { Converters.toColor(it) }
-                                                ?: event?.categoryId?.let { catId -> db.categoryDao().getAll().find { it.id == catId }?.color?.let { Converters.toColor(it) } }
+                                            val ev = db.eventDao().getAllMasterEvents().find { it.id == task.eventId }
+                                            ev?.color?.let { Converters.toColor(it) }
+                                                ?: ev?.categoryId?.let { catId -> db.categoryDao().getAll().find { it.id == catId }?.color?.let { Converters.toColor(it) } }
                                                 ?: Color.Gray
                                         }
                                         task.categoryId != null -> {
@@ -308,10 +301,7 @@ fun EventInfoPage(
                                 }
                             }
                             Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(Color(CardColor))
+                                modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Color(CardColor))
                                     .clickable {
                                         com.planned.eventsCurrentView = "list"
                                         com.planned.eventsSelectedEvent = null
@@ -320,32 +310,72 @@ fun EventInfoPage(
                                         com.planned.selectedTaskForInfo = task
                                         com.planned.taskInfoReturnScreen = "EventInfo"
                                         com.planned.currentScreen = "TaskInfo"
-                                    }
-                                    .padding(12.dp),
+                                    }.padding(12.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(INNER_CIRCLE_SIZE)
-                                        .clip(CircleShape)
-                                        .background(taskColor)
-                                )
+                                Box(modifier = Modifier.size(INNER_CIRCLE_SIZE).clip(CircleShape).background(taskColor))
                                 Spacer(modifier = Modifier.width(12.dp))
-                                Text(
-                                    text = task.title,
-                                    fontSize = 16.sp,
-                                    fontWeight = FontWeight.Normal,
-                                    maxLines = 1,
-                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                                    modifier = Modifier.weight(1f)
-                                )
+                                Text(text = task.title, fontSize = 16.sp, fontWeight = FontWeight.Normal, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                                    contentDescription = null,
-                                    tint = Color.Gray,
-                                    modifier = Modifier.size(20.dp)
-                                )
+                                Icon(imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(20.dp))
+                            }
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(18.dp))
+
+            // Related Deadlines
+            Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp)) {
+                Text(
+                    text = if (relatedDeadlines.isEmpty()) "No Related Deadlines" else "Related Deadlines",
+                    fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.Gray,
+                    modifier = Modifier.padding(start = 4.dp, bottom = 8.dp)
+                )
+                if (relatedDeadlines.isNotEmpty()) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        relatedDeadlines.forEach { deadline ->
+                            val deadlineColor = remember(deadline.id) {
+                                runBlocking {
+                                    when {
+                                        deadline.eventId != null -> {
+                                            val ev = db.eventDao().getAllMasterEvents().find { it.id == deadline.eventId }
+                                            ev?.color?.let { Converters.toColor(it) }
+                                                ?: ev?.categoryId?.let { catId -> db.categoryDao().getAll().find { it.id == catId }?.color?.let { Converters.toColor(it) } }
+                                                ?: Color.Gray
+                                        }
+                                        deadline.categoryId != null -> {
+                                            val cat = db.categoryDao().getCategoryById(deadline.categoryId)
+                                            cat?.color?.let { Converters.toColor(it) } ?: Color.Gray
+                                        }
+                                        else -> Color.Gray
+                                    }
+                                }
+                            }
+                            val deadlineDateFormatter = java.time.format.DateTimeFormatter.ofPattern("MMM d, yyyy")
+                            Row(
+                                modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Color(CardColor))
+                                    .clickable {
+                                        com.planned.eventsCurrentView = "list"
+                                        com.planned.eventsSelectedEvent = null
+                                        com.planned.selectedEventForInfo = currentEvent
+                                        com.planned.eventInfoReturnScreen = eventReturnScreen
+                                        com.planned.selectedDeadlineForInfo = deadline
+                                        com.planned.deadlineInfoReturnScreen = "EventInfo"
+                                        com.planned.currentScreen = "DeadlineInfo"
+                                    }.padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(modifier = Modifier.size(INNER_CIRCLE_SIZE).clip(CircleShape).background(deadlineColor))
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(text = deadline.title, fontSize = 16.sp, fontWeight = FontWeight.Normal, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(text = deadline.date.format(deadlineDateFormatter), fontSize = 14.sp, color = Color.Gray)
+                                }
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Icon(imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(20.dp))
                             }
                         }
                     }
@@ -356,67 +386,35 @@ fun EventInfoPage(
         Spacer(modifier = Modifier.height(16.dp))
 
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Button(
-                onClick = { showDeleteDialog = true },
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
-                contentPadding = PaddingValues(16.dp)
-            ) { Text("Delete", fontSize = 16.sp, color = Color.White) }
-            Button(
-                onClick = { if (updateDataReady) onUpdate() },
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(containerColor = if (updateDataReady) PrimaryColor else Color.LightGray),
-                contentPadding = PaddingValues(16.dp)
-            ) { Text("Update", fontSize = 16.sp, color = Color.White) }
+            Button(onClick = { showDeleteDialog = true }, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = Color.Gray), contentPadding = PaddingValues(16.dp)) {
+                Text("Delete", fontSize = 16.sp, color = Color.White)
+            }
+            Button(onClick = { if (updateDataReady) onUpdate() }, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = if (updateDataReady) PrimaryColor else Color.LightGray), contentPadding = PaddingValues(16.dp)) {
+                Text("Update", fontSize = 16.sp, color = Color.White)
+            }
         }
 
         if (showDeleteDialog) {
             AlertDialog(
                 onDismissRequest = { showDeleteDialog = false },
-                containerColor = BackgroundColor,
-                title = null,
+                containerColor = BackgroundColor, title = null,
                 text = { Text("Delete this event?", fontSize = 16.sp) },
                 confirmButton = {},
                 dismissButton = {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         if (occurrence != null && currentEvent.recurFreq != RecurrenceFrequency.NONE) {
                             Button(
-                                onClick = {
-                                    showDeleteDialog = false
-                                    scope.launch {
-                                        db.eventDao().deleteOccurrence(occurrence.id)
-                                        onTaskChanged(context, db)
-                                        onBack()
-                                    }
-                                },
-                                modifier = Modifier.weight(1f),
-                                colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
-                                contentPadding = PaddingValues(12.dp)
+                                onClick = { showDeleteDialog = false; scope.launch { db.eventDao().deleteOccurrence(occurrence.id); onTaskChanged(context, db); onBack() } },
+                                modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = Color.Gray), contentPadding = PaddingValues(12.dp)
                             ) { Text("Delete This", fontSize = 12.sp, color = Color.White) }
                         }
-
                         Button(
-                            onClick = {
-                                showDeleteDialog = false
-                                scope.launch {
-                                    EventManager.delete(context, db, currentEvent.id)
-                                    onBack()
-                                }
-                            },
-                            modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
-                            contentPadding = PaddingValues(12.dp)
+                            onClick = { showDeleteDialog = false; scope.launch { EventManager.delete(context, db, currentEvent.id); onBack() } },
+                            modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = Color.Gray), contentPadding = PaddingValues(12.dp)
                         ) { Text(if (currentEvent.recurFreq != RecurrenceFrequency.NONE) "Delete All" else "Delete", fontSize = 12.sp, color = Color.White) }
-
-                        Button(
-                            onClick = { showDeleteDialog = false },
-                            modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
-                            contentPadding = PaddingValues(12.dp)
-                        ) { Text("Cancel", fontSize = 12.sp, color = Color.White) }
+                        Button(onClick = { showDeleteDialog = false }, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor), contentPadding = PaddingValues(12.dp)) {
+                            Text("Cancel", fontSize = 12.sp, color = Color.White)
+                        }
                     }
                 }
             )
@@ -455,7 +453,9 @@ fun EventUpdateForm(
     var selectedDaysOfMonth by remember { mutableStateOf(event.recurRule.daysOfMonth?.toSet() ?: setOf(1)) }
 
     val categories = preloadedData.categories
+    val courses = preloadedData.courses
     var selectedCategory by remember { mutableStateOf(preloadedData.selectedCategory) }
+    var selectedCourse by remember { mutableStateOf(preloadedData.selectedCourse) }
     var resetTrigger by remember { mutableIntStateOf(0) }
     var showNotification by remember { mutableStateOf(false) }
     var notificationMessage by remember { mutableStateOf("") }
@@ -464,23 +464,16 @@ fun EventUpdateForm(
         title = event.title
         notes = event.notes ?: ""
         selectedCategory = preloadedData.selectedCategory
+        selectedCourse = preloadedData.selectedCourse
         resetTrigger++
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        Column(
-            modifier = Modifier.fillMaxSize().background(BackgroundColor).padding(16.dp)
-        ) {
+        Column(modifier = Modifier.fillMaxSize().background(BackgroundColor).padding(16.dp)) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
-                contentDescription = "Back",
-                tint = PrimaryColor,
-                modifier = Modifier
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null
-                    ) { onBack() }
-                    .size(40.dp)
+                contentDescription = "Back", tint = PrimaryColor,
+                modifier = Modifier.clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { onBack() }.size(40.dp)
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -488,19 +481,13 @@ fun EventUpdateForm(
             Column(modifier = Modifier.weight(1f).verticalScroll(scrollState)) {
                 EventForm(
                     db = db,
-                    title = title,
-                    onTitleChange = { title = it },
-                    notes = notes,
-                    onNotesChange = { notes = it },
-                    color = color,
-                    onColorChange = { color = it },
-                    startDate = startDate,
-                    onStartDateChange = { startDate = it },
+                    title = title, onTitleChange = { title = it },
+                    notes = notes, onNotesChange = { notes = it },
+                    color = color, onColorChange = { color = it },
+                    startDate = startDate, onStartDateChange = { startDate = it },
                     endDate = endDate,
-                    startTime = startTime,
-                    onStartTimeChange = { startTime = it },
-                    endTime = endTime,
-                    onEndTimeChange = { endTime = it },
+                    startTime = startTime, onStartTimeChange = { startTime = it },
+                    endTime = endTime, onEndTimeChange = { endTime = it },
                     recurrenceFreq = recurrenceFreq,
                     selectedDaysOfWeek = selectedDaysOfWeek,
                     selectedDaysOfMonth = selectedDaysOfMonth,
@@ -510,31 +497,23 @@ fun EventUpdateForm(
                         selectedDaysOfMonth = daysMonth
                         endDate = endDateVal
                     },
-                    selectedCategory = selectedCategory,
-                    onCategoryChange = { selectedCategory = it },
+                    selectedCategory = selectedCategory, onCategoryChange = { selectedCategory = it },
+                    selectedCourse = selectedCourse, onCourseChange = { selectedCourse = it },
                     resetTrigger = resetTrigger
                 )
 
                 Spacer(modifier = Modifier.height(24.dp))
 
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Button(
-                        onClick = { clearForm() },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
-                        modifier = Modifier.weight(1f),
-                        contentPadding = PaddingValues(16.dp)
-                    ) { Text("Reset", fontSize = 16.sp) }
+                    Button(onClick = { clearForm() }, colors = ButtonDefaults.buttonColors(containerColor = Color.Gray), modifier = Modifier.weight(1f), contentPadding = PaddingValues(16.dp)) {
+                        Text("Reset", fontSize = 16.sp)
+                    }
                     Spacer(modifier = Modifier.width(12.dp))
                     Button(
                         onClick = {
                             if (title.isBlank()) {
                                 notificationMessage = "Title is required"
-                                scope.launch {
-                                    showNotification = true
-                                    scrollState.animateScrollTo(0)
-                                    delay(3000)
-                                    showNotification = false
-                                }
+                                scope.launch { showNotification = true; scrollState.animateScrollTo(0); delay(3000); showNotification = false }
                                 return@Button
                             }
                             scope.launch {
@@ -546,34 +525,25 @@ fun EventUpdateForm(
                                     RecurrenceFrequency.YEARLY -> RecurrenceRule(monthAndDay = Pair(startDate.dayOfMonth, startDate.monthValue))
                                 }
                                 val overlapInfo = checkEventOverlapWithEvents(
-                                    db = db,
-                                    startDate = startDate,
-                                    endDate = endDate,
-                                    startTime = startTime,
-                                    endTime = endTime,
-                                    recurFreq = recurrenceFreq,
-                                    recurRule = recurRule,
+                                    db = db, startDate = startDate, endDate = endDate,
+                                    startTime = startTime, endTime = endTime,
+                                    recurFreq = recurrenceFreq, recurRule = recurRule,
                                     excludeEventId = event.id
                                 )
                                 if (overlapInfo.hasOverlap) {
                                     notificationMessage = formatOverlapMessage(overlapInfo)
-                                    showNotification = true
-                                    scrollState.animateScrollTo(0)
-                                    delay(3000)
-                                    showNotification = false
+                                    showNotification = true; scrollState.animateScrollTo(0); delay(3000); showNotification = false
                                     return@launch
                                 }
                                 val updatedEvent = event.copy(
                                     title = title,
                                     notes = notes.ifBlank { null },
                                     color = Converters.fromColor(color),
-                                    startDate = startDate,
-                                    endDate = endDate,
-                                    startTime = startTime,
-                                    endTime = endTime,
-                                    recurFreq = recurrenceFreq,
-                                    recurRule = recurRule,
-                                    categoryId = selectedCategory?.let { categories.getOrNull(it)?.id }
+                                    startDate = startDate, endDate = endDate,
+                                    startTime = startTime, endTime = endTime,
+                                    recurFreq = recurrenceFreq, recurRule = recurRule,
+                                    categoryId = selectedCategory?.let { categories.getOrNull(it)?.id },
+                                    courseId = selectedCourse?.let { courses.getOrNull(it)?.id }
                                 )
                                 EventManager.update(context, db, updatedEvent)
                                 val refreshedEvent = db.eventDao().getMasterEventById(event.id) ?: updatedEvent
@@ -581,8 +551,7 @@ fun EventUpdateForm(
                             }
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
-                        modifier = Modifier.weight(1f),
-                        contentPadding = PaddingValues(16.dp)
+                        modifier = Modifier.weight(1f), contentPadding = PaddingValues(16.dp)
                     ) { Text("Save", fontSize = 16.sp) }
                 }
             }
@@ -595,24 +564,12 @@ fun EventUpdateForm(
             modifier = Modifier.align(Alignment.TopCenter)
         ) {
             val dragOffset = remember { androidx.compose.runtime.mutableFloatStateOf(0f) }
-            Box(
-                modifier = Modifier
-                    .offset(y = dragOffset.floatValue.coerceAtMost(0f).dp)
-                    .draggable(
-                        orientation = androidx.compose.foundation.gestures.Orientation.Vertical,
-                        state = androidx.compose.foundation.gestures.rememberDraggableState { delta ->
-                            dragOffset.floatValue += delta
-                            if (dragOffset.floatValue < -80f) showNotification = false
-                        },
-                        onDragStopped = { dragOffset.floatValue = 0f }
-                    )
-            ) {
-                Surface(
-                    color = PrimaryColor,
-                    modifier = Modifier.fillMaxWidth().padding(16.dp),
-                    shadowElevation = 8.dp,
-                    shape = MaterialTheme.shapes.medium
-                ) {
+            Box(modifier = Modifier.offset(y = dragOffset.floatValue.coerceAtMost(0f).dp).draggable(
+                orientation = androidx.compose.foundation.gestures.Orientation.Vertical,
+                state = androidx.compose.foundation.gestures.rememberDraggableState { delta -> dragOffset.floatValue += delta; if (dragOffset.floatValue < -80f) showNotification = false },
+                onDragStopped = { dragOffset.floatValue = 0f }
+            )) {
+                Surface(color = PrimaryColor, modifier = Modifier.fillMaxWidth().padding(16.dp), shadowElevation = 8.dp, shape = MaterialTheme.shapes.medium) {
                     Box(modifier = Modifier.padding(16.dp), contentAlignment = Alignment.Center) {
                         Text(notificationMessage, color = BackgroundColor, fontSize = 18.sp, fontWeight = FontWeight.Bold, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
                     }

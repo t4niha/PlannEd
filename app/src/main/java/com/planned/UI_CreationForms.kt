@@ -81,13 +81,17 @@ fun EventForm(
     onRecurrenceChange: (RecurrenceFrequency, Set<Int>, Set<Int>, LocalDate?) -> Unit,
     selectedCategory: Int?,
     onCategoryChange: (Int?) -> Unit,
+    selectedCourse: Int?,
+    onCourseChange: (Int?) -> Unit,
     resetTrigger: Int
 ) {
     var categories by remember { mutableStateOf<List<Category>>(emptyList()) }
+    var courses by remember { mutableStateOf<List<Course>>(emptyList()) }
     var previousCategory by remember { mutableStateOf<Int?>(null) }
 
     LaunchedEffect(Unit) {
         categories = CategoryManager.getAll(db)
+        courses = db.courseDao().getAll()
     }
 
     // Auto-update color when category changes
@@ -165,6 +169,16 @@ fun EventForm(
         onEndTimeChange(endTimeValue)
         Spacer(modifier = Modifier.height(12.dp))
 
+        // Course dropdown — above category
+        val courseValue = dropdownField(
+            label = "Course",
+            items = courses.map { c -> c.courseCode?.let { "$it – ${c.title}" } ?: c.title },
+            initialSelection = selectedCourse,
+            key = resetTrigger
+        )
+        onCourseChange(courseValue)
+        Spacer(modifier = Modifier.height(12.dp))
+
         val categoryValue = dropdownField(
             label = "Category",
             items = categories.map { it.title },
@@ -201,6 +215,8 @@ fun DeadlineForm(
     onCategoryChange: (Int?) -> Unit,
     selectedEvent: Int?,
     onEventChange: (Int?) -> Unit,
+    selectedCourse: Int?,
+    onCourseChange: (Int?) -> Unit,
     autoScheduleTask: Boolean,
     onAutoScheduleTaskChange: (Boolean) -> Unit,
     taskDurationHours: Int,
@@ -214,14 +230,14 @@ fun DeadlineForm(
 ) {
     var categories by remember { mutableStateOf<List<Category>>(emptyList()) }
     var events by remember { mutableStateOf<List<MasterEvent>>(emptyList()) }
+    var courses by remember { mutableStateOf<List<Course>>(emptyList()) }
     var previousEvent by remember { mutableStateOf<Int?>(null) }
     var maxBucketDuration by remember { mutableIntStateOf(Int.MAX_VALUE) }
 
     LaunchedEffect(Unit) {
         categories = CategoryManager.getAll(db)
         events = EventManager.getAll(db)
-
-        // Get max bucket duration
+        courses = db.courseDao().getAll()
         maxBucketDuration = getMaxBucketDurationMinutes(db) ?: Int.MAX_VALUE
     }
 
@@ -230,9 +246,7 @@ fun DeadlineForm(
         if (autoScheduleTask) {
             val taskDurationMinutesTotal = (taskDurationHours * 60) + taskDurationMinutes
             val needsToBeBreakable = taskDurationMinutesTotal > maxBucketDuration
-
             onTaskBreakableLockedByDurationChange(needsToBeBreakable)
-
             if (needsToBeBreakable) {
                 onTaskIsBreakableChange(true)
             }
@@ -241,22 +255,31 @@ fun DeadlineForm(
         }
     }
 
-    // Lock category when event selected, update when event changes
-    LaunchedEffect(selectedEvent, events.size) {
+    // Lock category and cascade course when event changes
+    LaunchedEffect(selectedEvent, events.size, courses.size) {
         if (selectedEvent != previousEvent) {
             if (selectedEvent != null && events.isNotEmpty()) {
                 val event = events.getOrNull(selectedEvent)
                 if (event != null) {
+                    // Cascade category from event
                     val eventCategoryId = event.categoryId
                     val categoryIndex = if (eventCategoryId != null) {
                         categories.indexOfFirst { it.id == eventCategoryId }
-                    } else {
-                        null
-                    }
+                    } else null
                     if (categoryIndex != null) {
                         onCategoryChange(if (categoryIndex >= 0) categoryIndex else null)
                     }
+
+                    // Cascade course from event
+                    val eventCourseId = event.courseId
+                    val courseIndex = if (eventCourseId != null) {
+                        courses.indexOfFirst { it.id == eventCourseId }
+                    } else null
+                    onCourseChange(if (courseIndex != null && courseIndex >= 0) courseIndex else null)
                 }
+            } else if (selectedEvent == null) {
+                // Event cleared — unlock course
+                onCourseChange(null)
             }
             previousEvent = selectedEvent
         }
@@ -313,12 +336,9 @@ fun DeadlineForm(
         )
         onAutoScheduleTaskChange(autoSchedule)
         onTaskDurationChange(durationHours, durationMinutes)
-
-        // Only update breakable if not locked by duration
         if (!taskBreakableLockedByDuration) {
             onTaskIsBreakableChange(breakable)
         }
-
         Spacer(modifier = Modifier.height(12.dp))
 
         val eventValue = dropdownField(
@@ -327,7 +347,20 @@ fun DeadlineForm(
             initialSelection = selectedEvent,
             key = resetTrigger
         )
-        onEventChange(eventValue)
+        if (eventValue != selectedEvent) onEventChange(eventValue)
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Course locked when Event is selected
+        val courseValue = dropdownField(
+            label = "Course",
+            items = courses.map { c -> c.courseCode?.let { "$it – ${c.title}" } ?: c.title },
+            initialSelection = selectedCourse,
+            key = resetTrigger,
+            locked = selectedEvent != null
+        )
+        if (selectedEvent == null && courseValue != selectedCourse) {
+            onCourseChange(courseValue)
+        }
         Spacer(modifier = Modifier.height(12.dp))
 
         // Category locked when Event selected
@@ -338,10 +371,7 @@ fun DeadlineForm(
             key = resetTrigger,
             locked = selectedEvent != null
         )
-        // Only allow manual changes when not locked
-        if (selectedEvent == null) {
-            onCategoryChange(categoryValue)
-        }
+        if (selectedEvent == null && categoryValue != selectedCategory) onCategoryChange(categoryValue)
     }
 }
 
@@ -461,7 +491,6 @@ fun TaskForm(
         events = EventManager.getAll(db)
         deadlines = DeadlineManager.getAll(db)
 
-        // Get tasks that can be dependencies
         dependencyTasks = TaskManager.getAll(db).sortedBy { it.title }.filter {
             it.status == 1 &&
                     it.startDate == null &&
@@ -470,18 +499,14 @@ fun TaskForm(
                     it.id != currentTaskId
         }
 
-        // Get max bucket duration
         maxBucketDuration = getMaxBucketDurationMinutes(db) ?: Int.MAX_VALUE
     }
 
-    // Check if task duration exceeds max bucket duration
     LaunchedEffect(durationHours, durationMinutes, maxBucketDuration, isAutoSchedule) {
         if (isAutoSchedule) {
             val taskDurationMinutes = (durationHours * 60) + durationMinutes
             val needsToBeBreakable = taskDurationMinutes > maxBucketDuration
-
             onBreakableLockedByDurationChange(needsToBeBreakable)
-
             if (needsToBeBreakable) {
                 onBreakableChange(true)
             }
@@ -490,7 +515,6 @@ fun TaskForm(
         }
     }
 
-    // Validate start time for manual tasks by duration, time, date, schedule mode
     LaunchedEffect(durationHours, durationMinutes, startTime, startDate, isAutoSchedule) {
         if (!isAutoSchedule && startTime != null && startDate != null) {
             val totalDurationMinutes = (durationHours * 60) + durationMinutes
@@ -499,7 +523,6 @@ fun TaskForm(
 
             var validated = startTime
 
-            // Calculate the maximum start time based on duration
             var maxAllowedStartTime: LocalTime? = null
             if (totalDurationMinutes <= 1439) {
                 val maxEndMinutes = 23 * 60 + 59
@@ -511,31 +534,25 @@ fun TaskForm(
                 }
             }
 
-            // Apply duration constraint
             if (maxAllowedStartTime != null && validated.isAfter(maxAllowedStartTime)) {
                 validated = maxAllowedStartTime
             }
 
-            // Apply past time constraint if result doesn't exceed max allowed
             if (startDate == today) {
                 if (validated.isBefore(now) || validated == now) {
                     val candidateTime = now.plusMinutes(1)
-
-                    // Only use if it respects absolute duration limit
                     if (maxAllowedStartTime == null || !candidateTime.isAfter(maxAllowedStartTime)) {
                         validated = candidateTime
                     }
                 }
             }
 
-            // Update if validation changed time
             if (validated != startTime) {
                 onScheduleChange(false, startDate, validated)
             }
         }
     }
 
-    // Reset dependency task when auto-schedule disabled
     LaunchedEffect(isAutoSchedule) {
         if (!isAutoSchedule && selectedDependencyTask != null) {
             onDependencyTaskChange(null)
@@ -547,37 +564,28 @@ fun TaskForm(
             if (selectedDeadline != null && deadlines.isNotEmpty()) {
                 val deadline = deadlines.getOrNull(selectedDeadline)
                 if (deadline != null) {
-                    // Lock event to deadline's event
                     val deadlineEventId = deadline.eventId
                     val eventIndex = if (deadlineEventId != null) {
                         events.indexOfFirst { it.id == deadlineEventId }
-                    } else {
-                        null
-                    }
+                    } else null
                     if (eventIndex != null) {
                         onEventChange(if (eventIndex >= 0) eventIndex else null)
                     }
 
-                    // Lock category to that event's category
                     if (eventIndex != null && eventIndex >= 0) {
                         val event = events[eventIndex]
                         val eventCategoryId = event.categoryId
                         val categoryIndex = if (eventCategoryId != null) {
                             categories.indexOfFirst { it.id == eventCategoryId }
-                        } else {
-                            null
-                        }
+                        } else null
                         if (categoryIndex != null) {
                             onCategoryChange(if (categoryIndex >= 0) categoryIndex else null)
                         }
                     } else {
-                        // Lock category to deadline's category
                         val deadlineCategoryId = deadline.categoryId
                         val categoryIndex = if (deadlineCategoryId != null) {
                             categories.indexOfFirst { it.id == deadlineCategoryId }
-                        } else {
-                            null
-                        }
+                        } else null
                         if (categoryIndex != null) {
                             onCategoryChange(if (categoryIndex >= 0) categoryIndex else null)
                         }
@@ -588,7 +596,6 @@ fun TaskForm(
         }
     }
 
-    // Lock category when event selected
     LaunchedEffect(selectedEvent, events.size, categories.size) {
         if (selectedDeadline == null && selectedEvent != previousEvent) {
             if (selectedEvent != null && events.isNotEmpty()) {
@@ -597,9 +604,7 @@ fun TaskForm(
                     val eventCategoryId = event.categoryId
                     val categoryIndex = if (eventCategoryId != null) {
                         categories.indexOfFirst { it.id == eventCategoryId }
-                    } else {
-                        null
-                    }
+                    } else null
                     if (categoryIndex != null) {
                         onCategoryChange(if (categoryIndex >= 0) categoryIndex else null)
                     }
@@ -626,7 +631,6 @@ fun TaskForm(
         onNotesChange(notesValue)
         Spacer(modifier = Modifier.height(12.dp))
 
-        // All Day checkbox with date picker
         val (allDayChecked, allDayDateValue) = allDayTaskPickerField(
             initialAllDay = isAllDay,
             initialDate = allDayDate,
@@ -636,9 +640,7 @@ fun TaskForm(
         onAllDayDateChange(allDayDateValue)
         Spacer(modifier = Modifier.height(12.dp))
 
-        // When NOT all-day: show duration, auto-schedule, breakable
         if (!isAllDay) {
-            // Duration picker
             val (hours, minutes) = durationPickerField(
                 initialHours = durationHours,
                 initialMinutes = durationMinutes,
@@ -653,7 +655,6 @@ fun TaskForm(
             }
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Schedule picker with time validation
             val (autoSchedule, date, time) = schedulePickerField(
                 initialAutoSchedule = isAutoSchedule,
                 initialDate = startDate,
@@ -670,7 +671,6 @@ fun TaskForm(
             onScheduleChange(autoSchedule, date, time)
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Breakable field with duration-based locking
             val breakableValue = checkboxField(
                 label = "Breakable",
                 initialChecked = isBreakable,
@@ -687,7 +687,6 @@ fun TaskForm(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Dependency Task dropdown locked if not auto-schedule
             val dependencyTaskValue = dropdownField(
                 label = "Prerequisite Task",
                 items = dependencyTasks.map { it.title },
@@ -705,7 +704,6 @@ fun TaskForm(
             }
             Spacer(modifier = Modifier.height(12.dp))
         } else {
-            // All-day: lock dependency to None
             if (selectedDependencyTask != null) {
                 onDependencyTaskChange(null)
             }
@@ -722,7 +720,6 @@ fun TaskForm(
         }
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Event locked when Deadline selected
         val eventValue = dropdownField(
             label = "Event",
             items = events.map { it.title },
@@ -735,7 +732,6 @@ fun TaskForm(
         }
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Category locked when Event/Deadline selected
         val categoryValue = dropdownField(
             label = "Category",
             items = categories.map { it.title },

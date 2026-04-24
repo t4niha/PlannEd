@@ -1493,7 +1493,7 @@ fun DatabasePage(
                 headers = listOf(
                     "ID", "Title", "Notes", "Color",
                     "Start Date", "End Date", "Start Time", "End Time",
-                    "Frequency", "Rule", "Category ID"
+                    "Frequency", "Rule", "Category ID", "Course ID"
                 )
             ) { e ->
                 listOf(
@@ -1502,7 +1502,8 @@ fun DatabasePage(
                     e.startTime.toString(), e.endTime.toString(),
                     e.recurFreq.name,
                     formatRecurrenceRule(e.recurRule, e.recurFreq),
-                    e.categoryId?.toString() ?: ""
+                    e.categoryId?.toString() ?: "",
+                    e.courseId?.toString() ?: ""
                 )
             }
 
@@ -1521,12 +1522,13 @@ fun DatabasePage(
             Table(
                 title   = "Deadlines",
                 data    = deadlines,
-                headers = listOf("ID", "Title", "Notes", "Date", "Time", "Category ID", "Event ID")
+                headers = listOf("ID", "Title", "Notes", "Date", "Time", "Category ID", "Event ID", "Course ID")
             ) { d ->
                 listOf(
                     d.id.toString(), d.title, d.notes ?: "",
                     d.date.toString(), d.time.toString(),
-                    d.categoryId?.toString() ?: "", d.eventId?.toString() ?: ""
+                    d.categoryId?.toString() ?: "", d.eventId?.toString() ?: "",
+                    d.courseId?.toString() ?: ""
                 )
             }
 

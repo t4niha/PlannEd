@@ -4,6 +4,7 @@ import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -34,8 +35,10 @@ import java.time.format.DateTimeFormatter
 data class DeadlineUpdateFormData(
     val categories: List<Category>,
     val events: List<MasterEvent>,
+    val courses: List<Course>,
     val selectedCategory: Int?,
-    val selectedEvent: Int?
+    val selectedEvent: Int?,
+    val selectedCourse: Int?
 )
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -114,13 +117,7 @@ fun DeadlinesListView(
                     else categories.find { it.id == catId }?.title ?: "No Category"
                     val categoryDeadlines = grouped[catId] ?: emptyList()
                     item {
-                        Text(
-                            text = categoryName,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.Gray,
-                            modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 4.dp)
-                        )
+                        Text(text = categoryName, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.Gray, modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 4.dp))
                     }
                     items(categoryDeadlines) { deadline ->
                         DeadlineItemView(db = db, deadline = deadline, onClick = { onDeadlineClick(deadline) })
@@ -161,38 +158,18 @@ fun DeadlineItemView(
     val timeFormatter = java.time.format.DateTimeFormatter.ofPattern("h:mm a")
 
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(Color(CardColor))
-            .clickable { onClick() }
-            .padding(12.dp),
+        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Color(CardColor)).clickable { onClick() }.padding(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(modifier = Modifier.size(INNER_CIRCLE_SIZE).background(deadlineColor, CircleShape))
         Spacer(modifier = Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = deadline.title,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Medium,
-                maxLines = 1,
-                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-            )
+            Text(text = deadline.title, fontSize = 16.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
             Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "${deadline.time.format(timeFormatter)}, ${deadline.date.format(dateFormatter)}",
-                fontSize = 14.sp,
-                color = Color.Gray
-            )
+            Text(text = "${deadline.time.format(timeFormatter)}, ${deadline.date.format(dateFormatter)}", fontSize = 14.sp, color = Color.Gray)
         }
         Spacer(modifier = Modifier.width(8.dp))
-        Icon(
-            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-            contentDescription = null,
-            tint = Color.Gray,
-            modifier = Modifier.size(20.dp)
-        )
+        Icon(imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(20.dp))
     }
 }
 
@@ -211,6 +188,7 @@ fun DeadlineInfoView(
     val scrollState = rememberScrollState()
     var category by remember { mutableStateOf<Category?>(null) }
     var event by remember { mutableStateOf<MasterEvent?>(null) }
+    var course by remember { mutableStateOf<Course?>(null) }
     var currentDeadline by remember { mutableStateOf(deadline) }
     var relatedTasks by remember { mutableStateOf<List<MasterTask>>(emptyList()) }
     var updateDataReady by remember { mutableStateOf(false) }
@@ -220,22 +198,28 @@ fun DeadlineInfoView(
         currentDeadline = db.deadlineDao().getDeadlineById(deadline.id) ?: deadline
         category = currentDeadline.categoryId?.let { db.categoryDao().getCategoryById(it) }
         event = currentDeadline.eventId?.let { db.eventDao().getMasterEventById(it) }
+        course = currentDeadline.courseId?.let { db.courseDao().getById(it) }
         relatedTasks = db.taskDao().getAllMasterTasks().filter { it.deadlineId == deadline.id && it.status != 3 }
 
-        // Preload update form data
         val categories = CategoryManager.getAll(db)
         val events = EventManager.getAll(db)
+        val courses = db.courseDao().getAll()
         val selectedCategory = currentDeadline.categoryId?.let { catId ->
             categories.indexOfFirst { it.id == catId }.takeIf { it >= 0 }
         }
         val selectedEvent = currentDeadline.eventId?.let { evId ->
             events.indexOfFirst { it.id == evId }.takeIf { it >= 0 }
         }
+        val selectedCourse = currentDeadline.courseId?.let { cId ->
+            courses.indexOfFirst { it.id == cId }.takeIf { it >= 0 }
+        }
         onUpdateDataReady(DeadlineUpdateFormData(
             categories = categories,
             events = events,
+            courses = courses,
             selectedCategory = selectedCategory,
-            selectedEvent = selectedEvent
+            selectedEvent = selectedEvent,
+            selectedCourse = selectedCourse
         ))
         updateDataReady = true
     }
@@ -243,18 +227,44 @@ fun DeadlineInfoView(
     val dateFormatter = DateTimeFormatter.ofPattern("MMMM d, yyyy")
     val timeFormatter = DateTimeFormatter.ofPattern("h:mm a")
 
-    Column(modifier = Modifier.fillMaxSize().background(BackgroundColor).padding(16.dp)) {
-        Icon(
-            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
-            contentDescription = "Back",
-            tint = PrimaryColor,
-            modifier = Modifier
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null
-                ) { onBack() }
-                .size(40.dp)
-        )
+    Column(modifier = Modifier.fillMaxSize().background(BackgroundColor).padding(12.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                contentDescription = "Back", tint = PrimaryColor,
+                modifier = Modifier
+                    .padding(4.dp)
+                    .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { onBack() }
+                    .size(40.dp)
+            )
+            Button(
+                onClick = {
+                    scope.launch {
+                        if (currentDeadline.courseId != null) {
+                            academicsSelectedCourse = db.courseDao().getById(currentDeadline.courseId!!)
+                            academicsEnterGradeDeadlineTitle = currentDeadline.title
+                            academicsEnterGradeDeadlineId = currentDeadline.id
+                            academicsEnterGradeReturnScreen = "DeadlineInfo"
+                            selectedDeadlineForInfo = currentDeadline
+                            deadlineInfoReturnScreen = deadlineReturnScreen
+                            academicsCurrentView = "enterGrade"
+                            currentScreen = "Academics"
+                        }
+                    }
+                },
+                enabled = currentDeadline.courseId != null,
+                modifier = Modifier.align(Alignment.Bottom),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = PrimaryColor,
+                    disabledContainerColor = Color.LightGray
+                ),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+            ) { Text("Enter Grade", fontSize = 14.sp) }
+        }
 
         Column(modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(scrollState)) {
             Box(modifier = Modifier.fillMaxWidth().padding(18.dp)) {
@@ -268,22 +278,20 @@ fun DeadlineInfoView(
                 Spacer(modifier = Modifier.height(18.dp))
             }
 
-            InfoCard(listOf(
-                "Date" to currentDeadline.date.format(dateFormatter),
-                "Time" to currentDeadline.time.format(timeFormatter),
-                "Event" to (event?.title ?: "None"),
-                "Category" to (category?.title ?: "None")
-            ))
+            InfoCard(buildList {
+                add("Date" to currentDeadline.date.format(dateFormatter))
+                add("Time" to currentDeadline.time.format(timeFormatter))
+                add("Event" to (event?.title ?: "None"))
+                if (course != null) add("Course" to (course!!.courseCode?.takeIf { it.isNotBlank() }?.let { "$it – ${course!!.title}" } ?: course!!.title))
+                add("Category" to (category?.title ?: "None"))
+            })
 
             Spacer(modifier = Modifier.height(18.dp))
 
-            // Related tasks section
             Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp)) {
                 Text(
                     text = if (relatedTasks.isEmpty()) "No Related Tasks" else "Related Tasks",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Gray,
+                    fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.Gray,
                     modifier = Modifier.padding(start = 4.dp, bottom = 8.dp)
                 )
                 if (relatedTasks.isNotEmpty()) {
@@ -293,9 +301,9 @@ fun DeadlineInfoView(
                                 kotlinx.coroutines.runBlocking {
                                     when {
                                         task.eventId != null -> {
-                                            val event = db.eventDao().getAllMasterEvents().find { it.id == task.eventId }
-                                            event?.color?.let { Converters.toColor(it) }
-                                                ?: event?.categoryId?.let { catId -> db.categoryDao().getAll().find { it.id == catId }?.color?.let { Converters.toColor(it) } }
+                                            val ev = db.eventDao().getAllMasterEvents().find { it.id == task.eventId }
+                                            ev?.color?.let { Converters.toColor(it) }
+                                                ?: ev?.categoryId?.let { catId -> db.categoryDao().getAll().find { it.id == catId }?.color?.let { Converters.toColor(it) } }
                                                 ?: Color.LightGray
                                         }
                                         task.categoryId != null -> {
@@ -307,10 +315,7 @@ fun DeadlineInfoView(
                                 }
                             }
                             Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(Color(CardColor))
+                                modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Color(CardColor))
                                     .clickable {
                                         com.planned.deadlinesCurrentView = "list"
                                         com.planned.deadlinesSelectedDeadline = null
@@ -319,32 +324,14 @@ fun DeadlineInfoView(
                                         com.planned.selectedTaskForInfo = task
                                         com.planned.taskInfoReturnScreen = "DeadlineInfo"
                                         com.planned.currentScreen = "TaskInfo"
-                                    }
-                                    .padding(12.dp),
+                                    }.padding(12.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(INNER_CIRCLE_SIZE)
-                                        .clip(CircleShape)
-                                        .background(taskColor)
-                                )
+                                Box(modifier = Modifier.size(INNER_CIRCLE_SIZE).clip(CircleShape).background(taskColor))
                                 Spacer(modifier = Modifier.width(12.dp))
-                                Text(
-                                    text = task.title,
-                                    fontSize = 16.sp,
-                                    fontWeight = FontWeight.Normal,
-                                    maxLines = 1,
-                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                                    modifier = Modifier.weight(1f)
-                                )
+                                Text(text = task.title, fontSize = 16.sp, fontWeight = FontWeight.Normal, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                                    contentDescription = null,
-                                    tint = Color.Gray,
-                                    modifier = Modifier.size(20.dp)
-                                )
+                                Icon(imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(20.dp))
                             }
                         }
                     }
@@ -352,53 +339,30 @@ fun DeadlineInfoView(
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Button(
-                onClick = { showDeleteDialog = true },
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
-                contentPadding = PaddingValues(16.dp)
-            ) { Text("Delete", fontSize = 16.sp, color = Color.White) }
-            Button(
-                onClick = { if (updateDataReady) onUpdate() },
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(containerColor = if (updateDataReady) PrimaryColor else Color.LightGray),
-                contentPadding = PaddingValues(16.dp)
-            ) { Text("Update", fontSize = 16.sp, color = Color.White) }
+        Row(modifier = Modifier.fillMaxWidth().padding(top = 16.dp, bottom = 4.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Button(onClick = { showDeleteDialog = true }, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = Color.Gray), contentPadding = PaddingValues(16.dp)) {
+                Text("Delete", fontSize = 16.sp, color = Color.White)
+            }
+            Button(onClick = { if (updateDataReady) onUpdate() }, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = if (updateDataReady) PrimaryColor else Color.LightGray), contentPadding = PaddingValues(16.dp)) {
+                Text("Update", fontSize = 16.sp, color = Color.White)
+            }
         }
 
         if (showDeleteDialog) {
             AlertDialog(
                 onDismissRequest = { showDeleteDialog = false },
-                containerColor = BackgroundColor,
-                title = null,
+                containerColor = BackgroundColor, title = null,
                 text = { Text("Delete this deadline?", fontSize = 16.sp) },
                 confirmButton = {},
                 dismissButton = {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Button(
-                            onClick = {
-                                showDeleteDialog = false
-                                scope.launch {
-                                    DeadlineManager.delete(context, db, currentDeadline.id)
-                                    onBack()
-                                }
-                            },
-                            modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
-                            contentPadding = PaddingValues(12.dp)
+                            onClick = { showDeleteDialog = false; scope.launch { DeadlineManager.delete(context, db, currentDeadline.id); onBack() } },
+                            modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = Color.Gray), contentPadding = PaddingValues(12.dp)
                         ) { Text("Delete", fontSize = 12.sp, color = Color.White) }
-                        Button(
-                            onClick = { showDeleteDialog = false },
-                            modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
-                            contentPadding = PaddingValues(12.dp)
-                        ) { Text("Cancel", fontSize = 12.sp, color = Color.White) }
+                        Button(onClick = { showDeleteDialog = false }, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor), contentPadding = PaddingValues(12.dp)) {
+                            Text("Cancel", fontSize = 12.sp, color = Color.White)
+                        }
                     }
                 }
             )
@@ -426,13 +390,15 @@ fun DeadlineUpdateView(
 
     val categories = preloadedData.categories
     val events = preloadedData.events
+    val courses = preloadedData.courses
     var selectedCategory by remember { mutableStateOf(preloadedData.selectedCategory) }
     var selectedEvent by remember { mutableStateOf(preloadedData.selectedEvent) }
+    var selectedCourse by remember { mutableStateOf(preloadedData.selectedCourse) }
     var previousEvent by remember { mutableStateOf(preloadedData.selectedEvent) }
     var resetTrigger by remember { mutableIntStateOf(0) }
     var showNotification by remember { mutableStateOf(false) }
 
-    // Lock category when event selected
+    // Lock category and cascade course when event changes
     LaunchedEffect(selectedEvent, events.size) {
         val currentEventIndex = selectedEvent
         val previousEventIndex = previousEvent
@@ -440,14 +406,19 @@ fun DeadlineUpdateView(
             if (currentEventIndex != null && events.isNotEmpty()) {
                 val event = events.getOrNull(currentEventIndex)
                 if (event != null) {
+                    // Cascade category
                     val eventCategoryId = event.categoryId
-                    val categoryIndex = if (eventCategoryId != null) {
-                        categories.indexOfFirst { it.id == eventCategoryId }
-                    } else null
-                    if (categoryIndex != null) {
-                        selectedCategory = if (categoryIndex >= 0) categoryIndex else null
-                    }
+                    val categoryIndex = if (eventCategoryId != null) categories.indexOfFirst { it.id == eventCategoryId } else null
+                    if (categoryIndex != null) selectedCategory = if (categoryIndex >= 0) categoryIndex else null
+
+                    // Cascade course from event
+                    val eventCourseId = event.courseId
+                    val courseIndex = if (eventCourseId != null) courses.indexOfFirst { it.id == eventCourseId } else null
+                    selectedCourse = if (courseIndex != null && courseIndex >= 0) courseIndex else null
                 }
+            } else if (currentEventIndex == null) {
+                // Event cleared — unlock course
+                selectedCourse = null
             }
             previousEvent = currentEventIndex
         }
@@ -457,14 +428,8 @@ fun DeadlineUpdateView(
         Column(modifier = Modifier.fillMaxSize().background(BackgroundColor).padding(16.dp)) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
-                contentDescription = "Back",
-                tint = PrimaryColor,
-                modifier = Modifier
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null
-                    ) { onBack() }
-                    .size(40.dp)
+                contentDescription = "Back", tint = PrimaryColor,
+                modifier = Modifier.clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { onBack() }.size(40.dp)
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -479,81 +444,68 @@ fun DeadlineUpdateView(
                 Spacer(modifier = Modifier.height(12.dp))
 
                 val dateValue = datePickerField(
-                    label = "Date",
-                    initialDate = date,
-                    isOptional = false,
-                    key = resetTrigger,
-                    allowPastDates = false,
-                    onDateValidated = { validated -> if (validated != date) date = validated }
+                    label = "Date", initialDate = date, isOptional = false, key = resetTrigger,
+                    allowPastDates = false, onDateValidated = { validated -> if (validated != date) date = validated }
                 )!!
                 if (dateValue != date) date = dateValue
                 Spacer(modifier = Modifier.height(12.dp))
 
-                val timeValue = timePickerField(
-                    label = "Time",
-                    initialTime = time,
-                    key = resetTrigger,
-                    contextDate = date,
-                    allowPastTimes = false
-                )
+                val timeValue = timePickerField(label = "Time", initialTime = time, key = resetTrigger, contextDate = date, allowPastTimes = false)
                 time = timeValue
                 Spacer(modifier = Modifier.height(12.dp))
 
-                val eventValue = dropdownField(
-                    label = "Event",
-                    items = events.map { it.title },
-                    initialSelection = selectedEvent,
-                    key = resetTrigger
-                )
-                selectedEvent = eventValue
+                val eventValue = dropdownField(label = "Event", items = events.map { it.title }, initialSelection = selectedEvent, key = resetTrigger)
+                if (eventValue != selectedEvent) selectedEvent = eventValue
                 Spacer(modifier = Modifier.height(12.dp))
 
-                val categoryValue = dropdownField(
-                    label = "Category",
-                    items = categories.map { it.title },
-                    initialSelection = selectedCategory,
+                // Course locked when event has a course, free otherwise
+                val courseValue = dropdownField(
+                    label = "Course",
+                    items = courses.map { c -> c.courseCode?.let { "$it – ${c.title}" } ?: c.title },
+                    initialSelection = selectedCourse,
                     key = resetTrigger,
                     locked = selectedEvent != null
                 )
-                if (selectedEvent == null) selectedCategory = categoryValue
+                if (selectedEvent == null && courseValue != selectedCourse) selectedCourse = courseValue
+                Spacer(modifier = Modifier.height(12.dp))
+
+                val categoryValue = dropdownField(
+                    label = "Category", items = categories.map { it.title },
+                    initialSelection = selectedCategory, key = resetTrigger,
+                    locked = selectedEvent != null
+                )
+                if (selectedEvent == null && categoryValue != selectedCategory) selectedCategory = categoryValue
 
                 Spacer(modifier = Modifier.height(24.dp))
 
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Button(
                         onClick = {
-                            title = deadline.title
-                            notes = deadline.notes ?: ""
-                            date = deadline.date
-                            time = deadline.time
+                            title = deadline.title; notes = deadline.notes ?: ""
+                            date = deadline.date; time = deadline.time
                             selectedCategory = preloadedData.selectedCategory
                             selectedEvent = preloadedData.selectedEvent
+                            selectedCourse = preloadedData.selectedCourse
                             resetTrigger++
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
-                        modifier = Modifier.weight(1f),
-                        contentPadding = PaddingValues(16.dp)
+                        modifier = Modifier.weight(1f), contentPadding = PaddingValues(16.dp)
                     ) { Text("Reset", fontSize = 16.sp) }
                     Spacer(modifier = Modifier.width(12.dp))
                     Button(
                         onClick = {
                             if (title.isBlank()) {
-                                scope.launch {
-                                    showNotification = true
-                                    scrollState.animateScrollTo(0)
-                                    delay(3000)
-                                    showNotification = false
-                                }
+                                scope.launch { showNotification = true; scrollState.animateScrollTo(0); delay(3000); showNotification = false }
                                 return@Button
                             }
                             scope.launch {
                                 val updatedDeadline = deadline.copy(
                                     title = title,
                                     notes = notes.ifBlank { null },
-                                    date = date,
-                                    time = time,
+                                    date = date, time = time,
                                     categoryId = selectedCategory?.let { categories.getOrNull(it)?.id },
-                                    eventId = selectedEvent?.let { events.getOrNull(it)?.id }
+                                    eventId = selectedEvent?.let { events.getOrNull(it)?.id },
+                                    courseId = selectedCourse?.let { courses.getOrNull(it)?.id }
                                 )
                                 DeadlineManager.update(context, db, updatedDeadline)
                                 val refreshedDeadline = db.deadlineDao().getDeadlineById(deadline.id) ?: updatedDeadline
@@ -561,8 +513,7 @@ fun DeadlineUpdateView(
                             }
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
-                        modifier = Modifier.weight(1f),
-                        contentPadding = PaddingValues(16.dp)
+                        modifier = Modifier.weight(1f), contentPadding = PaddingValues(16.dp)
                     ) { Text("Save", fontSize = 16.sp) }
                 }
             }
@@ -575,26 +526,200 @@ fun DeadlineUpdateView(
             modifier = Modifier.align(Alignment.TopCenter)
         ) {
             val dragOffset = remember { androidx.compose.runtime.mutableFloatStateOf(0f) }
-            Box(
-                modifier = Modifier
-                    .offset(y = dragOffset.floatValue.coerceAtMost(0f).dp)
-                    .draggable(
-                        orientation = androidx.compose.foundation.gestures.Orientation.Vertical,
-                        state = androidx.compose.foundation.gestures.rememberDraggableState { delta ->
-                            dragOffset.floatValue += delta
-                            if (dragOffset.floatValue < -80f) showNotification = false
-                        },
-                        onDragStopped = { dragOffset.floatValue = 0f }
-                    )
-            ) {
-                Surface(
-                    color = PrimaryColor,
-                    modifier = Modifier.fillMaxWidth().padding(16.dp),
-                    shadowElevation = 8.dp,
-                    shape = MaterialTheme.shapes.medium
-                ) {
+            Box(modifier = Modifier.offset(y = dragOffset.floatValue.coerceAtMost(0f).dp).draggable(
+                orientation = androidx.compose.foundation.gestures.Orientation.Vertical,
+                state = androidx.compose.foundation.gestures.rememberDraggableState { delta -> dragOffset.floatValue += delta; if (dragOffset.floatValue < -80f) showNotification = false },
+                onDragStopped = { dragOffset.floatValue = 0f }
+            )) {
+                Surface(color = PrimaryColor, modifier = Modifier.fillMaxWidth().padding(16.dp), shadowElevation = 8.dp, shape = MaterialTheme.shapes.medium) {
                     Box(modifier = Modifier.padding(16.dp), contentAlignment = Alignment.Center) {
                         Text("Title is required", color = BackgroundColor, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+    }
+}
+
+/* Enter Grade Form — launched from deadline info page */
+@RequiresApi(Build.VERSION_CODES.O)
+@Composable
+fun EnterGradeForm(
+    db: AppDatabase,
+    course: Course,
+    initialTitle: String,
+    deadlineId: Int,
+    onBack: () -> Unit,
+    onSaved: () -> Unit
+) {
+    val scope = rememberCoroutineScope()
+    val scrollState = rememberScrollState()
+
+    var gradeTitle by remember { mutableStateOf(initialTitle) }
+    var selectedType by remember { mutableStateOf(GradeItemType.QUIZ) }
+    var showTypeDropdown by remember { mutableStateOf(false) }
+    var marksReceivedText by remember { mutableStateOf("") }
+    var totalMarksText by remember { mutableStateOf("") }
+
+    var showNotification by remember { mutableStateOf(false) }
+    var notificationMessage by remember { mutableStateOf("") }
+
+    fun showBanner(msg: String) {
+        notificationMessage = msg; showNotification = true
+        scope.launch { kotlinx.coroutines.delay(3000); showNotification = false }
+    }
+
+    val availableTypes = listOf(
+        GradeItemType.QUIZ, GradeItemType.HOMEWORK, GradeItemType.ASSIGNMENT,
+        GradeItemType.MID, GradeItemType.FINAL, GradeItemType.PROJECT,
+        GradeItemType.REPORT, GradeItemType.PRESENTATION, GradeItemType.LAB,
+        GradeItemType.PRACTICAL, GradeItemType.TUTORIAL,
+        GradeItemType.ATTENDANCE, GradeItemType.PARTICIPATION, GradeItemType.OTHER
+    )
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize().background(BackgroundColor).padding(12.dp)) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                contentDescription = "Back", tint = PrimaryColor,
+                modifier = Modifier.padding(4.dp)
+                    .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { onBack() }
+                    .size(40.dp)
+            )
+
+            Column(modifier = Modifier.weight(1f).verticalScroll(scrollState)) {
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Box(modifier = Modifier.fillMaxWidth().background(Color(CardColor), RoundedCornerShape(12.dp)).padding(16.dp)) {
+                    Column {
+                        Text("Title", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        TextField(
+                            value = gradeTitle,
+                            onValueChange = { gradeTitle = it },
+                            modifier = Modifier.fillMaxWidth()
+                                .background(BackgroundColor, RoundedCornerShape(8.dp))
+                                .border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)),
+                            textStyle = LocalTextStyle.current.copy(fontSize = 16.sp),
+                            colors = TextFieldDefaults.colors(
+                                focusedContainerColor = BackgroundColor, unfocusedContainerColor = BackgroundColor,
+                                focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent
+                            )
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Box(
+                    modifier = Modifier.fillMaxWidth().background(Color(CardColor), RoundedCornerShape(12.dp))
+                        .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { showTypeDropdown = !showTypeDropdown }
+                        .padding(16.dp)
+                ) {
+                    Column {
+                        Text("Type", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Box(modifier = Modifier.fillMaxWidth().background(BackgroundColor, RoundedCornerShape(8.dp)).border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)).padding(12.dp)) {
+                            Text(gradeItemTypeLabel(selectedType), fontSize = 16.sp)
+                        }
+                        AnimatedVisibility(visible = showTypeDropdown, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) {
+                            Column(modifier = Modifier.padding(top = 8.dp).heightIn(max = 200.dp).verticalScroll(rememberScrollState())) {
+                                availableTypes.forEach { type ->
+                                    val isSelected = selectedType == type
+                                    Box(
+                                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+                                            .background(if (isSelected) PrimaryColor else Color.LightGray, RoundedCornerShape(8.dp))
+                                            .clickable { selectedType = type; showTypeDropdown = false }
+                                            .padding(12.dp)
+                                    ) {
+                                        Text(gradeItemTypeLabel(type), fontSize = 16.sp,
+                                            color = if (isSelected) BackgroundColor else Color.Black,
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Box(modifier = Modifier.fillMaxWidth().background(Color(CardColor), RoundedCornerShape(12.dp)).padding(16.dp)) {
+                    Column {
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                            Text("Marks Received", fontSize = 16.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
+                            TextField(
+                                value = marksReceivedText, onValueChange = { marksReceivedText = it },
+                                modifier = Modifier.width(100.dp).background(BackgroundColor, RoundedCornerShape(8.dp)).border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)),
+                                textStyle = LocalTextStyle.current.copy(fontSize = 16.sp),
+                                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal),
+                                colors = TextFieldDefaults.colors(focusedContainerColor = BackgroundColor, unfocusedContainerColor = BackgroundColor, focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent),
+                                singleLine = true
+                            )
+                        }
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), thickness = 1.dp, color = Color.LightGray)
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                            Text("Total Marks", fontSize = 16.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
+                            TextField(
+                                value = totalMarksText, onValueChange = { totalMarksText = it },
+                                modifier = Modifier.width(100.dp).background(BackgroundColor, RoundedCornerShape(8.dp)).border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)),
+                                textStyle = LocalTextStyle.current.copy(fontSize = 16.sp),
+                                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal),
+                                colors = TextFieldDefaults.colors(focusedContainerColor = BackgroundColor, unfocusedContainerColor = BackgroundColor, focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent),
+                                singleLine = true
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Button(
+                        onClick = { gradeTitle = initialTitle; marksReceivedText = ""; totalMarksText = "" },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
+                        modifier = Modifier.weight(1f), contentPadding = PaddingValues(16.dp)
+                    ) { Text("Clear", fontSize = 16.sp) }
+                    Button(
+                        onClick = {
+                            val received = marksReceivedText.toFloatOrNull()
+                            if (received == null || received < 0f) { showBanner("Marks received must be a valid non-negative number"); return@Button }
+                            val total = totalMarksText.toFloatOrNull()
+                            if (total == null || total <= 0f) { showBanner("Total marks must be a valid positive number"); return@Button }
+                            if (received > total) { showBanner("Marks received cannot exceed total marks"); return@Button }
+                            scope.launch {
+                                db.gradeItemDao().insert(GradeItem(
+                                    courseId = course.id,
+                                    type = selectedType,
+                                    title = gradeTitle.trim(),
+                                    marksReceived = received,
+                                    totalMarks = total
+                                ))
+                                db.deadlineDao().deleteById(deadlineId)
+                                onSaved()
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
+                        modifier = Modifier.weight(1f), contentPadding = PaddingValues(16.dp)
+                    ) { Text("Save", fontSize = 16.sp) }
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+        }
+
+        AnimatedVisibility(
+            visible = showNotification,
+            enter = slideInVertically(initialOffsetY = { -it }) + fadeIn(),
+            exit = slideOutVertically(targetOffsetY = { -it }) + fadeOut(),
+            modifier = Modifier.align(Alignment.TopCenter)
+        ) {
+            val dragOffset = remember { androidx.compose.runtime.mutableFloatStateOf(0f) }
+            Box(modifier = Modifier.offset(y = dragOffset.floatValue.coerceAtMost(0f).dp).draggable(
+                orientation = androidx.compose.foundation.gestures.Orientation.Vertical,
+                state = androidx.compose.foundation.gestures.rememberDraggableState { delta -> dragOffset.floatValue += delta; if (dragOffset.floatValue < -80f) showNotification = false },
+                onDragStopped = { dragOffset.floatValue = 0f }
+            )) {
+                Surface(color = PrimaryColor, modifier = Modifier.fillMaxWidth().padding(16.dp), shadowElevation = 8.dp, shape = MaterialTheme.shapes.medium) {
+                    Box(modifier = Modifier.padding(16.dp), contentAlignment = Alignment.Center) {
+                        Text(notificationMessage, color = BackgroundColor, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }

@@ -165,7 +165,8 @@ object EventManager {
         endTime: LocalTime,
         recurFreq: RecurrenceFrequency,
         recurRule: RecurrenceRule,
-        categoryId: Int?
+        categoryId: Int?,
+        courseId: Int? = null
     ): Int {
         val event = MasterEvent(
             title = title,
@@ -177,7 +178,8 @@ object EventManager {
             endTime = endTime,
             recurFreq = recurFreq,
             recurRule = recurRule,
-            categoryId = categoryId
+            categoryId = categoryId,
+            courseId = courseId
         )
 
         // Insert master event and get ID
@@ -216,6 +218,15 @@ object EventManager {
     @RequiresApi(Build.VERSION_CODES.O)
     suspend fun update(context: Context, db: AppDatabase, event: MasterEvent) {
         db.eventDao().update(event)
+
+        // Cascade courseId change to all linked deadlines
+        db.deadlineDao().getAll()
+            .filter { it.eventId == event.id }
+            .forEach { deadline ->
+                if (deadline.courseId != event.courseId) {
+                    db.deadlineDao().update(deadline.copy(courseId = event.courseId))
+                }
+            }
 
         // Delete old occurrences
         val oldOccurrences = db.eventDao().getAllOccurrences()
@@ -273,7 +284,8 @@ object DeadlineManager {
         date: LocalDate,
         time: LocalTime,
         categoryId: Int?,
-        eventId: Int?
+        eventId: Int?,
+        courseId: Int? = null
     ): Int {
         val deadline = Deadline(
             title = title,
@@ -281,7 +293,8 @@ object DeadlineManager {
             date = date,
             time = time,
             categoryId = categoryId,
-            eventId = eventId
+            eventId = eventId,
+            courseId = courseId
         )
         val insertedId = db.deadlineDao().insert(deadline).toInt()
 

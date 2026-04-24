@@ -31,19 +31,12 @@ fun Creation(db: AppDatabase) {
     var selectedType by remember { mutableStateOf("Task") }
     val scope = rememberCoroutineScope()
 
-    // Validation notification
     var showValidationNotification by remember { mutableStateOf(false) }
     var validationMessage by remember { mutableStateOf("") }
-
-    // Overlap notification
     var showOverlapNotification by remember { mutableStateOf(false) }
     var overlapMessage by remember { mutableStateOf("") }
-
-    // Success notification
     var showSuccessNotification by remember { mutableStateOf(false) }
     var successMessage by remember { mutableStateOf("") }
-
-    // Reset trigger
     var resetTrigger by remember { mutableIntStateOf(0) }
 
     /* State variables */
@@ -65,6 +58,7 @@ fun Creation(db: AppDatabase) {
     var eventSelectedDaysOfWeek by remember { mutableStateOf(setOf(7)) }
     var eventSelectedDaysOfMonth by remember { mutableStateOf(setOf(1)) }
     var eventSelectedCategory by remember { mutableStateOf<Int?>(null) }
+    var eventSelectedCourse by remember { mutableStateOf<Int?>(null) }
 
     // Deadline
     var deadlineTitle by remember { mutableStateOf("") }
@@ -73,6 +67,7 @@ fun Creation(db: AppDatabase) {
     var deadlineTime by remember { mutableStateOf(LocalTime.of(10, 0)) }
     var deadlineSelectedCategory by remember { mutableStateOf<Int?>(null) }
     var deadlineSelectedEvent by remember { mutableStateOf<Int?>(null) }
+    var deadlineSelectedCourse by remember { mutableStateOf<Int?>(null) }
     var deadlineAutoScheduleTask by remember { mutableStateOf(false) }
     var deadlineTaskDurationHours by remember { mutableIntStateOf(1) }
     var deadlineTaskDurationMinutes by remember { mutableIntStateOf(0) }
@@ -117,90 +112,49 @@ fun Creation(db: AppDatabase) {
     var reminderSelectedDaysOfMonth by remember { mutableStateOf(setOf(1)) }
     var reminderSelectedCategory by remember { mutableStateOf<Int?>(null) }
 
-    // Clear all forms
     fun clearAllForms() {
-        // Category
-        categoryTitle = ""
-        categoryNotes = ""
-        categoryColor = Preset1
+        categoryTitle = ""; categoryNotes = ""; categoryColor = Preset1
 
-        // Event
-        eventTitle = ""
-        eventNotes = ""
-        eventColor = Preset1
-        eventStartDate = LocalDate.now().plusDays(1)
-        eventEndDate = null
-        eventStartTime = LocalTime.of(10, 0)
-        eventEndTime = LocalTime.of(11, 0)
+        eventTitle = ""; eventNotes = ""; eventColor = Preset1
+        eventStartDate = LocalDate.now().plusDays(1); eventEndDate = null
+        eventStartTime = LocalTime.of(10, 0); eventEndTime = LocalTime.of(11, 0)
         eventRecurrenceFreq = RecurrenceFrequency.NONE
-        eventSelectedDaysOfWeek = setOf(7)
-        eventSelectedDaysOfMonth = setOf(1)
-        eventSelectedCategory = null
+        eventSelectedDaysOfWeek = setOf(7); eventSelectedDaysOfMonth = setOf(1)
+        eventSelectedCategory = null; eventSelectedCourse = null
 
-        // Deadline
-        deadlineTitle = ""
-        deadlineNotes = ""
-        deadlineDate = LocalDate.now().plusDays(1)
-        deadlineTime = LocalTime.of(10, 0)
-        deadlineSelectedCategory = null
-        deadlineSelectedEvent = null
+        deadlineTitle = ""; deadlineNotes = ""
+        deadlineDate = LocalDate.now().plusDays(1); deadlineTime = LocalTime.of(10, 0)
+        deadlineSelectedCategory = null; deadlineSelectedEvent = null; deadlineSelectedCourse = null
         deadlineAutoScheduleTask = false
-        deadlineTaskDurationHours = 1
-        deadlineTaskDurationMinutes = 0
-        deadlineTaskIsBreakable = false
-        deadlineTaskBreakableLockedByDuration = false
+        deadlineTaskDurationHours = 1; deadlineTaskDurationMinutes = 0
+        deadlineTaskIsBreakable = false; deadlineTaskBreakableLockedByDuration = false
 
-        // Task Bucket
-        bucketStartDate = LocalDate.now().plusDays(1)
-        bucketEndDate = null
-        bucketStartTime = LocalTime.of(10, 0)
-        bucketEndTime = LocalTime.of(11, 0)
+        bucketStartDate = LocalDate.now().plusDays(1); bucketEndDate = null
+        bucketStartTime = LocalTime.of(10, 0); bucketEndTime = LocalTime.of(11, 0)
         bucketRecurrenceFreq = RecurrenceFrequency.NONE
-        bucketSelectedDaysOfWeek = setOf(7)
-        bucketSelectedDaysOfMonth = setOf(1)
+        bucketSelectedDaysOfWeek = setOf(7); bucketSelectedDaysOfMonth = setOf(1)
 
-        // Task
-        taskTitle = ""
-        taskNotes = ""
-        taskIsAllDay = false
-        taskAllDayDate = java.time.LocalDate.now().plusDays(1)
-        taskIsBreakable = false
-        taskIsAutoSchedule = true
-        taskStartDate = null
-        taskStartTime = null
-        taskDurationHours = 1
-        taskDurationMinutes = 0
-        taskSelectedCategory = null
-        taskSelectedEvent = null
-        taskSelectedDeadline = null
-        taskSelectedDependencyTask = null
+        taskTitle = ""; taskNotes = ""
+        taskIsAllDay = false; taskAllDayDate = java.time.LocalDate.now().plusDays(1)
+        taskIsBreakable = false; taskIsAutoSchedule = true
+        taskStartDate = null; taskStartTime = null
+        taskDurationHours = 1; taskDurationMinutes = 0
+        taskSelectedCategory = null; taskSelectedEvent = null
+        taskSelectedDeadline = null; taskSelectedDependencyTask = null
         taskBreakableLockedByDuration = false
 
-        // Reminder
-        reminderTitle = ""
-        reminderNotes = ""
-        reminderStartDate = LocalDate.now().plusDays(1)
-        reminderEndDate = null
-        reminderIsAllDay = true
-        reminderTime = LocalTime.of(10, 0)
+        reminderTitle = ""; reminderNotes = ""
+        reminderStartDate = LocalDate.now().plusDays(1); reminderEndDate = null
+        reminderIsAllDay = true; reminderTime = LocalTime.of(10, 0)
         reminderRecurrenceFreq = RecurrenceFrequency.NONE
-        reminderSelectedDaysOfWeek = setOf(7)
-        reminderSelectedDaysOfMonth = setOf(1)
+        reminderSelectedDaysOfWeek = setOf(7); reminderSelectedDaysOfMonth = setOf(1)
         reminderSelectedCategory = null
 
-        // Increment reset trigger
         resetTrigger++
-
-        // Scroll to top
-        scope.launch {
-            scrollState.animateScrollTo(0)
-        }
+        scope.launch { scrollState.animateScrollTo(0) }
     }
 
-    // Clear all forms when Type changes
-    LaunchedEffect(selectedType) {
-        clearAllForms()
-    }
+    LaunchedEffect(selectedType) { clearAllForms() }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -210,14 +164,9 @@ fun Creation(db: AppDatabase) {
                 .padding(12.dp)
                 .verticalScroll(scrollState)
         ) {
-            // Type field
-            selectedType = typePickerField(
-                initialType = selectedType,
-                key = resetTrigger
-            )
+            selectedType = typePickerField(initialType = selectedType, key = resetTrigger)
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Display form based on selected type
             when (selectedType) {
                 "Task" -> {
                     TaskForm(
@@ -242,10 +191,7 @@ fun Creation(db: AppDatabase) {
                         },
                         durationHours = taskDurationHours,
                         durationMinutes = taskDurationMinutes,
-                        onDurationChange = { hours, mins ->
-                            taskDurationHours = hours
-                            taskDurationMinutes = mins
-                        },
+                        onDurationChange = { hours, mins -> taskDurationHours = hours; taskDurationMinutes = mins },
                         selectedCategory = taskSelectedCategory,
                         onCategoryChange = { taskSelectedCategory = it },
                         selectedEvent = taskSelectedEvent,
@@ -271,10 +217,7 @@ fun Creation(db: AppDatabase) {
                         endDate = reminderEndDate,
                         isAllDay = reminderIsAllDay,
                         time = reminderTime,
-                        onAllDayTimeChange = { allDay, time ->
-                            reminderIsAllDay = allDay
-                            reminderTime = time
-                        },
+                        onAllDayTimeChange = { allDay, time -> reminderIsAllDay = allDay; reminderTime = time },
                         recurrenceFreq = reminderRecurrenceFreq,
                         selectedDaysOfWeek = reminderSelectedDaysOfWeek,
                         selectedDaysOfMonth = reminderSelectedDaysOfMonth,
@@ -304,14 +247,13 @@ fun Creation(db: AppDatabase) {
                         onCategoryChange = { deadlineSelectedCategory = it },
                         selectedEvent = deadlineSelectedEvent,
                         onEventChange = { deadlineSelectedEvent = it },
+                        selectedCourse = deadlineSelectedCourse,
+                        onCourseChange = { deadlineSelectedCourse = it },
                         autoScheduleTask = deadlineAutoScheduleTask,
                         onAutoScheduleTaskChange = { deadlineAutoScheduleTask = it },
                         taskDurationHours = deadlineTaskDurationHours,
                         taskDurationMinutes = deadlineTaskDurationMinutes,
-                        onTaskDurationChange = { hours, mins ->
-                            deadlineTaskDurationHours = hours
-                            deadlineTaskDurationMinutes = mins
-                        },
+                        onTaskDurationChange = { hours, mins -> deadlineTaskDurationHours = hours; deadlineTaskDurationMinutes = mins },
                         taskIsBreakable = deadlineTaskIsBreakable,
                         onTaskIsBreakableChange = { deadlineTaskIsBreakable = it },
                         taskBreakableLockedByDuration = deadlineTaskBreakableLockedByDuration,
@@ -346,6 +288,8 @@ fun Creation(db: AppDatabase) {
                         },
                         selectedCategory = eventSelectedCategory,
                         onCategoryChange = { eventSelectedCategory = it },
+                        selectedCourse = eventSelectedCourse,
+                        onCourseChange = { eventSelectedCourse = it },
                         resetTrigger = resetTrigger
                     )
                 }
@@ -386,35 +330,22 @@ fun Creation(db: AppDatabase) {
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Clear and Save buttons
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Button(
-                    onClick = {
-                        clearAllForms()
-                    },
+                    onClick = { clearAllForms() },
                     colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
                     modifier = Modifier.weight(1f),
                     contentPadding = PaddingValues(16.dp)
-                ) {
-                    Text("Clear",fontSize = 16.sp)
-                }
+                ) { Text("Clear", fontSize = 16.sp) }
                 Spacer(modifier = Modifier.width(12.dp))
                 Button(
                     onClick = {
-                        // Validate and save based on selected type
                         when (selectedType) {
                             "Task" -> {
                                 if (taskTitle.isBlank()) {
                                     validationMessage = "Title is required"
                                     showValidationNotification = true
-                                    scope.launch {
-                                        scrollState.animateScrollTo(0)
-                                        delay(3000)
-                                        showValidationNotification = false
-                                    }
+                                    scope.launch { scrollState.animateScrollTo(0); delay(3000); showValidationNotification = false }
                                     return@Button
                                 }
                                 scope.launch {
@@ -424,65 +355,48 @@ fun Creation(db: AppDatabase) {
                                     val dependencyTasks = TaskManager.getAll(db).filter {
                                         it.status == 1 && it.startDate == null && it.startTime == null
                                     }
-
                                     val durationInMinutes = (taskDurationHours * 60) + taskDurationMinutes
                                     val insertedTaskId = TaskManager.insert(
-                                        context = context,
-                                        db = db,
+                                        context = context, db = db,
                                         title = taskTitle,
                                         notes = taskNotes.ifBlank { null },
                                         allDay = if (taskIsAllDay) taskAllDayDate else null,
                                         breakable = taskIsBreakable,
-                                        startDate = taskStartDate,
-                                        startTime = taskStartTime,
+                                        startDate = taskStartDate, startTime = taskStartTime,
                                         predictedDuration = durationInMinutes,
                                         categoryId = taskSelectedCategory?.let { categories.getOrNull(it)?.id },
                                         eventId = taskSelectedEvent?.let { events.getOrNull(it)?.id },
                                         deadlineId = taskSelectedDeadline?.let { deadlines.getOrNull(it)?.id },
                                         dependencyTaskId = taskSelectedDependencyTask?.let { dependencyTasks.getOrNull(it)?.id }
                                     )
-
                                     val dateFormatter = java.time.format.DateTimeFormatter.ofPattern("MMMM d, yyyy")
                                     val timeFormatter = java.time.format.DateTimeFormatter.ofPattern("h:mm a")
                                     val capturedIsAllDay = taskIsAllDay
                                     val capturedAllDayDate = taskAllDayDate
                                     val capturedStartDate = taskStartDate
                                     val capturedStartTime = taskStartTime
-
                                     clearAllForms()
-
                                     successMessage = when {
                                         capturedIsAllDay -> "Task created\nScheduled on ${capturedAllDayDate.format(dateFormatter)}"
                                         capturedStartDate != null && capturedStartTime != null -> "Task created\n${capturedStartDate.format(dateFormatter)} at ${capturedStartTime.format(timeFormatter)}"
                                         else -> {
                                             val intervals = db.taskDao().getIntervalsForTask(insertedTaskId)
-                                            if (intervals.isEmpty()) {
-                                                "Task created\nUnscheduled, no bucket space"
-                                            } else {
-                                                val first = intervals.minByOrNull { it.occurDate }!!
-                                                "Task created\n${first.occurDate.format(dateFormatter)} at ${first.startTime.format(timeFormatter)}"
-                                            }
+                                            if (intervals.isEmpty()) "Task created\nUnscheduled, no bucket space"
+                                            else { val first = intervals.minByOrNull { it.occurDate }!!; "Task created\n${first.occurDate.format(dateFormatter)} at ${first.startTime.format(timeFormatter)}" }
                                         }
                                     }
-                                    showSuccessNotification = true
-                                    delay(3000)
-                                    showSuccessNotification = false
+                                    showSuccessNotification = true; delay(3000); showSuccessNotification = false
                                 }
                             }
                             "Reminder" -> {
                                 if (reminderTitle.isBlank()) {
                                     validationMessage = "Title is required"
                                     showValidationNotification = true
-                                    scope.launch {
-                                        scrollState.animateScrollTo(0)
-                                        delay(3000)
-                                        showValidationNotification = false
-                                    }
+                                    scope.launch { scrollState.animateScrollTo(0); delay(3000); showValidationNotification = false }
                                     return@Button
                                 }
                                 scope.launch {
                                     val categories = CategoryManager.getAll(db)
-
                                     val recurRule = when (reminderRecurrenceFreq) {
                                         RecurrenceFrequency.NONE -> RecurrenceRule()
                                         RecurrenceFrequency.DAILY -> RecurrenceRule()
@@ -490,67 +404,47 @@ fun Creation(db: AppDatabase) {
                                         RecurrenceFrequency.MONTHLY -> RecurrenceRule(daysOfMonth = reminderSelectedDaysOfMonth.toList())
                                         RecurrenceFrequency.YEARLY -> RecurrenceRule(monthAndDay = Pair(reminderStartDate.dayOfMonth, reminderStartDate.monthValue))
                                     }
-
                                     ReminderManager.insert(
-                                        context = context,
-                                        db = db,
-                                        title = reminderTitle,
-                                        notes = reminderNotes.ifBlank { null },
-                                        startDate = reminderStartDate,
-                                        endDate = reminderEndDate,
+                                        context = context, db = db,
+                                        title = reminderTitle, notes = reminderNotes.ifBlank { null },
+                                        startDate = reminderStartDate, endDate = reminderEndDate,
                                         time = if (reminderIsAllDay) null else reminderTime,
                                         allDay = reminderIsAllDay,
-                                        recurFreq = reminderRecurrenceFreq,
-                                        recurRule = recurRule,
+                                        recurFreq = reminderRecurrenceFreq, recurRule = recurRule,
                                         categoryId = reminderSelectedCategory?.let { categories.getOrNull(it)?.id }
                                     )
                                     clearAllForms()
                                     successMessage = "Reminder created"
-                                    showSuccessNotification = true
-                                    delay(3000)
-                                    showSuccessNotification = false
+                                    showSuccessNotification = true; delay(3000); showSuccessNotification = false
                                 }
                             }
                             "Deadline" -> {
                                 if (deadlineTitle.isBlank()) {
                                     validationMessage = "Title is required"
                                     showValidationNotification = true
-                                    scope.launch {
-                                        scrollState.animateScrollTo(0)
-                                        delay(3000)
-                                        showValidationNotification = false
-                                    }
+                                    scope.launch { scrollState.animateScrollTo(0); delay(3000); showValidationNotification = false }
                                     return@Button
                                 }
                                 scope.launch {
                                     val categories = CategoryManager.getAll(db)
                                     val events = EventManager.getAll(db)
-
-                                    // Insert deadline first
+                                    val courses = db.courseDao().getAll()
                                     val insertedDeadlineId = DeadlineManager.insert(
-                                        context = context,
-                                        db = db,
-                                        title = deadlineTitle,
-                                        notes = deadlineNotes.ifBlank { null },
-                                        date = deadlineDate,
-                                        time = deadlineTime,
+                                        context = context, db = db,
+                                        title = deadlineTitle, notes = deadlineNotes.ifBlank { null },
+                                        date = deadlineDate, time = deadlineTime,
                                         categoryId = deadlineSelectedCategory?.let { categories.getOrNull(it)?.id },
-                                        eventId = deadlineSelectedEvent?.let { events.getOrNull(it)?.id }
+                                        eventId = deadlineSelectedEvent?.let { events.getOrNull(it)?.id },
+                                        courseId = deadlineSelectedCourse?.let { courses.getOrNull(it)?.id }
                                     )
-
-                                    // If auto schedule task enabled, create task
                                     var insertedTaskId: Int? = null
                                     if (deadlineAutoScheduleTask) {
                                         val durationInMinutes = (deadlineTaskDurationHours * 60) + deadlineTaskDurationMinutes
                                         insertedTaskId = TaskManager.insert(
-                                            context = context,
-                                            db = db,
-                                            title = deadlineTitle,
-                                            notes = deadlineNotes.ifBlank { null },
-                                            allDay = null,
-                                            breakable = deadlineTaskIsBreakable,
-                                            startDate = null,
-                                            startTime = null,
+                                            context = context, db = db,
+                                            title = deadlineTitle, notes = deadlineNotes.ifBlank { null },
+                                            allDay = null, breakable = deadlineTaskIsBreakable,
+                                            startDate = null, startTime = null,
                                             predictedDuration = durationInMinutes,
                                             categoryId = deadlineSelectedCategory?.let { categories.getOrNull(it)?.id },
                                             eventId = deadlineSelectedEvent?.let { events.getOrNull(it)?.id },
@@ -558,41 +452,25 @@ fun Creation(db: AppDatabase) {
                                             dependencyTaskId = null
                                         )
                                     }
-
                                     val dateFormatter = java.time.format.DateTimeFormatter.ofPattern("MMMM d, yyyy")
                                     val timeFormatter = java.time.format.DateTimeFormatter.ofPattern("h:mm a")
                                     val capturedAutoSchedule = deadlineAutoScheduleTask
-
                                     clearAllForms()
-
                                     successMessage = if (capturedAutoSchedule && insertedTaskId != null) {
                                         val intervals = db.taskDao().getIntervalsForTask(insertedTaskId)
-                                        if (intervals.isEmpty()) {
-                                            "Deadline created, Task created\nUnscheduled, no bucket space"
-                                        } else {
-                                            val first = intervals.minByOrNull { it.occurDate }!!
-                                            "Deadline created, Task created\n${first.occurDate.format(dateFormatter)} at ${first.startTime.format(timeFormatter)}"
-                                        }
-                                    } else {
-                                        "Deadline created"
-                                    }
-                                    showSuccessNotification = true
-                                    delay(3000)
-                                    showSuccessNotification = false
+                                        if (intervals.isEmpty()) "Deadline created, Task created\nUnscheduled, no bucket space"
+                                        else { val first = intervals.minByOrNull { it.occurDate }!!; "Deadline created, Task created\n${first.occurDate.format(dateFormatter)} at ${first.startTime.format(timeFormatter)}" }
+                                    } else "Deadline created"
+                                    showSuccessNotification = true; delay(3000); showSuccessNotification = false
                                 }
                             }
                             "Event" -> {
                                 if (eventTitle.isBlank()) {
                                     validationMessage = "Title is required"
                                     showValidationNotification = true
-                                    scope.launch {
-                                        scrollState.animateScrollTo(0)
-                                        delay(3000)
-                                        showValidationNotification = false
-                                    }
+                                    scope.launch { scrollState.animateScrollTo(0); delay(3000); showValidationNotification = false }
                                     return@Button
                                 }
-
                                 scope.launch {
                                     val recurRule = when (eventRecurrenceFreq) {
                                         RecurrenceFrequency.NONE -> RecurrenceRule()
@@ -601,49 +479,32 @@ fun Creation(db: AppDatabase) {
                                         RecurrenceFrequency.MONTHLY -> RecurrenceRule(daysOfMonth = eventSelectedDaysOfMonth.toList())
                                         RecurrenceFrequency.YEARLY -> RecurrenceRule(monthAndDay = Pair(eventStartDate.dayOfMonth, eventStartDate.monthValue))
                                     }
-
-                                    // Check for overlap with other Events
                                     val eventOverlapInfo = checkEventOverlapWithEvents(
-                                        db = db,
-                                        startDate = eventStartDate,
-                                        endDate = eventEndDate,
-                                        startTime = eventStartTime,
-                                        endTime = eventEndTime,
-                                        recurFreq = eventRecurrenceFreq,
-                                        recurRule = recurRule
+                                        db = db, startDate = eventStartDate, endDate = eventEndDate,
+                                        startTime = eventStartTime, endTime = eventEndTime,
+                                        recurFreq = eventRecurrenceFreq, recurRule = recurRule
                                     )
-
                                     if (eventOverlapInfo.hasOverlap) {
                                         overlapMessage = formatOverlapMessage(eventOverlapInfo)
                                         showOverlapNotification = true
-                                        scrollState.animateScrollTo(0)
-                                        delay(3000)
-                                        showOverlapNotification = false
+                                        scrollState.animateScrollTo(0); delay(3000); showOverlapNotification = false
                                         return@launch
                                     }
-
-                                    // No overlap, proceed with save
                                     val categories = CategoryManager.getAll(db)
-
+                                    val courses = db.courseDao().getAll()
                                     EventManager.insert(
-                                        context = context,
-                                        db = db,
-                                        title = eventTitle,
-                                        notes = eventNotes.ifBlank { null },
+                                        context = context, db = db,
+                                        title = eventTitle, notes = eventNotes.ifBlank { null },
                                         color = eventColor,
-                                        startDate = eventStartDate,
-                                        endDate = eventEndDate,
-                                        startTime = eventStartTime,
-                                        endTime = eventEndTime,
-                                        recurFreq = eventRecurrenceFreq,
-                                        recurRule = recurRule,
-                                        categoryId = eventSelectedCategory?.let { categories.getOrNull(it)?.id }
+                                        startDate = eventStartDate, endDate = eventEndDate,
+                                        startTime = eventStartTime, endTime = eventEndTime,
+                                        recurFreq = eventRecurrenceFreq, recurRule = recurRule,
+                                        categoryId = eventSelectedCategory?.let { categories.getOrNull(it)?.id },
+                                        courseId = eventSelectedCourse?.let { courses.getOrNull(it)?.id }
                                     )
                                     clearAllForms()
                                     successMessage = "Event created"
-                                    showSuccessNotification = true
-                                    delay(3000)
-                                    showSuccessNotification = false
+                                    showSuccessNotification = true; delay(3000); showSuccessNotification = false
                                 }
                             }
                             "Task Bucket" -> {
@@ -655,47 +516,29 @@ fun Creation(db: AppDatabase) {
                                         RecurrenceFrequency.MONTHLY -> RecurrenceRule(daysOfMonth = bucketSelectedDaysOfMonth.toList())
                                         RecurrenceFrequency.YEARLY -> RecurrenceRule(monthAndDay = Pair(bucketStartDate.dayOfMonth, bucketStartDate.monthValue))
                                     }
-
                                     TaskBucketManager.insert(
-                                        context = context,
-                                        db = db,
-                                        startDate = bucketStartDate,
-                                        endDate = bucketEndDate,
-                                        startTime = bucketStartTime,
-                                        endTime = bucketEndTime,
-                                        recurFreq = bucketRecurrenceFreq,
-                                        recurRule = recurRule
+                                        context = context, db = db,
+                                        startDate = bucketStartDate, endDate = bucketEndDate,
+                                        startTime = bucketStartTime, endTime = bucketEndTime,
+                                        recurFreq = bucketRecurrenceFreq, recurRule = recurRule
                                     )
                                     clearAllForms()
                                     successMessage = "Task Bucket created"
-                                    showSuccessNotification = true
-                                    delay(3000)
-                                    showSuccessNotification = false
+                                    showSuccessNotification = true; delay(3000); showSuccessNotification = false
                                 }
                             }
                             "Category" -> {
                                 if (categoryTitle.isBlank()) {
                                     validationMessage = "Title is required"
                                     showValidationNotification = true
-                                    scope.launch {
-                                        scrollState.animateScrollTo(0)
-                                        delay(3000)
-                                        showValidationNotification = false
-                                    }
+                                    scope.launch { scrollState.animateScrollTo(0); delay(3000); showValidationNotification = false }
                                     return@Button
                                 }
                                 scope.launch {
-                                    CategoryManager.insert(
-                                        db = db,
-                                        title = categoryTitle,
-                                        notes = categoryNotes.ifBlank { null },
-                                        color = categoryColor
-                                    )
+                                    CategoryManager.insert(db = db, title = categoryTitle, notes = categoryNotes.ifBlank { null }, color = categoryColor)
                                     clearAllForms()
                                     successMessage = "Category created"
-                                    showSuccessNotification = true
-                                    delay(3000)
-                                    showSuccessNotification = false
+                                    showSuccessNotification = true; delay(3000); showSuccessNotification = false
                                 }
                             }
                         }
@@ -703,9 +546,7 @@ fun Creation(db: AppDatabase) {
                     colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
                     modifier = Modifier.weight(1f),
                     contentPadding = PaddingValues(16.dp)
-                ) {
-                    Text("Save", fontSize = 16.sp)
-                }
+                ) { Text("Save", fontSize = 16.sp) }
             }
         }
 
@@ -717,24 +558,12 @@ fun Creation(db: AppDatabase) {
             modifier = Modifier.align(Alignment.TopCenter)
         ) {
             val dragOffset = remember { androidx.compose.runtime.mutableFloatStateOf(0f) }
-            Box(
-                modifier = Modifier
-                    .offset(y = dragOffset.floatValue.coerceAtMost(0f).dp)
-                    .draggable(
-                        orientation = androidx.compose.foundation.gestures.Orientation.Vertical,
-                        state = androidx.compose.foundation.gestures.rememberDraggableState { delta ->
-                            dragOffset.floatValue += delta
-                            if (dragOffset.floatValue < -80f) showValidationNotification = false
-                        },
-                        onDragStopped = { dragOffset.floatValue = 0f }
-                    )
-            ) {
-                Surface(
-                    color = PrimaryColor,
-                    modifier = Modifier.fillMaxWidth().padding(16.dp),
-                    shadowElevation = 8.dp,
-                    shape = MaterialTheme.shapes.medium
-                ) {
+            Box(modifier = Modifier.offset(y = dragOffset.floatValue.coerceAtMost(0f).dp).draggable(
+                orientation = androidx.compose.foundation.gestures.Orientation.Vertical,
+                state = androidx.compose.foundation.gestures.rememberDraggableState { delta -> dragOffset.floatValue += delta; if (dragOffset.floatValue < -80f) showValidationNotification = false },
+                onDragStopped = { dragOffset.floatValue = 0f }
+            )) {
+                Surface(color = PrimaryColor, modifier = Modifier.fillMaxWidth().padding(16.dp), shadowElevation = 8.dp, shape = MaterialTheme.shapes.medium) {
                     Box(modifier = Modifier.padding(16.dp), contentAlignment = Alignment.Center) {
                         Text(validationMessage, color = BackgroundColor, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                     }
@@ -750,24 +579,12 @@ fun Creation(db: AppDatabase) {
             modifier = Modifier.align(Alignment.TopCenter)
         ) {
             val dragOffset = remember { androidx.compose.runtime.mutableFloatStateOf(0f) }
-            Box(
-                modifier = Modifier
-                    .offset(y = dragOffset.floatValue.coerceAtMost(0f).dp)
-                    .draggable(
-                        orientation = androidx.compose.foundation.gestures.Orientation.Vertical,
-                        state = androidx.compose.foundation.gestures.rememberDraggableState { delta ->
-                            dragOffset.floatValue += delta
-                            if (dragOffset.floatValue < -80f) showOverlapNotification = false
-                        },
-                        onDragStopped = { dragOffset.floatValue = 0f }
-                    )
-            ) {
-                Surface(
-                    color = PrimaryColor,
-                    modifier = Modifier.fillMaxWidth().padding(16.dp),
-                    shadowElevation = 8.dp,
-                    shape = MaterialTheme.shapes.medium
-                ) {
+            Box(modifier = Modifier.offset(y = dragOffset.floatValue.coerceAtMost(0f).dp).draggable(
+                orientation = androidx.compose.foundation.gestures.Orientation.Vertical,
+                state = androidx.compose.foundation.gestures.rememberDraggableState { delta -> dragOffset.floatValue += delta; if (dragOffset.floatValue < -80f) showOverlapNotification = false },
+                onDragStopped = { dragOffset.floatValue = 0f }
+            )) {
+                Surface(color = PrimaryColor, modifier = Modifier.fillMaxWidth().padding(16.dp), shadowElevation = 8.dp, shape = MaterialTheme.shapes.medium) {
                     Box(modifier = Modifier.padding(16.dp), contentAlignment = Alignment.Center) {
                         Text(overlapMessage, color = BackgroundColor, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                     }
@@ -783,32 +600,14 @@ fun Creation(db: AppDatabase) {
             modifier = Modifier.align(Alignment.TopCenter)
         ) {
             val dragOffset = remember { androidx.compose.runtime.mutableFloatStateOf(0f) }
-            Box(
-                modifier = Modifier
-                    .offset(y = dragOffset.floatValue.coerceAtMost(0f).dp)
-                    .draggable(
-                        orientation = androidx.compose.foundation.gestures.Orientation.Vertical,
-                        state = androidx.compose.foundation.gestures.rememberDraggableState { delta ->
-                            dragOffset.floatValue += delta
-                            if (dragOffset.floatValue < -80f) showSuccessNotification = false
-                        },
-                        onDragStopped = { dragOffset.floatValue = 0f }
-                    )
-            ) {
-                Surface(
-                    color = PrimaryColor,
-                    modifier = Modifier.fillMaxWidth().padding(16.dp),
-                    shadowElevation = 8.dp,
-                    shape = MaterialTheme.shapes.medium
-                ) {
+            Box(modifier = Modifier.offset(y = dragOffset.floatValue.coerceAtMost(0f).dp).draggable(
+                orientation = androidx.compose.foundation.gestures.Orientation.Vertical,
+                state = androidx.compose.foundation.gestures.rememberDraggableState { delta -> dragOffset.floatValue += delta; if (dragOffset.floatValue < -80f) showSuccessNotification = false },
+                onDragStopped = { dragOffset.floatValue = 0f }
+            )) {
+                Surface(color = PrimaryColor, modifier = Modifier.fillMaxWidth().padding(16.dp), shadowElevation = 8.dp, shape = MaterialTheme.shapes.medium) {
                     Box(modifier = Modifier.padding(16.dp), contentAlignment = Alignment.Center) {
-                        Text(
-                            successMessage,
-                            color = BackgroundColor,
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                        )
+                        Text(successMessage, color = BackgroundColor, fontSize = 18.sp, fontWeight = FontWeight.Bold, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
                     }
                 }
             }
