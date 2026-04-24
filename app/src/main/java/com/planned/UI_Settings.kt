@@ -166,8 +166,8 @@ fun Settings(db: AppDatabase) {
             }
             val sorted = rows.sortedWith(compareBy(
                 { it.urgency ?: Int.MAX_VALUE },
-                { -(it.categoryScore) },
                 { -(it.eventScore) },
+                { -(it.categoryScore) },
                 { it.masterTaskId }
             )).toMutableList()
 
@@ -1800,7 +1800,7 @@ fun SchedulePage(
                         .fillMaxWidth()
                         .height(IntrinsicSize.Min)
                 ) {
-                    listOf("Task ID", "Title", "Dependency", "Urgency", "Calc Grade", "Category Score", "Event Score")
+                    listOf("Task ID", "Title", "Dependency", "Urgency", "Calc Grade", "Event Score", "Category Score")
                         .forEachIndexed { index, header ->
                             Box(
                                 modifier = Modifier
@@ -1841,8 +1841,8 @@ fun SchedulePage(
                             row.dependencyTaskId?.toString() ?: "",
                             row.urgency?.toString() ?: "",
                             if (row.calcGrade != null) "${"%.1f".format(row.calcGrade)}%" else "",
-                            "%.3f".format(row.categoryScore),
-                            "%.3f".format(row.eventScore)
+                            "%.3f".format(row.eventScore),
+                            "%.3f".format(row.categoryScore)
                         ) else List(7) { "" }
 
                         values.forEachIndexed { index, value ->
