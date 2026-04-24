@@ -360,19 +360,19 @@ fun AcademicsAddCourseForm(
     var description by remember { mutableStateOf("") }
     var creditsText by remember { mutableStateOf("1") }
     var year by remember { mutableIntStateOf(java.time.Year.now().value) }
-    var semester by remember { mutableIntStateOf(1) }
+    var semester by remember { mutableIntStateOf(4) }
     var showSemesterDropdown by remember { mutableStateOf(false) }
 
-    var wQuiz by remember { mutableStateOf("0") }
-    var wMid by remember { mutableStateOf("0") }
-    var wAssignment by remember { mutableStateOf("0") }
-    var wProject by remember { mutableStateOf("0") }
-    var wFinal by remember { mutableStateOf("0") }
-    var wLab by remember { mutableStateOf("0") }
-    var wAttendance by remember { mutableStateOf("0") }
-    var wParticipation by remember { mutableStateOf("0") }
-    var wReport by remember { mutableStateOf("0") }
-    var wOther by remember { mutableStateOf("0") }
+    var wQuiz by remember { mutableStateOf("") }
+    var wMid by remember { mutableStateOf("") }
+    var wAssignment by remember { mutableStateOf("") }
+    var wProject by remember { mutableStateOf("") }
+    var wFinal by remember { mutableStateOf("") }
+    var wLab by remember { mutableStateOf("") }
+    var wAttendance by remember { mutableStateOf("") }
+    var wParticipation by remember { mutableStateOf("") }
+    var wReport by remember { mutableStateOf("") }
+    var wOther by remember { mutableStateOf("") }
 
     var showNotification by remember { mutableStateOf(false) }
     var notificationMessage by remember { mutableStateOf("") }
@@ -385,10 +385,10 @@ fun AcademicsAddCourseForm(
 
     fun validateWeightField(value: String, label: String): Float? {
         if (value.isBlank()) return 0f
-        val f = value.toFloatOrNull()
-        if (f == null) { showBanner("$label must be a number"); return null }
-        if (f < 0f || f > 100f) { showBanner("$label must be between 0 and 100"); return null }
-        return f
+        val f = value.toIntOrNull()
+        if (f == null) { showBanner("$label weight must be a whole number"); return null }
+        if (f < 0 || f > 100) { showBanner("$label weight must be between 0 and 100"); return null }
+        return f.toFloat()
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -527,7 +527,7 @@ fun AcademicsAddCourseForm(
                         ) { Text(semesterName(semester), fontSize = 16.sp) }
                         AnimatedVisibility(visible = showSemesterDropdown, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) {
                             Column(modifier = Modifier.padding(top = 8.dp)) {
-                                listOf(1 to "Spring", 2 to "Summer", 3 to "Fall", 4 to "Winter").forEach { (num, name) ->
+                                listOf(4 to "Winter", 1 to "Spring", 2 to "Summer", 3 to "Fall").forEach { (num, name) ->
                                     val isSelected = semester == num
                                     Box(
                                         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
@@ -589,8 +589,8 @@ fun AcademicsAddCourseForm(
                         onClick = {
                             title = ""; courseCode = ""; description = ""
                             creditsText = "1"; year = java.time.Year.now().value; semester = 1
-                            wQuiz = "0"; wMid = "0"; wAssignment = "0"; wProject = "0"; wFinal = "0"
-                            wLab = "0"; wAttendance = "0"; wParticipation = "0"; wReport = "0"; wOther = "0"
+                            wQuiz = ""; wMid = ""; wAssignment = ""; wProject = ""; wFinal = ""
+                            wLab = ""; wAttendance = ""; wParticipation = ""; wReport = ""; wOther = ""
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
                         modifier = Modifier.weight(1f), contentPadding = PaddingValues(16.dp)
@@ -611,8 +611,6 @@ fun AcademicsAddCourseForm(
                             val pa = validateWeightField(wParticipation, "Participation") ?: return@Button
                             val r  = validateWeightField(wReport, "Report") ?: return@Button
                             val o  = validateWeightField(wOther, "Other") ?: return@Button
-                            val allZero = listOf(q, m, a, p, f, l, at, pa, r, o).all { it == 0f }
-                            if (allZero) { showBanner("All weights cannot be 0"); return@Button }
                             scope.launch {
                                 db.courseDao().insert(Course(
                                     title = title.trim(),
@@ -705,36 +703,35 @@ fun AcademicsCourseInfoPage(
                     if (!course.description.isNullOrBlank()) add("Description" to course.description)
                     add("Semester" to semesterLabel(course.year, course.semester))
                     add("Credits"  to course.credits.toString())
-                    add("Current Grade" to (if (currentGrade != null) "${"%.1f".format(currentGrade)}%" else "No grades yet"))
+                    if (currentGrade != null && currentGrade > 0f)
+                        add("Current Grade" to "${"%.1f".format(currentGrade)}%")
                 })
                 Spacer(modifier = Modifier.height(18.dp))
 
                 // Weights card
-                Box(modifier = Modifier.fillMaxWidth().background(Color(CardColor), RoundedCornerShape(12.dp))) {
-                    Column {
-                        val weights = listOf(
-                            "Quiz" to course.weightQuiz, "Midterm" to course.weightMid,
-                            "Assignment" to course.weightAssignment, "Project" to course.weightProject,
-                            "Final" to course.weightFinal, "Lab" to course.weightLab,
-                            "Attendance" to course.weightAttendance, "Participation" to course.weightParticipation,
-                            "Report" to course.weightReport, "Other" to course.weightOther
-                        ).filter { it.second > 0f }
+                val weights = listOf(
+                    "Quiz" to course.weightQuiz, "Midterm" to course.weightMid,
+                    "Assignment" to course.weightAssignment, "Project" to course.weightProject,
+                    "Final" to course.weightFinal, "Lab" to course.weightLab,
+                    "Attendance" to course.weightAttendance, "Participation" to course.weightParticipation,
+                    "Report" to course.weightReport, "Other" to course.weightOther
+                ).filter { it.second > 0f }
 
-                        if (weights.isEmpty()) {
-                            Box(modifier = Modifier.padding(12.dp)) { Text("No weights set", fontSize = 14.sp, color = Color.Gray) }
-                        } else {
+                if (weights.isNotEmpty()) {
+                    Box(modifier = Modifier.fillMaxWidth().background(Color(CardColor), RoundedCornerShape(12.dp))) {
+                        Column {
                             weights.forEachIndexed { index, (label, weight) ->
                                 Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
                                     Text(label, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color.Gray)
                                     Spacer(modifier = Modifier.height(6.dp))
-                                    Text("${"%.1f".format(weight)}%", fontSize = 16.sp)
+                                    Text("${weight.toInt()}%", fontSize = 16.sp)
                                 }
                                 if (index < weights.lastIndex) HorizontalDivider(thickness = 1.dp, color = Color.LightGray)
                             }
                         }
                     }
+                    Spacer(modifier = Modifier.height(18.dp))
                 }
-                Spacer(modifier = Modifier.height(18.dp))
 
                 // Grades entered
                 Text(
@@ -778,7 +775,7 @@ fun AcademicsCourseInfoPage(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(if (gradeItems.isEmpty()) 12.dp else 24.dp))
 
                 // Submit final grade card
                 Box(modifier = Modifier.fillMaxWidth().background(Color(CardColor), RoundedCornerShape(12.dp)).padding(16.dp)) {
@@ -974,8 +971,7 @@ fun AcademicsAddGradeForm(
         GradeItemType.ATTENDANCE to course.weightAttendance, GradeItemType.PARTICIPATION to course.weightParticipation,
         GradeItemType.REPORT to course.weightReport, GradeItemType.OTHER to course.weightOther
     )
-    val availableTypes = GradeItemType.entries.filter { (weightMap[it] ?: 0f) > 0f }
-        .ifEmpty { GradeItemType.entries }
+    val availableTypes = GradeItemType.entries
 
     // Make sure selectedType is valid
     LaunchedEffect(Unit) { if (selectedType !in availableTypes) selectedType = availableTypes.first() }
@@ -1215,7 +1211,8 @@ fun AcademicsCompletedInfoPage(
                 if (!course.description.isNullOrBlank()) add("Description" to course.description!!)
                 add("Semester" to semesterLabel(course.year, course.semester))
                 add("Credits" to course.credits.toString())
-                add("Calculated Grade" to "${"%.1f".format(course.calculatedGrade)}%")
+                if (course.calculatedGrade > 0f)
+                    add("Calculated Grade" to "${"%.1f".format(course.calculatedGrade)}%")
                 add("Submitted Grade" to course.submitGrade)
             })
         }
