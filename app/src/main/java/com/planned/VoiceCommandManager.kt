@@ -346,6 +346,7 @@ object VoiceCommandManager {
                     resolvedDl    != null -> resolvedDl.categoryId
                     else                  -> json.optInt("category_id", -1).takeIf { it != -1 }
                 }
+                val courseId = json.optInt("course_id", -1).takeIf { it != -1 }
                 val catT     = catId?.let { db.categoryDao().getCategoryById(it)?.title } ?: "None"
                 val evT      = resolvedEvId?.let { db.eventDao().getMasterEventById(it)?.title } ?: "None"
                 val dlT      = dlId?.let { db.deadlineDao().getDeadlineById(it)?.title } ?: "None"
@@ -455,6 +456,7 @@ object VoiceCommandManager {
                 val colorHex = json.optString("color", "").ifBlank { null }
                 val color    = colorHex?.let { hexToColor(it) }
                 val rf       = parseRecurFreq(json.optString("recur_freq", "NONE")); val rr = parseRecurRule(json)
+                val courseId = json.optInt("course_id", -1).takeIf { it != -1 }
                 val catT     = catId?.let { db.categoryDao().getCategoryById(it)?.title } ?: "None"
                 return VoicePendingAction(action, "Event", listOf(
                     "Title"      to title,
@@ -469,7 +471,7 @@ object VoiceCommandManager {
                 ), emptySet(), reply) {
                     EventManager.insert(context=context, db=db, title=title, notes=notes, color=color,
                         startDate=sd, endDate=ed, startTime=st, endTime=et,
-                        recurFreq=rf, recurRule=rr, categoryId=catId)
+                        recurFreq=rf, recurRule=rr, categoryId=catId, courseId=courseId)
                 }
             }
 
@@ -489,6 +491,7 @@ object VoiceCommandManager {
                 val ned      = if (edStr.isNotBlank()) LocalDate.parse(edStr) else ev.endDate
                 val nst      = if (stStr.isNotBlank()) LocalTime.parse(stStr) else ev.startTime
                 val net      = if (etStr.isNotBlank()) LocalTime.parse(etStr) else ev.endTime
+                val courseId = json.optInt("course_id", -1).takeIf { it != -1 } ?: ev.courseId
                 val oldC     = ev.categoryId?.let { db.categoryDao().getCategoryById(it)?.title } ?: "None"
                 val newC     = catId?.let { db.categoryDao().getCategoryById(it)?.title } ?: "None"
                 val changed  = mutableSetOf<String>()
@@ -514,7 +517,7 @@ object VoiceCommandManager {
                 ), changed, reply) {
                     EventManager.update(context=context, db=db, event=ev.copy(
                         title=title, startDate=nsd, endDate=ned, startTime=nst, endTime=net,
-                        notes=notes, categoryId=catId, recurFreq=rf, recurRule=rr, color=newColor))
+                        notes=notes, categoryId=catId, recurFreq=rf, recurRule=rr, color=newColor, courseId=courseId))
                 }
             }
 
@@ -635,6 +638,7 @@ object VoiceCommandManager {
                 val taskSt    = if (taskStStr.isNotBlank()) LocalTime.parse(taskStStr) else null
                 val resolvedEvent = evId?.let { db.eventDao().getMasterEventById(it) }
                 val catId = resolvedEvent?.categoryId ?: json.optInt("category_id", -1).takeIf { it != -1 }
+                val courseId = json.optInt("course_id", -1).takeIf { it != -1 }
                 val catT  = catId?.let { db.categoryDao().getCategoryById(it)?.title } ?: "None"
                 val evT   = evId?.let { db.eventDao().getMasterEventById(it)?.title } ?: "None"
                 val summaryFields = mutableListOf(
@@ -651,7 +655,7 @@ object VoiceCommandManager {
                 }
                 return VoicePendingAction(action, "Deadline", summaryFields, emptySet(), reply) {
                     val insertedDlId = DeadlineManager.insert(context=context, db=db, title=title,
-                        notes=notes, date=d, time=t, categoryId=catId, eventId=evId)
+                        notes=notes, date=d, time=t, categoryId=catId, eventId=evId, courseId=courseId)
                     if (autoTask) {
                         TaskManager.insert(context=context, db=db, title=title, notes=notes, allDay=null,
                             breakable=taskBreak, startDate=taskSd, startTime=taskSt, predictedDuration=taskDur,
@@ -671,6 +675,7 @@ object VoiceCommandManager {
                 val catId = resolvedEvForCat?.categoryId ?: dl.categoryId
                 val nd    = if (dStr.isNotBlank()) LocalDate.parse(dStr) else dl.date
                 val nt    = if (tStr.isNotBlank()) LocalTime.parse(tStr) else dl.time
+                val courseId = json.optInt("course_id", -1).takeIf { it != -1 } ?: dl.courseId
                 val oldC  = dl.categoryId?.let { db.categoryDao().getCategoryById(it)?.title } ?: "None"
                 val newC  = catId?.let { db.categoryDao().getCategoryById(it)?.title } ?: "None"
                 val oldE  = dl.eventId?.let { db.eventDao().getMasterEventById(it)?.title } ?: "None"
@@ -691,7 +696,7 @@ object VoiceCommandManager {
                     "Notes"    to fmtEdit(dl.notes ?: "—",        notes ?: "—")
                 ), changed, reply) {
                     DeadlineManager.update(context=context, db=db,
-                        deadline=dl.copy(title=title, date=nd, time=nt, notes=notes, categoryId=catId, eventId=evId))
+                        deadline=dl.copy(title=title, date=nd, time=nt, notes=notes, categoryId=catId, eventId=evId, courseId=courseId))
                 }
             }
 
@@ -917,8 +922,18 @@ object VoiceCommandManager {
                     "Credits" to course.credits.toString(),
                     "Semester" to semesterLabel(course.year, course.semester)
                 ), emptySet(), reply) {
+                    val linkedEvents = db.eventDao().getAllMasterEvents()
+                        .filter { it.courseId == courseId }
+                    val eventIds = linkedEvents.map { it.id }
+                    val categoryIds = linkedEvents.mapNotNull { it.categoryId }.distinct()
+                    linkedEvents.forEach { db.eventDao().update(it.copy(courseId = null)) }
+                    db.deadlineDao().getAll()
+                        .filter { it.courseId == courseId }
+                        .forEach { db.deadlineDao().update(it.copy(courseId = null)) }
                     db.gradeItemDao().deleteByCourseId(courseId)
                     db.courseDao().deleteById(courseId)
+                    updateATIForEvents(db, eventIds, categoryIds)
+                    generateTaskIntervals(context, db)
                 }
             }
 
@@ -942,6 +957,7 @@ object VoiceCommandManager {
                         courseId = courseId, type = type,
                         title = gradeTitle.trim(), marksReceived = received, totalMarks = total
                     ))
+                    updateATIForCourse(context, db, courseId)
                 }
             }
 
@@ -956,6 +972,7 @@ object VoiceCommandManager {
                     "Score" to "${"%.1f".format(item.marksReceived)} / ${"%.1f".format(item.totalMarks)}"
                 ), emptySet(), reply) {
                     db.gradeItemDao().deleteById(itemId)
+                    item.courseId.let { updateATIForCourse(context, db, it) }
                 }
             }
 
@@ -972,6 +989,14 @@ object VoiceCommandManager {
                     "Submitted Grade" to submitGrade,
                     "Calculated Grade" to "${"%.1f".format(calculated)}%"
                 ), emptySet(), reply) {
+                    val linkedEvents = db.eventDao().getAllMasterEvents()
+                        .filter { it.courseId == courseId }
+                    val eventIds = linkedEvents.map { it.id }
+                    val categoryIds = linkedEvents.mapNotNull { it.categoryId }.distinct()
+                    linkedEvents.forEach { db.eventDao().update(it.copy(courseId = null)) }
+                    db.deadlineDao().getAll()
+                        .filter { it.courseId == courseId }
+                        .forEach { db.deadlineDao().update(it.copy(courseId = null)) }
                     db.completedCourseDao().insert(CompletedCourse(
                         courseTitle = course.title, courseCode = course.courseCode,
                         description = course.description, credits = course.credits,
@@ -980,6 +1005,8 @@ object VoiceCommandManager {
                     ))
                     db.gradeItemDao().deleteByCourseId(courseId)
                     db.courseDao().deleteById(courseId)
+                    updateATIForEvents(db, eventIds, categoryIds)
+                    generateTaskIntervals(context, db)
                 }
             }
 
@@ -1053,6 +1080,7 @@ RULES:
 2. Decide which action fits best from the list below.
 3. For update and delete actions, match the user's spoken name to an entity ID from the app state lists above. Pick the closest match. If genuinely ambiguous, use REPLY to ask for clarification.
 4. Only include fields the user explicitly mentioned. Omit all other optional fields — defaults are handled by the app.
+5. Events and deadlines can be linked to a course via course_id. When creating or editing events or deadlines, if the user mentions a course, include the course_id field.
 
 DATE/TIME RULES:
 - All dates: ISO format YYYY-MM-DD. Today is $today.
@@ -1073,16 +1101,16 @@ CREATE_TASK: { "action":"CREATE_TASK", "title":"string", "duration_minutes":numb
 EDIT_TASK:   { "action":"EDIT_TASK", "task_id":number, "title":"omit if unchanged", "duration_minutes":number_or_null, "breakable":boolean_or_omit, "start_date":"YYYY-MM-DD or omit if unchanged", "start_time":"HH:mm or omit if unchanged", "notes":"string or omit if unchanged", "category_id":number_or_-1, "event_id":number_or_-1, "deadline_id":number_or_-1, "reply":"short spoken confirmation" }
 DELETE_TASK: { "action":"DELETE_TASK", "task_id":number, "reply":"short spoken confirmation" }
 
-CREATE_EVENT: { "action":"CREATE_EVENT", "title":"string", "start_date":"YYYY-MM-DD", "end_date":"YYYY-MM-DD or omit", "start_time":"HH:mm", "end_time":"HH:mm", "notes":"string or omit", "color":"hex or omit", "category_id":number_or_-1, "recur_freq":"NONE|DAILY|WEEKLY|MONTHLY|YEARLY", "recur_days_of_week":[], "recur_days_of_month":[], "recur_month":number_if_YEARLY, "recur_day":number_if_YEARLY, "reply":"short spoken confirmation" }
-EDIT_EVENT:  { "action":"EDIT_EVENT", "event_id":number, "title":"omit if unchanged", "start_date":"omit if unchanged", "end_date":"omit if unchanged", "start_time":"omit if unchanged", "end_time":"omit if unchanged", "notes":"omit if unchanged", "color":"hex or omit if unchanged", "category_id":number_or_-1, "recur_freq":"omit if unchanged", "reply":"short spoken confirmation" }
+CREATE_EVENT: { "action":"CREATE_EVENT", "title":"string", "start_date":"YYYY-MM-DD", "end_date":"YYYY-MM-DD or omit", "start_time":"HH:mm", "end_time":"HH:mm", "notes":"string or omit", "color":"hex or omit", "category_id":number_or_-1, "recur_freq":"NONE|DAILY|WEEKLY|MONTHLY|YEARLY", "recur_days_of_week":[], "recur_days_of_month":[], "recur_month":number_if_YEARLY, "recur_day":number_if_YEARLY, "reply":"short spoken confirmation", "course_id":number_or_-1 }
+EDIT_EVENT:  { "action":"EDIT_EVENT", "event_id":number, "title":"omit if unchanged", "start_date":"omit if unchanged", "end_date":"omit if unchanged", "start_time":"omit if unchanged", "end_time":"omit if unchanged", "notes":"omit if unchanged", "color":"hex or omit if unchanged", "category_id":number_or_-1, "recur_freq":"omit if unchanged", "reply":"short spoken confirmation", "course_id":number_or_-1 }
 DELETE_EVENT: { "action":"DELETE_EVENT", "event_id":number, "reply":"short spoken confirmation" }
 
 CREATE_REMINDER: { "action":"CREATE_REMINDER", "title":"string", "start_date":"YYYY-MM-DD", "end_date":"YYYY-MM-DD or omit", "time":"HH:mm or omit for all-day", "notes":"string or omit", "category_id":number_or_-1, "recur_freq":"NONE|DAILY|WEEKLY|MONTHLY|YEARLY", "recur_days_of_week":[], "recur_days_of_month":[], "reply":"short spoken confirmation" }
 EDIT_REMINDER: { "action":"EDIT_REMINDER", "reminder_id":number, "title":"omit if unchanged", "start_date":"omit if unchanged", "end_date":"omit if unchanged", "time":"omit if unchanged", "notes":"omit if unchanged", "category_id":number_or_-1, "recur_freq":"omit if unchanged", "reply":"short spoken confirmation" }
 DELETE_REMINDER: { "action":"DELETE_REMINDER", "reminder_id":number, "reply":"short spoken confirmation" }
 
-CREATE_DEADLINE: { "action":"CREATE_DEADLINE", "title":"string", "date":"YYYY-MM-DD", "time":"HH:mm", "notes":"string or omit", "category_id":number_or_-1, "event_id":number_or_-1, "auto_schedule_task":boolean, "task_duration_minutes":number, "task_breakable":boolean, "task_start_date":"YYYY-MM-DD or omit for auto-schedule", "task_start_time":"HH:mm or omit for auto-schedule", "reply":"short spoken confirmation" }
-EDIT_DEADLINE:  { "action":"EDIT_DEADLINE", "deadline_id":number, "title":"omit if unchanged", "date":"omit if unchanged", "time":"omit if unchanged", "notes":"omit if unchanged", "category_id":number_or_-1, "event_id":number_or_-1, "reply":"short spoken confirmation" }
+CREATE_DEADLINE: { "action":"CREATE_DEADLINE", "title":"string", "date":"YYYY-MM-DD", "time":"HH:mm", "notes":"string or omit", "category_id":number_or_-1, "event_id":number_or_-1, "auto_schedule_task":boolean, "task_duration_minutes":number, "task_breakable":boolean, "task_start_date":"YYYY-MM-DD or omit for auto-schedule", "task_start_time":"HH:mm or omit for auto-schedule", "reply":"short spoken confirmation", "course_id":number_or_-1 }
+EDIT_DEADLINE:  { "action":"EDIT_DEADLINE", "deadline_id":number, "title":"omit if unchanged", "date":"omit if unchanged", "time":"omit if unchanged", "notes":"omit if unchanged", "category_id":number_or_-1, "event_id":number_or_-1, "reply":"short spoken confirmation", "course_id":number_or_-1 }
 DELETE_DEADLINE: { "action":"DELETE_DEADLINE", "deadline_id":number, "reply":"short spoken confirmation" }
 
 CREATE_CATEGORY: { "action":"CREATE_CATEGORY", "title":"string", "notes":"string or omit", "color":"hex or omit for default", "reply":"short spoken confirmation" }
