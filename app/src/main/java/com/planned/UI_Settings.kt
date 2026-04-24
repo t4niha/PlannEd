@@ -93,6 +93,10 @@ fun Settings(db: AppDatabase) {
     var categoryATIList by remember { mutableStateOf(listOf<CategoryATI>()) }
     var eventATIList by remember { mutableStateOf(listOf<EventATI>()) }
     var scheduleOrderRows by remember { mutableStateOf(listOf<ScheduleOrderRow>()) }
+    var courses by remember { mutableStateOf(listOf<Course>()) }
+    var gradeItems by remember { mutableStateOf(listOf<GradeItem>()) }
+    var completedCourses by remember { mutableStateOf(listOf<CompletedCourse>()) }
+    var gradingScale by remember { mutableStateOf<GradingScale?>(null) }
 
     fun refreshData() {
         CoroutineScope(Dispatchers.IO).launch {
@@ -109,6 +113,10 @@ fun Settings(db: AppDatabase) {
             db.settingsDao().getAll()?.let { dbSettings = listOf(it) } ?: run { dbSettings = emptyList() }
             categoryATIList = db.categoryATIDao().getAll()
             eventATIList = db.eventATIDao().getAll()
+            courses = db.courseDao().getAll()
+            gradeItems = courses.flatMap { db.gradeItemDao().getByCourseId(it.id) }
+            completedCourses = db.completedCourseDao().getAll()
+            gradingScale = db.gradingScaleDao().get()
 
             val today = java.time.LocalDateTime.now()
             val allDeadlines = db.deadlineDao().getAll()
@@ -200,6 +208,10 @@ fun Settings(db: AppDatabase) {
                 categoryATIList = categoryATIList,
                 eventATIList = eventATIList,
                 settings = dbSettings,
+                courses = courses,
+                gradeItems = gradeItems,
+                completedCourses = completedCourses,
+                gradingScale = gradingScale,
                 onBack = { settingsCurrentView = "main" },
                 onRefresh = { refreshData() }
             )
@@ -1236,6 +1248,10 @@ fun DatabasePage(
     categoryATIList: List<CategoryATI>,
     eventATIList: List<EventATI>,
     settings: List<AppSetting>,
+    courses: List<Course>,
+    gradeItems: List<GradeItem>,
+    completedCourses: List<CompletedCourse>,
+    gradingScale: GradingScale?,
     onBack: () -> Unit,
     onRefresh: () -> Unit = {}
 ) {
@@ -1243,17 +1259,6 @@ fun DatabasePage(
     val scrollV = rememberScrollState()
     val scrollH = rememberScrollState()
     val scope = rememberCoroutineScope()
-    var courses by remember { mutableStateOf<List<Course>>(emptyList()) }
-    var gradeItems by remember { mutableStateOf<List<GradeItem>>(emptyList()) }
-    var completedCourses by remember { mutableStateOf<List<CompletedCourse>>(emptyList()) }
-    var gradingScale by remember { mutableStateOf<GradingScale?>(null) }
-
-    LaunchedEffect(Unit) {
-        courses = db.courseDao().getAll()
-        gradeItems = courses.flatMap { db.gradeItemDao().getByCourseId(it.id) }
-        completedCourses = db.completedCourseDao().getAll()
-        gradingScale = db.gradingScaleDao().get()
-    }
 
     Column(
         modifier = Modifier

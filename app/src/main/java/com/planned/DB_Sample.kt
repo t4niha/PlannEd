@@ -650,5 +650,76 @@ fun runSample(context: Context, db: AppDatabase) = runBlocking {
         ))
     }
 
+    // ACADEMICS
+
+    // Grading scale
+    db.gradingScaleDao().insert(GradingScale(
+        id = 0, cgpa = 0f,
+        gpaAPlus = 4.0f, gpaA = 4.0f, gpaAMinus = 3.7f,
+        gpaBPlus = 3.3f, gpaB = 3.0f, gpaBMinus = 2.7f,
+        gpaCPlus = 2.3f, gpaC = 2.0f, gpaCMinus = 1.7f,
+        gpaDPlus = 1.3f, gpaD = 1.0f, gpaDMinus = 0.7f,
+        gpaF = 0.0f, gpaU = null, gpaP = null,
+        gpaS = null, gpaW = null, gpaI = null,
+        gpaN = null, gpaNp = null, gpaNC = null
+    ))
+
+    // Active courses
+    val matCourseId = db.courseDao().insert(Course(
+        title = "Calculus III", courseCode = "MAT350",
+        description = "Room SAC315 Prof MHM", credits = 3,
+        year = 2026, semester = 1,
+        weightQuiz = 20f, weightMid = 25f, weightAssignment = 10f,
+        weightAttendance = 10f, weightFinal = 35f
+    )).toInt()
+
+    val phyCourseId = db.courseDao().insert(Course(
+        title = "Physics II", courseCode = "PHY108",
+        description = "Room SAC209 Prof OIS", credits = 3,
+        year = 2026, semester = 1,
+        weightQuiz = 20f, weightMid = 25f, weightAssignment = 10f,
+        weightAttendance = 10f, weightFinal = 35f
+    )).toInt()
+
+    val phyLabCourseId = db.courseDao().insert(Course(
+        title = "Physics II Lab", courseCode = "PHY108L",
+        description = "Room SAC512 Prof RLS", credits = 1,
+        year = 2026, semester = 1,
+        weightQuiz = 20f, weightMid = 25f, weightAssignment = 10f,
+        weightAttendance = 10f, weightFinal = 35f
+    )).toInt()
+
+    // Grades for MAT350
+    db.gradeItemDao().insert(GradeItem(courseId = matCourseId, type = GradeItemType.QUIZ, title = "1", marksReceived = 7f, totalMarks = 10f))
+    db.gradeItemDao().insert(GradeItem(courseId = matCourseId, type = GradeItemType.QUIZ, title = "2", marksReceived = 8f, totalMarks = 10f))
+    db.gradeItemDao().insert(GradeItem(courseId = matCourseId, type = GradeItemType.MID, title = "", marksReceived = 15f, totalMarks = 20f))
+
+    // Grades for PHY108
+    db.gradeItemDao().insert(GradeItem(courseId = phyCourseId, type = GradeItemType.QUIZ, title = "1", marksReceived = 6f, totalMarks = 10f))
+    db.gradeItemDao().insert(GradeItem(courseId = phyCourseId, type = GradeItemType.QUIZ, title = "2", marksReceived = 9f, totalMarks = 10f))
+    db.gradeItemDao().insert(GradeItem(courseId = phyCourseId, type = GradeItemType.MID, title = "", marksReceived = 13f, totalMarks = 20f))
+
+    // Grades for PHY108L
+    db.gradeItemDao().insert(GradeItem(courseId = phyLabCourseId, type = GradeItemType.QUIZ, title = "1", marksReceived = 8f, totalMarks = 10f))
+    db.gradeItemDao().insert(GradeItem(courseId = phyLabCourseId, type = GradeItemType.QUIZ, title = "2", marksReceived = 7f, totalMarks = 10f))
+    db.gradeItemDao().insert(GradeItem(courseId = phyLabCourseId, type = GradeItemType.MID, title = "", marksReceived = 16f, totalMarks = 20f))
+
+    // Completed courses
+    db.completedCourseDao().insert(CompletedCourse(courseTitle = "Programming Language I", courseCode = "CSE115", credits = 3, year = 2025, semester = 1, calculatedGrade = 88f, submitGrade = "A"))
+    db.completedCourseDao().insert(CompletedCourse(courseTitle = "Programming Language I Lab", courseCode = "CSE115L", credits = 1, year = 2025, semester = 1, calculatedGrade = 92f, submitGrade = "A+"))
+    db.completedCourseDao().insert(CompletedCourse(courseTitle = "Introduction to Composition", courseCode = "ENG102", credits = 3, year = 2025, semester = 1, calculatedGrade = 79f, submitGrade = "B+"))
+
+    db.completedCourseDao().insert(CompletedCourse(courseTitle = "Calculus I", courseCode = "MAT120", credits = 3, year = 2025, semester = 2, calculatedGrade = 83f, submitGrade = "A-"))
+    db.completedCourseDao().insert(CompletedCourse(courseTitle = "Discrete Mathematics", courseCode = "CSE173", credits = 3, year = 2025, semester = 2, calculatedGrade = 76f, submitGrade = "B+"))
+    db.completedCourseDao().insert(CompletedCourse(courseTitle = "Introduction to Ethics", courseCode = "PHI104", credits = 3, year = 2025, semester = 2, calculatedGrade = 91f, submitGrade = "A"))
+
+    db.completedCourseDao().insert(CompletedCourse(courseTitle = "Calculus II", courseCode = "MAT130", credits = 3, year = 2025, semester = 3, calculatedGrade = 81f, submitGrade = "A-"))
+    db.completedCourseDao().insert(CompletedCourse(courseTitle = "Data Structures and Algorithm", courseCode = "CSE225", credits = 3, year = 2025, semester = 3, calculatedGrade = 74f, submitGrade = "B"))
+    db.completedCourseDao().insert(CompletedCourse(courseTitle = "Physics I", courseCode = "PHY107", credits = 4, year = 2025, semester = 3, calculatedGrade = 86f, submitGrade = "A"))
+
+    db.completedCourseDao().insert(CompletedCourse(courseTitle = "Linear Algebra", courseCode = "MAT125", credits = 3, year = 2026, semester = 4, calculatedGrade = 78f, submitGrade = "B+"))
+    db.completedCourseDao().insert(CompletedCourse(courseTitle = "Programming Language II", courseCode = "CSE215", credits = 3, year = 2026, semester = 4, calculatedGrade = 85f, submitGrade = "A-"))
+    db.completedCourseDao().insert(CompletedCourse(courseTitle = "Digital Logic Design", courseCode = "CSE231", credits = 3, year = 2026, semester = 4, calculatedGrade = 72f, submitGrade = "B"))
+
     generateTaskIntervals(context, db)
 }
