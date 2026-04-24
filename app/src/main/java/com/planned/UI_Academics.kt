@@ -47,7 +47,29 @@ fun toGradeItemType(value: String): GradeItemType = GradeItemType.valueOf(value)
 fun semesterName(semester: Int): String = when (semester) {
     1 -> "Spring"; 2 -> "Summer"; 3 -> "Fall"; 4 -> "Winter"; else -> "?"
 }
-fun semesterLabel(year: Int, semester: Int) = "${semesterName(semester)} $year"
+fun calculateCgpa(completedCourses: List<CompletedCourse>, scale: GradingScale): Float? {
+    val gradeMap = mapOf(
+        "A+" to scale.gpaAPlus, "A" to scale.gpaA, "A-" to scale.gpaAMinus,
+        "B+" to scale.gpaBPlus, "B" to scale.gpaB, "B-" to scale.gpaBMinus,
+        "C+" to scale.gpaCPlus, "C" to scale.gpaC, "C-" to scale.gpaCMinus,
+        "D+" to scale.gpaDPlus, "D" to scale.gpaD, "D-" to scale.gpaDMinus,
+        "F" to scale.gpaF, "U" to scale.gpaU, "P" to scale.gpaP,
+        "S" to scale.gpaS, "W" to scale.gpaW, "I" to scale.gpaI,
+        "N" to scale.gpaN, "NC" to scale.gpaNC
+    )
+    val eligible = completedCourses.filter { gradeMap[it.submitGrade] != null }
+    if (eligible.isEmpty()) return null
+    var totalPoints = 0f
+    var totalCredits = 0
+    for (course in eligible) {
+        val gpa = gradeMap[course.submitGrade] ?: continue
+        totalPoints += gpa * course.credits
+        totalCredits += course.credits
+    }
+    if (totalCredits == 0) return null
+    return totalPoints / totalCredits
+}
+fun semesterLabel(year: Int, semester: Int) = "$year ${semesterName(semester)}"
 
 // Grade calculation
 fun calculateCurrentGrade(course: Course, items: List<GradeItem>): Float? {
@@ -61,6 +83,10 @@ fun calculateCurrentGrade(course: Course, items: List<GradeItem>): Float? {
         GradeItemType.ATTENDANCE   to course.weightAttendance,
         GradeItemType.PARTICIPATION to course.weightParticipation,
         GradeItemType.REPORT       to course.weightReport,
+        GradeItemType.PRESENTATION to course.weightPresentation,
+        GradeItemType.HOMEWORK     to course.weightHomework,
+        GradeItemType.PRACTICAL    to course.weightPractical,
+        GradeItemType.TUTORIAL     to course.weightTutorial,
         GradeItemType.OTHER        to course.weightOther
     )
     val grouped = items.groupBy { it.type }
@@ -90,6 +116,10 @@ fun gradeItemTypeLabel(type: GradeItemType): String = when (type) {
     GradeItemType.ATTENDANCE    -> "Attendance"
     GradeItemType.PARTICIPATION -> "Participation"
     GradeItemType.REPORT        -> "Report"
+    GradeItemType.PRESENTATION -> "Presentation"
+    GradeItemType.HOMEWORK     -> "Homework"
+    GradeItemType.PRACTICAL    -> "Practical"
+    GradeItemType.TUTORIAL     -> "Tutorial"
     GradeItemType.OTHER         -> "Other"
 }
 
@@ -163,8 +193,18 @@ fun Academics(db: AppDatabase) {
             onCourseClick = { completed ->
                 academicsSelectedCompletedCourse = completed
                 academicsCurrentView = "completedInfo"
-            }
+            },
+            onGradingScaleReady = { scale -> academicsGradingScale = scale },
+            onEditGradingScale = { academicsCurrentView = "editGradingScale" }
         )
+        "editGradingScale" -> academicsGradingScale?.let { scale ->
+            AcademicsGradingScaleForm(
+                db = db,
+                scale = scale,
+                onBack = { academicsCurrentView = "history" },
+                onSaved = { academicsCurrentView = "history" }
+            )
+        }
         "completedInfo" -> academicsSelectedCompletedCourse?.let { completed ->
             AcademicsCompletedInfoPage(
                 db = db,
@@ -385,6 +425,10 @@ fun AcademicsAddCourseForm(
     var wAttendance by remember { mutableStateOf("") }
     var wParticipation by remember { mutableStateOf("") }
     var wReport by remember { mutableStateOf("") }
+    var wPresentation by remember { mutableStateOf("") }
+    var wHomework by remember { mutableStateOf("") }
+    var wPractical by remember { mutableStateOf("") }
+    var wTutorial by remember { mutableStateOf("") }
     var wOther by remember { mutableStateOf("") }
 
     var showNotification by remember { mutableStateOf(false) }
@@ -474,7 +518,7 @@ fun AcademicsAddCourseForm(
                         Text("Credits", fontSize = 16.sp, fontWeight = FontWeight.Medium)
                         Spacer(modifier = Modifier.weight(1f))
                         Button(
-                            onClick = { val v = creditsText.toIntOrNull() ?: 1; if (v > 1) creditsText = (v - 1).toString() },
+                            onClick = { val v = creditsText.toIntOrNull() ?: 1; if (v > 0) creditsText = (v - 1).toString() },
                             shape = CircleShape,
                             colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor, contentColor = BackgroundColor),
                             modifier = Modifier.size(40.dp),
@@ -573,6 +617,10 @@ fun AcademicsAddCourseForm(
                             "Attendance" to Pair(wAttendance) { v: String -> wAttendance = v },
                             "Participation" to Pair(wParticipation) { v: String -> wParticipation = v },
                             "Report" to Pair(wReport) { v: String -> wReport = v },
+                            "Presentation" to Pair(wPresentation) { v: String -> wPresentation = v },
+                            "Homework" to Pair(wHomework)     { v: String -> wHomework = v },
+                            "Practical" to Pair(wPractical)    { v: String -> wPractical = v },
+                            "Tutorial" to Pair(wTutorial)     { v: String -> wTutorial = v },
                             "Other" to Pair(wOther) { v: String -> wOther = v }
                         )
 
@@ -603,7 +651,9 @@ fun AcademicsAddCourseForm(
                             title = ""; courseCode = ""; description = ""
                             creditsText = "1"; year = java.time.Year.now().value; semester = 1
                             wQuiz = ""; wMid = ""; wAssignment = ""; wProject = ""; wFinal = ""
-                            wLab = ""; wAttendance = ""; wParticipation = ""; wReport = ""; wOther = ""
+                            wLab = ""; wAttendance = ""; wParticipation = ""; wReport = "";
+                            wPresentation = ""; wHomework = ""; wPractical = ""; wTutorial = "";
+                            wOther = ""
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
                         modifier = Modifier.weight(1f), contentPadding = PaddingValues(16.dp)
@@ -623,6 +673,10 @@ fun AcademicsAddCourseForm(
                             val at = validateWeightField(wAttendance, "Attendance") ?: return@Button
                             val pa = validateWeightField(wParticipation, "Participation") ?: return@Button
                             val r  = validateWeightField(wReport, "Report") ?: return@Button
+                            val pr = validateWeightField(wPresentation, "Presentation") ?: return@Button
+                            val hw = validateWeightField(wHomework, "Homework") ?: return@Button
+                            val pc = validateWeightField(wPractical, "Practical") ?: return@Button
+                            val tu = validateWeightField(wTutorial, "Tutorial") ?: return@Button
                             val o  = validateWeightField(wOther, "Other") ?: return@Button
                             scope.launch {
                                 db.courseDao().insert(Course(
@@ -632,7 +686,9 @@ fun AcademicsAddCourseForm(
                                     credits = credits, year = year, semester = semester,
                                     weightQuiz = q, weightMid = m, weightAssignment = a, weightProject = p,
                                     weightFinal = f, weightLab = l, weightAttendance = at,
-                                    weightParticipation = pa, weightReport = r, weightOther = o
+                                    weightParticipation = pa, weightReport = r,
+                                    weightPresentation = pr, weightHomework = hw, weightPractical = pc,
+                                    weightTutorial = tu, weightOther = o
                                 ))
                                 onSaved()
                             }
@@ -685,6 +741,10 @@ data class CourseUpdateFormData(
     val wAttendance: String,
     val wParticipation: String,
     val wReport: String,
+    val wPresentation: String,
+    val wHomework: String,
+    val wPractical: String,
+    val wTutorial: String,
     val wOther: String
 )
 
@@ -731,6 +791,10 @@ fun AcademicsCourseInfoPage(
             wAttendance = course.weightAttendance.toWeightString(),
             wParticipation = course.weightParticipation.toWeightString(),
             wReport = course.weightReport.toWeightString(),
+            wPresentation = course.weightPresentation.toWeightString(),
+            wHomework = course.weightHomework.toWeightString(),
+            wPractical = course.weightPractical.toWeightString(),
+            wTutorial = course.weightTutorial.toWeightString(),
             wOther = course.weightOther.toWeightString()
         ))
         updateDataReady = true
@@ -778,11 +842,20 @@ fun AcademicsCourseInfoPage(
                 Spacer(modifier = Modifier.height(18.dp))
 
                 val weights = listOf(
-                    "Quiz" to course.weightQuiz, "Midterm" to course.weightMid,
-                    "Assignment" to course.weightAssignment, "Project" to course.weightProject,
-                    "Final" to course.weightFinal, "Lab" to course.weightLab,
-                    "Attendance" to course.weightAttendance, "Participation" to course.weightParticipation,
-                    "Report" to course.weightReport, "Other" to course.weightOther
+                    "Quiz" to course.weightQuiz,
+                    "Midterm" to course.weightMid,
+                    "Assignment" to course.weightAssignment,
+                    "Project" to course.weightProject,
+                    "Final" to course.weightFinal,
+                    "Lab" to course.weightLab,
+                    "Attendance" to course.weightAttendance,
+                    "Participation" to course.weightParticipation,
+                    "Report" to course.weightReport,
+                    "Presentation" to course.weightPresentation,
+                    "Homework" to course.weightHomework,
+                    "Practical" to course.weightPractical,
+                    "Tutorial" to course.weightTutorial,
+                    "Other" to course.weightOther
                 ).filter { it.second > 0f }
 
                 if (weights.isNotEmpty()) {
@@ -857,7 +930,7 @@ fun AcademicsCourseInfoPage(
                             Button(
                                 onClick = {
                                     if (finalGradeText.isBlank()) { showMsg("Enter a grade first"); return@Button }
-                                    val gradeRegex = Regex("^([A-Fa-f][+-]?|[Uu]|[Ww]|[Ii]|[Ss]|[Nn][Cc]?|[Pp])$")
+                                    val gradeRegex = Regex("^(A[+-]?|B[+-]?|C[+-]?|D[+-]?|F|U|P|S|W|I|N|NC)$")
                                     if (!gradeRegex.matches(finalGradeText.trim())) { showMsg("Invalid letter grade"); return@Button }
                                     scope.launch {
                                         db.completedCourseDao().insert(CompletedCourse(
@@ -1018,6 +1091,10 @@ fun AcademicsCourseUpdateForm(
     var wAttendance by remember { mutableStateOf(preloadedData.wAttendance) }
     var wParticipation by remember { mutableStateOf(preloadedData.wParticipation) }
     var wReport by remember { mutableStateOf(preloadedData.wReport) }
+    var wPresentation by remember { mutableStateOf(preloadedData.wPresentation) }
+    var wHomework by remember { mutableStateOf(preloadedData.wHomework) }
+    var wPractical by remember { mutableStateOf(preloadedData.wPractical) }
+    var wTutorial by remember { mutableStateOf(preloadedData.wTutorial) }
     var wOther by remember { mutableStateOf(preloadedData.wOther) }
 
     var showNotification by remember { mutableStateOf(false) }
@@ -1098,7 +1175,7 @@ fun AcademicsCourseUpdateForm(
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                         Text("Credits", fontSize = 16.sp, fontWeight = FontWeight.Medium)
                         Spacer(modifier = Modifier.weight(1f))
-                        Button(onClick = { val v = creditsText.toIntOrNull() ?: 1; if (v > 1) creditsText = (v - 1).toString() }, shape = CircleShape, colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor, contentColor = BackgroundColor), modifier = Modifier.size(40.dp), contentPadding = PaddingValues(0.dp)) { Text("-", fontSize = 20.sp) }
+                        Button(onClick = { val v = creditsText.toIntOrNull() ?: 1; if (v > 0) creditsText = (v - 1).toString() }, shape = CircleShape, colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor, contentColor = BackgroundColor), modifier = Modifier.size(40.dp), contentPadding = PaddingValues(0.dp)) { Text("-", fontSize = 20.sp) }
                         Spacer(modifier = Modifier.width(12.dp))
                         Box(modifier = Modifier.width(50.dp).background(BackgroundColor, RoundedCornerShape(8.dp)).padding(vertical = 8.dp), contentAlignment = Alignment.Center) { Text(creditsText, fontSize = 18.sp) }
                         Spacer(modifier = Modifier.width(12.dp))
@@ -1162,6 +1239,10 @@ fun AcademicsCourseUpdateForm(
                             "Attendance" to Pair(wAttendance) { v: String -> wAttendance = v },
                             "Participation" to Pair(wParticipation) { v: String -> wParticipation = v },
                             "Report" to Pair(wReport) { v: String -> wReport = v },
+                            "Presentation" to Pair(wPresentation) { v: String -> wPresentation = v },
+                            "Homework" to Pair(wHomework) { v: String -> wHomework = v },
+                            "Practical" to Pair(wPractical) { v: String -> wPractical = v },
+                            "Tutorial" to Pair(wTutorial) { v: String -> wTutorial = v },
                             "Other" to Pair(wOther) { v: String -> wOther = v }
                         )
                         weightFields.forEachIndexed { index, (label, pairVal) ->
@@ -1195,7 +1276,10 @@ fun AcademicsCourseUpdateForm(
                             wAssignment = preloadedData.wAssignment; wProject = preloadedData.wProject
                             wFinal = preloadedData.wFinal; wLab = preloadedData.wLab
                             wAttendance = preloadedData.wAttendance; wParticipation = preloadedData.wParticipation
-                            wReport = preloadedData.wReport; wOther = preloadedData.wOther
+                            wReport = preloadedData.wReport;
+                            wPresentation = preloadedData.wPresentation; wHomework = preloadedData.wHomework
+                            wPractical = preloadedData.wPractical; wTutorial = preloadedData.wTutorial;
+                            wOther = preloadedData.wOther
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
                         modifier = Modifier.weight(1f), contentPadding = PaddingValues(16.dp)
@@ -1215,6 +1299,10 @@ fun AcademicsCourseUpdateForm(
                             val at = validateWeightField(wAttendance, "Attendance") ?: return@Button
                             val pa = validateWeightField(wParticipation, "Participation") ?: return@Button
                             val r  = validateWeightField(wReport, "Report") ?: return@Button
+                            val pr = validateWeightField(wPresentation, "Presentation") ?: return@Button
+                            val hw = validateWeightField(wHomework, "Homework") ?: return@Button
+                            val pc = validateWeightField(wPractical, "Practical") ?: return@Button
+                            val tu = validateWeightField(wTutorial, "Tutorial") ?: return@Button
                             val o  = validateWeightField(wOther, "Other") ?: return@Button
                             scope.launch {
                                 db.courseDao().update(Course(
@@ -1225,7 +1313,9 @@ fun AcademicsCourseUpdateForm(
                                     credits = credits, year = year, semester = semester,
                                     weightQuiz = q, weightMid = m, weightAssignment = a, weightProject = p,
                                     weightFinal = f, weightLab = l, weightAttendance = at,
-                                    weightParticipation = pa, weightReport = r, weightOther = o
+                                    weightParticipation = pa, weightReport = r,
+                                    weightPresentation = pr, weightHomework = hw, weightPractical = pc,
+                                    weightTutorial = tu, weightOther = o
                                 ))
                                 academicsSelectedCourse = db.courseDao().getById(course.id)
                                 onSaved()
@@ -1448,57 +1538,366 @@ fun AcademicsAddGradeForm(
 fun AcademicsHistoryList(
     db: AppDatabase,
     onBack: () -> Unit,
-    onCourseClick: (CompletedCourse) -> Unit
+    onCourseClick: (CompletedCourse) -> Unit,
+    onGradingScaleReady: (GradingScale) -> Unit,
+    onEditGradingScale: () -> Unit
 ) {
     var courses by remember { mutableStateOf<List<CompletedCourse>>(emptyList()) }
+    var gradingScale by remember { mutableStateOf<GradingScale?>(null) }
 
     LaunchedEffect(Unit) {
         courses = db.completedCourseDao().getAll()
+        var scale = db.gradingScaleDao().get()
+        if (scale == null) {
+            scale = GradingScale()
+            db.gradingScaleDao().insert(scale)
+        }
+        gradingScale = scale
+        onGradingScaleReady(scale)
     }
 
-    // Group by semester label
+    val cgpa = gradingScale?.let { calculateCgpa(courses, it) }
+
     val grouped = courses.groupBy { semesterLabel(it.year, it.semester) }
-    val sortedKeys = grouped.keys.sortedWith(compareByDescending<String> {
-        val parts = it.split(" ")
-        val yr = parts.lastOrNull()?.toIntOrNull() ?: 0
-        val sem = when (parts.firstOrNull()) { "Winter" -> 1; "Spring" -> 2; "Summer" -> 3; "Fall" -> 4; else -> 0 }
-        yr * 10 + sem
-    })
+    val lastSubmitted = grouped.mapValues { (_, courses) -> courses.maxOf { it.id } }
+    val sortedKeys = grouped.keys.sortedByDescending { lastSubmitted[it] ?: 0 }
 
     Column(modifier = Modifier.fillMaxSize().background(BackgroundColor)) {
-        Icon(
-            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
-            contentDescription = "Back",
-            tint = PrimaryColor,
-            modifier = Modifier.padding(16.dp).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { onBack() }.size(40.dp)
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(start = 4.dp, end = 16.dp, top = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                contentDescription = "Back",
+                tint = PrimaryColor,
+                modifier = Modifier
+                    .padding(12.dp)
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null
+                    ) { onBack() }
+                    .size(40.dp)
+            )
+            Button(
+                onClick = onEditGradingScale,
+                modifier = Modifier.align(Alignment.Bottom),
+                colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+            ) {
+                Text(
+                    "Grading Scale",
+                    fontSize = 14.sp
+                )
+            }
+        }
 
         Column(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
-            Text("Grade History", fontSize = 24.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 16.dp, top = 4.dp))
+            Text(
+                "Grade History",
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 16.dp, top = 4.dp)
+            )
 
             if (courses.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text("No completed courses", fontSize = 18.sp, color = Color.Gray)
                 }
             } else {
-                LazyColumn(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    if (gradingScale != null) {
+                        item {
+                            val totalCredits = courses.sumOf { it.credits }
+                            val gradeMap = mapOf(
+                                "A+" to gradingScale!!.gpaAPlus,
+                                "A" to gradingScale!!.gpaA,
+                                "A-" to gradingScale!!.gpaAMinus,
+                                "B+" to gradingScale!!.gpaBPlus,
+                                "B" to gradingScale!!.gpaB,
+                                "B-" to gradingScale!!.gpaBMinus,
+                                "C+" to gradingScale!!.gpaCPlus,
+                                "C" to gradingScale!!.gpaC,
+                                "C-" to gradingScale!!.gpaCMinus,
+                                "D+" to gradingScale!!.gpaDPlus,
+                                "D" to gradingScale!!.gpaD,
+                                "D-" to gradingScale!!.gpaDMinus,
+                                "F" to gradingScale!!.gpaF,
+                                "U" to gradingScale!!.gpaU,
+                                "P" to gradingScale!!.gpaP,
+                                "S" to gradingScale!!.gpaS,
+                                "W" to gradingScale!!.gpaW,
+                                "I" to gradingScale!!.gpaI,
+                                "N" to gradingScale!!.gpaN,
+                                "NC" to gradingScale!!.gpaNC
+                            )
+                            val totalCreditPoints = courses.sumOf { course ->
+                                val gpa = gradeMap[course.submitGrade] ?: 0f
+                                (gpa * course.credits).toDouble()
+                            }.toFloat()
+                            InfoCard(buildList {
+                                add("Courses Completed" to courses.size.toString())
+                                if (cgpa != null) add("Current CGPA" to "%.2f".format(cgpa))
+                                add("Total Credit Points" to "%.2f".format(totalCreditPoints))
+                                add("Total Credits" to totalCredits.toString())
+                            })
+                            Spacer(modifier = Modifier.height(8.dp))
+                        }
+                    }
                     sortedKeys.forEach { semLabel ->
                         item {
-                            Text(semLabel, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.Gray, modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 4.dp))
+                            Text(
+                                semLabel,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.Gray,
+                                modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 4.dp)
+                            )
                         }
                         items(grouped[semLabel] ?: emptyList()) { completed ->
                             Row(
-                                modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Color(CardColor)).clickable { onCourseClick(completed) }.padding(12.dp),
+                                modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
+                                    .background(Color(CardColor))
+                                    .clickable { onCourseClick(completed) }.padding(12.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text(completed.courseTitle, fontSize = 16.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                                    Text(
+                                        completed.courseTitle,
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        maxLines = 1,
+                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                    )
                                     Spacer(modifier = Modifier.height(4.dp))
-                                    Text(completed.submitGrade, fontSize = 14.sp, color = Color.Gray)
+                                    Text(
+                                        completed.submitGrade,
+                                        fontSize = 14.sp,
+                                        color = Color.Gray
+                                    )
                                 }
-                                Icon(imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(20.dp))
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                    contentDescription = null,
+                                    tint = Color.Gray,
+                                    modifier = Modifier.size(20.dp)
+                                )
                             }
                         }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Grading scale form
+@RequiresApi(Build.VERSION_CODES.O)
+@Composable
+fun AcademicsGradingScaleForm(
+    db: AppDatabase,
+    scale: GradingScale,
+    onBack: () -> Unit,
+    onSaved: () -> Unit
+) {
+    val scope = rememberCoroutineScope()
+    val scrollState = rememberScrollState()
+
+    fun Float?.toScaleString() = if (this == null) "" else {
+        val s = this.toString()
+        if (s.endsWith(".0")) s.dropLast(2) else s
+    }
+
+    var gpaAPlus by remember { mutableStateOf(scale.gpaAPlus.toScaleString()) }
+    var gpaA by remember { mutableStateOf(scale.gpaA.toScaleString()) }
+    var gpaAMinus by remember { mutableStateOf(scale.gpaAMinus.toScaleString()) }
+    var gpaBPlus by remember { mutableStateOf(scale.gpaBPlus.toScaleString()) }
+    var gpaB by remember { mutableStateOf(scale.gpaB.toScaleString()) }
+    var gpaBMinus by remember { mutableStateOf(scale.gpaBMinus.toScaleString()) }
+    var gpaCPlus by remember { mutableStateOf(scale.gpaCPlus.toScaleString()) }
+    var gpaC by remember { mutableStateOf(scale.gpaC.toScaleString()) }
+    var gpaCMinus by remember { mutableStateOf(scale.gpaCMinus.toScaleString()) }
+    var gpaDPlus by remember { mutableStateOf(scale.gpaDPlus.toScaleString()) }
+    var gpaD by remember { mutableStateOf(scale.gpaD.toScaleString()) }
+    var gpaDMinus by remember { mutableStateOf(scale.gpaDMinus.toScaleString()) }
+    var gpaF by remember { mutableStateOf(scale.gpaF.toScaleString()) }
+    var gpaU by remember { mutableStateOf(scale.gpaU.toScaleString()) }
+    var gpaP by remember { mutableStateOf(scale.gpaP.toScaleString()) }
+    var gpaS by remember { mutableStateOf(scale.gpaS.toScaleString()) }
+    var gpaW by remember { mutableStateOf(scale.gpaW.toScaleString()) }
+    var gpaI by remember { mutableStateOf(scale.gpaI.toScaleString()) }
+    var gpaN by remember { mutableStateOf(scale.gpaN.toScaleString()) }
+    var gpaNC by remember { mutableStateOf(scale.gpaNC.toScaleString()) }
+
+    var showNotification by remember { mutableStateOf(false) }
+    var notificationMessage by remember { mutableStateOf("") }
+
+    fun showBanner(msg: String) {
+        notificationMessage = msg; showNotification = true
+        scope.launch { delay(3000); showNotification = false }
+    }
+
+    fun validate(value: String, label: String): Pair<Boolean, Float?> {
+        if (value.isBlank()) return true to null
+        val f = value.toFloatOrNull() ?: run { showBanner("$label must be a number"); return false to null }
+        val parts = value.split(".")
+        if (parts.size == 2 && parts[1].length > 2) { showBanner("$label can have at most 2 decimal places"); return false to null }
+        if (parts[0].length > 3) { showBanner("$label whole part cannot exceed 3 digits"); return false to null }
+        return true to f
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize().background(BackgroundColor).padding(12.dp)) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                contentDescription = "Back",
+                tint = PrimaryColor,
+                modifier = Modifier
+                    .padding(4.dp)
+                    .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { onBack() }
+                    .size(40.dp)
+            )
+
+            Column(modifier = Modifier.weight(1f).verticalScroll(scrollState)) {
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    "Null grades not counted toward CGPA",
+                    fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.Gray,
+                    modifier = Modifier.padding(start = 4.dp, bottom = 12.dp)
+                )
+
+                Box(modifier = Modifier.fillMaxWidth().background(Color(CardColor), RoundedCornerShape(12.dp)).padding(16.dp)) {
+                    Column {
+                        Text("Grade Point Values", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        val fields = listOf(
+                            "A+" to Pair(gpaAPlus) { v: String -> gpaAPlus = v },
+                            "A" to Pair(gpaA) { v: String -> gpaA = v },
+                            "A-" to Pair(gpaAMinus) { v: String -> gpaAMinus = v },
+                            "B+" to Pair(gpaBPlus) { v: String -> gpaBPlus = v },
+                            "B" to Pair(gpaB) { v: String -> gpaB = v },
+                            "B-" to Pair(gpaBMinus) { v: String -> gpaBMinus = v },
+                            "C+" to Pair(gpaCPlus) { v: String -> gpaCPlus = v },
+                            "C" to Pair(gpaC) { v: String -> gpaC = v },
+                            "C-" to Pair(gpaCMinus) { v: String -> gpaCMinus = v },
+                            "D+" to Pair(gpaDPlus) { v: String -> gpaDPlus = v },
+                            "D" to Pair(gpaD) { v: String -> gpaD = v },
+                            "D-" to Pair(gpaDMinus) { v: String -> gpaDMinus = v },
+                            "F" to Pair(gpaF) { v: String -> gpaF = v },
+                            "U" to Pair(gpaU) { v: String -> gpaU = v },
+                            "P" to Pair(gpaP) { v: String -> gpaP = v },
+                            "S" to Pair(gpaS) { v: String -> gpaS = v },
+                            "W" to Pair(gpaW) { v: String -> gpaW = v },
+                            "I" to Pair(gpaI) { v: String -> gpaI = v },
+                            "N" to Pair(gpaN) { v: String -> gpaN = v },
+                            "NC" to Pair(gpaNC) { v: String -> gpaNC = v }
+                        )
+
+                        fields.forEachIndexed { index, (label, pairVal) ->
+                            val (value, setter) = pairVal
+                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                                Text(label, fontSize = 16.sp, modifier = Modifier.weight(1f))
+                                TextField(
+                                    value = value,
+                                    onValueChange = { setter(it) },
+                                    modifier = Modifier.width(100.dp).background(BackgroundColor, RoundedCornerShape(8.dp)).border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)),
+                                    textStyle = LocalTextStyle.current.copy(fontSize = 16.sp),
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                    colors = TextFieldDefaults.colors(focusedContainerColor = BackgroundColor, unfocusedContainerColor = BackgroundColor, focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent),
+                                    singleLine = true
+                                )
+                            }
+                            if (index < fields.lastIndex) HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), thickness = 1.dp, color = Color.LightGray)
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Button(
+                        onClick = {
+                            gpaAPlus = scale.gpaAPlus.toScaleString(); gpaA = scale.gpaA.toScaleString()
+                            gpaAMinus = scale.gpaAMinus.toScaleString(); gpaBPlus = scale.gpaBPlus.toScaleString()
+                            gpaB = scale.gpaB.toScaleString(); gpaBMinus = scale.gpaBMinus.toScaleString()
+                            gpaCPlus = scale.gpaCPlus.toScaleString(); gpaC = scale.gpaC.toScaleString()
+                            gpaCMinus = scale.gpaCMinus.toScaleString(); gpaDPlus = scale.gpaDPlus.toScaleString()
+                            gpaD = scale.gpaD.toScaleString(); gpaDMinus = scale.gpaDMinus.toScaleString()
+                            gpaF = scale.gpaF.toScaleString(); gpaU = scale.gpaU.toScaleString()
+                            gpaP = scale.gpaP.toScaleString(); gpaS = scale.gpaS.toScaleString()
+                            gpaW = scale.gpaW.toScaleString(); gpaI = scale.gpaI.toScaleString()
+                            gpaN = scale.gpaN.toScaleString(); gpaNC = scale.gpaNC.toScaleString()
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
+                        modifier = Modifier.weight(1f), contentPadding = PaddingValues(16.dp)
+                    ) { Text("Reset", fontSize = 16.sp) }
+
+                    Button(
+                        onClick = {
+                            val (okAp, vAp) = validate(gpaAPlus, "A+"); if (!okAp) return@Button
+                            val (okA, vA) = validate(gpaA, "A"); if (!okA) return@Button
+                            val (okAm, vAm) = validate(gpaAMinus, "A-"); if (!okAm) return@Button
+                            val (okBp, vBp) = validate(gpaBPlus, "B+"); if (!okBp) return@Button
+                            val (okB, vB) = validate(gpaB, "B"); if (!okB) return@Button
+                            val (okBm, vBm) = validate(gpaBMinus, "B-"); if (!okBm) return@Button
+                            val (okCp, vCp) = validate(gpaCPlus, "C+"); if (!okCp) return@Button
+                            val (okC, vC) = validate(gpaC, "C"); if (!okC) return@Button
+                            val (okCm, vCm) = validate(gpaCMinus, "C-"); if (!okCm) return@Button
+                            val (okDp, vDp) = validate(gpaDPlus, "D+"); if (!okDp) return@Button
+                            val (okD, vD) = validate(gpaD, "D"); if (!okD) return@Button
+                            val (okDm, vDm) = validate(gpaDMinus, "D-"); if (!okDm) return@Button
+                            val (okF, vF) = validate(gpaF, "F"); if (!okF) return@Button
+                            val (okU, vU) = validate(gpaU, "U"); if (!okU) return@Button
+                            val (okP, vP) = validate(gpaP, "P"); if (!okP) return@Button
+                            val (okS, vS) = validate(gpaS, "S"); if (!okS) return@Button
+                            val (okW, vW) = validate(gpaW, "W"); if (!okW) return@Button
+                            val (okI, vI) = validate(gpaI, "I"); if (!okI) return@Button
+                            val (okN, vN) = validate(gpaN, "N"); if (!okN) return@Button
+                            val (okNC, vNC) = validate(gpaNC, "NC"); if (!okNC) return@Button
+                            scope.launch {
+                                db.gradingScaleDao().insert(GradingScale(
+                                    id = 0, cgpa = 0f,
+                                    gpaAPlus = vAp, gpaA = vA, gpaAMinus = vAm,
+                                    gpaBPlus = vBp, gpaB = vB, gpaBMinus = vBm,
+                                    gpaCPlus = vCp, gpaC = vC, gpaCMinus = vCm,
+                                    gpaDPlus = vDp, gpaD = vD, gpaDMinus = vDm,
+                                    gpaF = vF, gpaU = vU, gpaP = vP,
+                                    gpaS = vS, gpaW = vW, gpaI = vI,
+                                    gpaN = vN, gpaNC = vNC
+                                ))
+                                academicsGradingScale = db.gradingScaleDao().get()
+                                onSaved()
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
+                        modifier = Modifier.weight(1f), contentPadding = PaddingValues(16.dp)
+                    ) { Text("Save", fontSize = 16.sp) }
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+        }
+
+        AnimatedVisibility(
+            visible = showNotification,
+            enter = slideInVertically(initialOffsetY = { -it }) + fadeIn(),
+            exit = slideOutVertically(targetOffsetY = { -it }) + fadeOut(),
+            modifier = Modifier.align(Alignment.TopCenter)
+        ) {
+            val dragOffset = remember { mutableFloatStateOf(0f) }
+            Box(modifier = Modifier.offset(y = dragOffset.floatValue.coerceAtMost(0f).dp).draggable(
+                orientation = androidx.compose.foundation.gestures.Orientation.Vertical,
+                state = androidx.compose.foundation.gestures.rememberDraggableState { delta -> dragOffset.floatValue += delta; if (dragOffset.floatValue < -80f) showNotification = false },
+                onDragStopped = { dragOffset.floatValue = 0f }
+            )) {
+                Surface(color = PrimaryColor, modifier = Modifier.fillMaxWidth().padding(16.dp), shadowElevation = 8.dp, shape = MaterialTheme.shapes.medium) {
+                    Box(modifier = Modifier.padding(16.dp), contentAlignment = Alignment.Center) {
+                        Text(notificationMessage, color = BackgroundColor, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }

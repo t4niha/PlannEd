@@ -366,6 +366,10 @@ data class Course(
     val weightAttendance: Float = 0f,
     val weightParticipation: Float = 0f,
     val weightReport: Float = 0f,
+    val weightPresentation: Float = 0f,
+    val weightHomework: Float = 0f,
+    val weightPractical: Float = 0f,
+    val weightTutorial: Float = 0f,
     val weightOther: Float = 0f
 )
 
@@ -390,7 +394,8 @@ data class GradeItem(
 )
 
 enum class GradeItemType {
-    QUIZ, MID, ASSIGNMENT, PROJECT, FINAL, LAB, ATTENDANCE, PARTICIPATION, REPORT, OTHER
+    QUIZ, MID, ASSIGNMENT, PROJECT, FINAL, LAB, ATTENDANCE, PARTICIPATION,
+    REPORT, PRESENTATION, HOMEWORK, PRACTICAL, TUTORIAL, OTHER
 }
 
 @Entity
@@ -406,6 +411,31 @@ data class CompletedCourse(
 
     val calculatedGrade: Float,
     val submitGrade: String
+)
+@Entity
+data class GradingScale(
+    @PrimaryKey val id: Int = 0,
+    val cgpa: Float = 0f,
+    val gpaAPlus: Float? = 4.0f,
+    val gpaA: Float? = 4.0f,
+    val gpaAMinus: Float? = 3.7f,
+    val gpaBPlus: Float? = 3.3f,
+    val gpaB: Float? = 3.0f,
+    val gpaBMinus: Float? = 2.7f,
+    val gpaCPlus: Float? = 2.3f,
+    val gpaC: Float? = 2.0f,
+    val gpaCMinus: Float? = 1.7f,
+    val gpaDPlus: Float? = 1.3f,
+    val gpaD: Float? = 1.0f,
+    val gpaDMinus: Float? = 0.7f,
+    val gpaF: Float? = 0.0f,
+    val gpaU: Float? = 0.0f,
+    val gpaP: Float? = null,
+    val gpaS: Float? = null,
+    val gpaW: Float? = null,
+    val gpaI: Float? = null,
+    val gpaN: Float? = null,
+    val gpaNC: Float? = null
 )
 //</editor-fold>
 
@@ -568,6 +598,15 @@ interface CompletedCourseDao {
     @Query("SELECT * FROM CompletedCourse WHERE id = :id") suspend fun getById(id: Int): CompletedCourse?
     @Query("DELETE FROM CompletedCourse WHERE id = :id") suspend fun deleteById(id: Int)
 }
+
+// GradingScale
+@Dao
+interface GradingScaleDao {
+    @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun insert(scale: GradingScale)
+    @Query("SELECT * FROM GradingScale WHERE id = 0") suspend fun get(): GradingScale?
+    @Update suspend fun update(scale: GradingScale)
+    @Query("DELETE FROM GradingScale") suspend fun delete()
+}
 //</editor-fold>
 
 /* RELATIONS */
@@ -668,7 +707,8 @@ data class CategoryWithMasterReminders(
         MasterReminder::class, ReminderOccurrence::class,
         AppSetting::class,
         CategoryATI::class, EventATI::class,
-        Course::class, GradeItem::class, CompletedCourse::class
+        Course::class, GradeItem::class, CompletedCourse::class,
+        GradingScale::class
     ],
     version = 17
 )
@@ -686,5 +726,6 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun courseDao(): CourseDao
     abstract fun gradeItemDao(): GradeItemDao
     abstract fun completedCourseDao(): CompletedCourseDao
+    abstract fun gradingScaleDao(): GradingScaleDao
 }
 //</editor-fold>

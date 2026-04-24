@@ -1246,11 +1246,13 @@ fun DatabasePage(
     var courses by remember { mutableStateOf<List<Course>>(emptyList()) }
     var gradeItems by remember { mutableStateOf<List<GradeItem>>(emptyList()) }
     var completedCourses by remember { mutableStateOf<List<CompletedCourse>>(emptyList()) }
+    var gradingScale by remember { mutableStateOf<GradingScale?>(null) }
 
     LaunchedEffect(Unit) {
         courses = db.courseDao().getAll()
         gradeItems = courses.flatMap { db.gradeItemDao().getByCourseId(it.id) }
         completedCourses = db.completedCourseDao().getAll()
+        gradingScale = db.gradingScaleDao().get()
     }
 
     Column(
@@ -1318,6 +1320,7 @@ fun DatabasePage(
                                     .forEach { db.courseDao().deleteById(it.id) }
                                 db.completedCourseDao().getAll()
                                     .forEach { db.completedCourseDao().deleteById(it.id) }
+                                db.gradingScaleDao().delete()
                                 onRefresh()
                             }
                         },
@@ -1695,6 +1698,21 @@ fun DatabasePage(
                 semesterLabel(c.year, c.semester),
                 "%.1f".format(c.calculatedGrade), c.submitGrade)
             }
+
+            Table(
+                title = "Grading Scale",
+                data = listOfNotNull(gradingScale),
+                headers = listOf("CGPA", "A+", "A", "A-", "B+", "B", "B-", "C+", "C", "C-", "D+", "D", "D-", "F", "U", "P", "S", "W", "I", "N", "NC")
+            ) { g -> listOf(
+                "%.2f".format(g.cgpa),
+                g.gpaAPlus?.toString() ?: "", g.gpaA?.toString() ?: "", g.gpaAMinus?.toString() ?: "",
+                g.gpaBPlus?.toString() ?: "", g.gpaB?.toString() ?: "", g.gpaBMinus?.toString() ?: "",
+                g.gpaCPlus?.toString() ?: "", g.gpaC?.toString() ?: "", g.gpaCMinus?.toString() ?: "",
+                g.gpaDPlus?.toString() ?: "", g.gpaD?.toString() ?: "", g.gpaDMinus?.toString() ?: "",
+                g.gpaF?.toString() ?: "", g.gpaU?.toString() ?: "",
+                g.gpaP?.toString() ?: "", g.gpaS?.toString() ?: "", g.gpaW?.toString() ?: "",
+                g.gpaI?.toString() ?: "", g.gpaN?.toString() ?: "", g.gpaNC?.toString() ?: ""
+            )}
 
             Table(
                 title   = "Settings",

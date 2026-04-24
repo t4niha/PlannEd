@@ -128,6 +128,7 @@ var academicsCurrentView by mutableStateOf("main")
 var academicsSelectedCourse by mutableStateOf<Course?>(null)
 var academicsSelectedCompletedCourse by mutableStateOf<CompletedCourse?>(null)
 var academicsCourseUpdateFormData by mutableStateOf<CourseUpdateFormData?>(null)
+var academicsGradingScale by mutableStateOf<GradingScale?>(null)
 //</editor-fold>
 
 /* POMODORO STATE */
