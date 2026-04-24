@@ -105,7 +105,6 @@ fun calculateCurrentGrade(course: Course, items: List<GradeItem>): Float? {
     if (totalWeightUsed <= 0f) return null
     return (weightedSum / totalWeightUsed) * 100f
 }
-
 fun gradeItemTypeLabel(type: GradeItemType): String = when (type) {
     GradeItemType.QUIZ          -> "Quiz"
     GradeItemType.MID           -> "Midterm"
@@ -676,7 +675,7 @@ fun AcademicsAddCourseForm(
                         onClick = {
                             if (title.isBlank()) { showBanner("Title is required"); return@Button }
                             val credits = creditsText.toIntOrNull()
-                            if (credits == null || credits < 1) { showBanner("Credits must be a positive number"); return@Button }
+                            if (credits == null || credits < 0) { showBanner("Invalid credit count"); return@Button }
                             val q  = validateWeightField(wQuiz, "Quiz") ?: return@Button
                             val m  = validateWeightField(wMid, "Midterm") ?: return@Button
                             val a  = validateWeightField(wAssignment, "Assignment") ?: return@Button
@@ -1304,7 +1303,7 @@ fun AcademicsCourseUpdateForm(
                         onClick = {
                             if (title.isBlank()) { showBanner("Title is required"); return@Button }
                             val credits = creditsText.toIntOrNull()
-                            if (credits == null || credits < 1) { showBanner("Credits must be a positive number"); return@Button }
+                            if (credits == null || credits < 0) { showBanner("Invalid credit count"); return@Button }
                             val q  = validateWeightField(wQuiz, "Quiz") ?: return@Button
                             val m  = validateWeightField(wMid, "Midterm") ?: return@Button
                             val a  = validateWeightField(wAssignment, "Assignment") ?: return@Button
@@ -1525,7 +1524,7 @@ fun AcademicsAddGradeForm(
                             val received = marksReceivedText.toFloatOrNull()
                             if (received == null || received < 0f) { showBanner("Marks received must be a valid non-negative number"); return@Button }
                             val total = totalMarksText.toFloatOrNull()
-                            if (total == null || total <= 0f) { showBanner("Total marks must be a positive number"); return@Button }
+                            if (total == null || total <= 0f) { showBanner("Total marks must be a valid positive number"); return@Button }
                             if (received > total) { showBanner("Marks received cannot exceed total marks"); return@Button }
                             scope.launch {
                                 db.gradeItemDao().insert(GradeItem(courseId = course.id, type = selectedType, title = gradeTitle.trim(), marksReceived = received, totalMarks = total))
@@ -1774,10 +1773,10 @@ fun AcademicsGradingScaleForm(
 
     fun validate(value: String, label: String): Pair<Boolean, Float?> {
         if (value.isBlank()) return true to null
-        val f = value.toFloatOrNull() ?: run { showBanner("$label must be a number"); return false to null }
+        val f = value.toFloatOrNull() ?: run { showBanner("$label grade must be a number"); return false to null }
         val parts = value.split(".")
-        if (parts.size == 2 && parts[1].length > 2) { showBanner("$label can have at most 2 decimal places"); return false to null }
-        if (parts[0].length > 3) { showBanner("$label whole part cannot exceed 3 digits"); return false to null }
+        if (parts.size == 2 && parts[1].length > 2) { showBanner("$label grade cannot exceed 2 decimal places"); return false to null }
+        if (parts[0].length > 3) { showBanner("$label grade cannot exceed 3 whole digits"); return false to null }
         return true to f
     }
 
@@ -1797,7 +1796,7 @@ fun AcademicsGradingScaleForm(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
-                    "Null grades not counted toward CGPA",
+                    "Null grades are not counted toward CGPA",
                     fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.Gray,
                     modifier = Modifier.padding(start = 4.dp, bottom = 12.dp)
                 )

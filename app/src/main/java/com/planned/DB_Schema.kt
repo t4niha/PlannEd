@@ -429,7 +429,7 @@ data class GradingScale(
     val gpaD: Float? = 1.0f,
     val gpaDMinus: Float? = 0.7f,
     val gpaF: Float? = 0.0f,
-    val gpaU: Float? = 0.0f,
+    val gpaU: Float? = null,
     val gpaP: Float? = null,
     val gpaS: Float? = null,
     val gpaW: Float? = null,

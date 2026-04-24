@@ -28,7 +28,6 @@ import kotlinx.coroutines.withTimeout
 enum class VoicePhase {
     IDLE, LISTENING, THINKING, SPEAKING, ERROR
 }
-
 data class VoicePendingAction(
     val actionType: String,
     val entityLabel: String,
@@ -37,7 +36,6 @@ data class VoicePendingAction(
     val replyText: String,
     val execute: suspend () -> Unit
 )
-
 data class VoiceResult(
     val userText: String,
     val replyText: String,
@@ -245,6 +243,38 @@ object VoiceCommandManager {
                 val catT = d.categoryId?.let { categories.find { c -> c.id == it }?.title } ?: "None"
                 val evT  = d.eventId?.let   { allEvents.find   { e -> e.id == it }?.title } ?: "None"
                 appendLine("  • \"${d.title}\" (id=${d.id}, date=${d.date}, time=${d.time}, event=$evT, category=$catT, notes=${d.notes ?: "—"})")
+            }
+            appendLine()
+
+            val activeCourses = db.courseDao().getAll()
+            val completedCourses = db.completedCourseDao().getAll()
+            val gradeItems = activeCourses.flatMap { db.gradeItemDao().getByCourseId(it.id) }
+            val gradingScale = db.gradingScaleDao().get()
+
+            appendLine("ACTIVE COURSES:")
+            activeCourses.forEach { c ->
+                val courseItems = gradeItems.filter { it.courseId == c.id }
+                val grade = calculateCurrentGrade(c, courseItems)
+                appendLine("  • \"${c.title}\" (id=${c.id}, code=${c.courseCode ?: "—"}, credits=${c.credits}, semester=${semesterLabel(c.year, c.semester)}, currentGrade=${if (grade != null) "${"%.1f".format(grade)}%" else "no grades yet"})")
+                if (courseItems.isNotEmpty()) {
+                    courseItems.forEach { g ->
+                        appendLine("    - ${gradeItemTypeLabel(g.type)}${if (g.title.isNotBlank()) " \"${g.title}\"" else ""} (id=${g.id}): ${g.marksReceived}/${g.totalMarks}")
+                    }
+                }
+            }
+            appendLine()
+
+            appendLine("COMPLETED COURSES:")
+            completedCourses.forEach { c ->
+                appendLine("  • \"${c.courseTitle}\" (id=${c.id}, code=${c.courseCode ?: "—"}, credits=${c.credits}, semester=${semesterLabel(c.year, c.semester)}, grade=${c.submitGrade}, calculatedGrade=${"%.1f".format(c.calculatedGrade)}%)")
+            }
+            appendLine()
+
+            if (gradingScale != null) {
+                val cgpa = calculateCgpa(completedCourses, gradingScale)
+                appendLine("GRADING SCALE SET: Yes${if (cgpa != null) ", Current CGPA: ${"%.2f".format(cgpa)}" else ""}")
+            } else {
+                appendLine("GRADING SCALE SET: No")
             }
             appendLine()
 
@@ -785,6 +815,199 @@ object VoiceCommandManager {
                 ), emptySet(), reply) { TaskBucketManager.delete(context=context, db=db, bucketId=bId) }
             }
 
+            // ACTIVE COURSE
+
+            "CREATE_COURSE" -> {
+                val title = json.getString("title")
+                val courseCode = json.optString("course_code", "").ifBlank { null }
+                val description = json.optString("description", "").ifBlank { null }
+                val credits = json.optInt("credits", 1)
+                val year = json.optInt("year", today.year)
+                val semester = json.optInt("semester", 4)
+                val wQuiz = json.optDouble("weight_quiz", 0.0).toFloat()
+                val wMid = json.optDouble("weight_mid", 0.0).toFloat()
+                val wAssignment = json.optDouble("weight_assignment", 0.0).toFloat()
+                val wProject = json.optDouble("weight_project", 0.0).toFloat()
+                val wFinal = json.optDouble("weight_final", 0.0).toFloat()
+                val wLab = json.optDouble("weight_lab", 0.0).toFloat()
+                val wAttendance = json.optDouble("weight_attendance", 0.0).toFloat()
+                val wParticipation = json.optDouble("weight_participation", 0.0).toFloat()
+                val wReport = json.optDouble("weight_report", 0.0).toFloat()
+                val wPresentation = json.optDouble("weight_presentation", 0.0).toFloat()
+                val wHomework = json.optDouble("weight_homework", 0.0).toFloat()
+                val wPractical = json.optDouble("weight_practical", 0.0).toFloat()
+                val wTutorial = json.optDouble("weight_tutorial", 0.0).toFloat()
+                val wOther = json.optDouble("weight_other", 0.0).toFloat()
+                val semName = when (semester) { 1->"Spring"; 2->"Summer"; 3->"Fall"; else->"Winter" }
+                return VoicePendingAction(action, "Course", listOf(
+                    "Title" to title,
+                    "Code" to (courseCode ?: "—"),
+                    "Credits" to credits.toString(),
+                    "Semester" to "$year $semName",
+                    "Description" to (description ?: "—")
+                ), emptySet(), reply) {
+                    db.courseDao().insert(Course(
+                        title = title, courseCode = courseCode, description = description,
+                        credits = credits, year = year, semester = semester,
+                        weightQuiz = wQuiz, weightMid = wMid, weightAssignment = wAssignment,
+                        weightProject = wProject, weightFinal = wFinal, weightLab = wLab,
+                        weightAttendance = wAttendance, weightParticipation = wParticipation,
+                        weightReport = wReport, weightPresentation = wPresentation,
+                        weightHomework = wHomework, weightPractical = wPractical,
+                        weightTutorial = wTutorial, weightOther = wOther
+                    ))
+                }
+            }
+
+            "EDIT_COURSE" -> {
+                val courseId = json.getInt("course_id")
+                val course = db.courseDao().getById(courseId) ?: return null
+                val title = json.optString("title", "").ifBlank { course.title }
+                val courseCode = if (json.has("course_code")) json.optString("course_code", "").ifBlank { null } else course.courseCode
+                val description = if (json.has("description")) json.optString("description", "").ifBlank { null } else course.description
+                val credits = if (json.has("credits")) json.optInt("credits", course.credits) else course.credits
+                val year = if (json.has("year")) json.optInt("year", course.year) else course.year
+                val semester = if (json.has("semester")) json.optInt("semester", course.semester) else course.semester
+                val wQuiz = if (json.has("weight_quiz")) json.optDouble("weight_quiz", 0.0).toFloat() else course.weightQuiz
+                val wMid = if (json.has("weight_mid")) json.optDouble("weight_mid", 0.0).toFloat() else course.weightMid
+                val wAssignment = if (json.has("weight_assignment")) json.optDouble("weight_assignment", 0.0).toFloat() else course.weightAssignment
+                val wProject = if (json.has("weight_project")) json.optDouble("weight_project", 0.0).toFloat() else course.weightProject
+                val wFinal = if (json.has("weight_final")) json.optDouble("weight_final", 0.0).toFloat() else course.weightFinal
+                val wLab = if (json.has("weight_lab")) json.optDouble("weight_lab", 0.0).toFloat() else course.weightLab
+                val wAttendance = if (json.has("weight_attendance")) json.optDouble("weight_attendance", 0.0).toFloat() else course.weightAttendance
+                val wParticipation = if (json.has("weight_participation")) json.optDouble("weight_participation", 0.0).toFloat() else course.weightParticipation
+                val wReport = if (json.has("weight_report")) json.optDouble("weight_report", 0.0).toFloat() else course.weightReport
+                val wPresentation = if (json.has("weight_presentation")) json.optDouble("weight_presentation", 0.0).toFloat() else course.weightPresentation
+                val wHomework = if (json.has("weight_homework")) json.optDouble("weight_homework", 0.0).toFloat() else course.weightHomework
+                val wPractical = if (json.has("weight_practical")) json.optDouble("weight_practical", 0.0).toFloat() else course.weightPractical
+                val wTutorial = if (json.has("weight_tutorial")) json.optDouble("weight_tutorial", 0.0).toFloat() else course.weightTutorial
+                val wOther = if (json.has("weight_other")) json.optDouble("weight_other", 0.0).toFloat() else course.weightOther
+                val oldSem = semesterLabel(course.year, course.semester)
+                val newSem = "$year ${when (semester) { 1->"Spring"; 2->"Summer"; 3->"Fall"; else->"Winter" }}"
+                val changed = mutableSetOf<String>()
+                if (title != course.title) changed.add("Title")
+                if (courseCode != course.courseCode) changed.add("Code")
+                if (credits != course.credits) changed.add("Credits")
+                if (oldSem != newSem) changed.add("Semester")
+                return VoicePendingAction(action, "Course", listOf(
+                    "Title" to fmtEdit(course.title, title),
+                    "Code" to fmtEdit(course.courseCode ?: "—", courseCode ?: "—"),
+                    "Credits" to fmtEdit(course.credits.toString(), credits.toString()),
+                    "Semester" to fmtEdit(oldSem, newSem)
+                ), changed, reply) {
+                    db.courseDao().update(Course(
+                        id = courseId, title = title, courseCode = courseCode, description = description,
+                        credits = credits, year = year, semester = semester,
+                        weightQuiz = wQuiz, weightMid = wMid, weightAssignment = wAssignment,
+                        weightProject = wProject, weightFinal = wFinal, weightLab = wLab,
+                        weightAttendance = wAttendance, weightParticipation = wParticipation,
+                        weightReport = wReport, weightPresentation = wPresentation,
+                        weightHomework = wHomework, weightPractical = wPractical,
+                        weightTutorial = wTutorial, weightOther = wOther
+                    ))
+                }
+            }
+
+            "DELETE_COURSE" -> {
+                val courseId = json.getInt("course_id")
+                val course = db.courseDao().getById(courseId) ?: return null
+                return VoicePendingAction(action, "Course", listOf(
+                    "Title" to course.title,
+                    "Code" to (course.courseCode ?: "—"),
+                    "Credits" to course.credits.toString(),
+                    "Semester" to semesterLabel(course.year, course.semester)
+                ), emptySet(), reply) {
+                    db.gradeItemDao().deleteByCourseId(courseId)
+                    db.courseDao().deleteById(courseId)
+                }
+            }
+
+            // GRADE ITEMS
+
+            "ADD_GRADE_ITEM" -> {
+                val courseId = json.getInt("course_id")
+                val course = db.courseDao().getById(courseId) ?: return null
+                val typeStr = json.optString("type", "OTHER").uppercase()
+                val type = runCatching { GradeItemType.valueOf(typeStr) }.getOrDefault(GradeItemType.OTHER)
+                val gradeTitle = json.optString("title", "")
+                val received = json.getDouble("marks_received").toFloat()
+                val total = json.getDouble("total_marks").toFloat()
+                return VoicePendingAction(action, "Grade Item", listOf(
+                    "Course" to course.title,
+                    "Type" to gradeItemTypeLabel(type),
+                    "Title" to gradeTitle.ifBlank { "—" },
+                    "Score" to "$received / $total (${"%.1f".format(received / total * 100)}%)"
+                ), emptySet(), reply) {
+                    db.gradeItemDao().insert(GradeItem(
+                        courseId = courseId, type = type,
+                        title = gradeTitle.trim(), marksReceived = received, totalMarks = total
+                    ))
+                }
+            }
+
+            "DELETE_GRADE_ITEM" -> {
+                val itemId = json.getInt("grade_item_id")
+                val item = db.gradeItemDao().getById(itemId) ?: return null
+                val course = db.courseDao().getById(item.courseId)
+                return VoicePendingAction(action, "Grade Item", listOf(
+                    "Course" to (course?.title ?: "—"),
+                    "Type" to gradeItemTypeLabel(item.type),
+                    "Title" to item.title.ifBlank { "—" },
+                    "Score" to "${"%.1f".format(item.marksReceived)} / ${"%.1f".format(item.totalMarks)}"
+                ), emptySet(), reply) {
+                    db.gradeItemDao().deleteById(itemId)
+                }
+            }
+
+            // COMPLETED COURSE
+
+            "SUBMIT_COURSE" -> {
+                val courseId = json.getInt("course_id")
+                val course = db.courseDao().getById(courseId) ?: return null
+                val submitGrade = json.getString("submit_grade").uppercase()
+                val gradeItems = db.gradeItemDao().getByCourseId(courseId)
+                val calculated = calculateCurrentGrade(course, gradeItems) ?: 0f
+                return VoicePendingAction(action, "Submit Course", listOf(
+                    "Course" to course.title,
+                    "Submitted Grade" to submitGrade,
+                    "Calculated Grade" to "${"%.1f".format(calculated)}%"
+                ), emptySet(), reply) {
+                    db.completedCourseDao().insert(CompletedCourse(
+                        courseTitle = course.title, courseCode = course.courseCode,
+                        description = course.description, credits = course.credits,
+                        year = course.year, semester = course.semester,
+                        calculatedGrade = calculated, submitGrade = submitGrade
+                    ))
+                    db.gradeItemDao().deleteByCourseId(courseId)
+                    db.courseDao().deleteById(courseId)
+                }
+            }
+
+            "EDIT_COMPLETED_COURSE" -> {
+                val completedId = json.getInt("completed_course_id")
+                val completed = db.completedCourseDao().getById(completedId) ?: return null
+                val submitGrade = json.getString("submit_grade").uppercase()
+                return VoicePendingAction(action, "Completed Course", listOf(
+                    "Course" to completed.courseTitle,
+                    "Old Grade" to completed.submitGrade,
+                    "New Grade" to submitGrade
+                ), setOf("New Grade"), reply) {
+                    db.completedCourseDao().update(completed.copy(submitGrade = submitGrade))
+                }
+            }
+
+            "DELETE_COMPLETED_COURSE" -> {
+                val completedId = json.getInt("completed_course_id")
+                val completed = db.completedCourseDao().getById(completedId) ?: return null
+                return VoicePendingAction(action, "Completed Course", listOf(
+                    "Course" to completed.courseTitle,
+                    "Semester" to semesterLabel(completed.year, completed.semester),
+                    "Grade" to completed.submitGrade
+                ), emptySet(), reply) {
+                    db.completedCourseDao().deleteById(completedId)
+                }
+            }
+
             // SETTINGS
 
             "CHANGE_SETTING" -> {
@@ -870,11 +1093,23 @@ CREATE_TASK_BUCKET: { "action":"CREATE_TASK_BUCKET", "start_date":"YYYY-MM-DD", 
 EDIT_TASK_BUCKET:  { "action":"EDIT_TASK_BUCKET", "bucket_id":number, "start_date":"omit if unchanged", "end_date":"omit if unchanged", "start_time":"omit if unchanged", "end_time":"omit if unchanged", "recur_freq":"omit if unchanged", "reply":"short spoken confirmation" }
 DELETE_TASK_BUCKET: { "action":"DELETE_TASK_BUCKET", "bucket_id":number, "reply":"short spoken confirmation" }
 
+CREATE_COURSE: { "action":"CREATE_COURSE", "title":"string", "course_code":"string or omit", "description":"string or omit", "credits":number, "year":number, "semester":1-4 (1=Spring,2=Summer,3=Fall,4=Winter), "weight_quiz":number, "weight_mid":number, "weight_assignment":number, "weight_project":number, "weight_final":number, "weight_lab":number, "weight_attendance":number, "weight_participation":number, "weight_report":number, "weight_presentation":number, "weight_homework":number, "weight_practical":number, "weight_tutorial":number, "weight_other":number, "reply":"short confirmation" }
+EDIT_COURSE: { "action":"EDIT_COURSE", "course_id":number, "title":"omit if unchanged", "course_code":"omit if unchanged", "credits":number_or_omit, "year":number_or_omit, "semester":number_or_omit, "weight_quiz":number_or_omit, ...same weight fields..., "reply":"short confirmation" }
+DELETE_COURSE: { "action":"DELETE_COURSE", "course_id":number, "reply":"short confirmation" }
+
+ADD_GRADE_ITEM: { "action":"ADD_GRADE_ITEM", "course_id":number, "type":"QUIZ|MID|ASSIGNMENT|PROJECT|FINAL|LAB|ATTENDANCE|PARTICIPATION|REPORT|PRESENTATION|HOMEWORK|PRACTICAL|TUTORIAL|OTHER", "title":"string or omit", "marks_received":number, "total_marks":number, "reply":"short confirmation" }
+DELETE_GRADE_ITEM: { "action":"DELETE_GRADE_ITEM", "grade_item_id":number, "reply":"short confirmation" }
+
+SUBMIT_COURSE: { "action":"SUBMIT_COURSE", "course_id":number, "submit_grade":"letter grade e.g. A, B+, NP", "reply":"short confirmation" }
+EDIT_COMPLETED_COURSE: { "action":"EDIT_COMPLETED_COURSE", "completed_course_id":number, "submit_grade":"new letter grade", "reply":"short confirmation" }
+DELETE_COMPLETED_COURSE: { "action":"DELETE_COMPLETED_COURSE", "completed_course_id":number, "reply":"short confirmation" }
+
 CHANGE_SETTING: { "action":"CHANGE_SETTING", "setting_name":"one of: startWeekOnMonday, atiPaddingEnabled, breakDuration, breakEvery, notifTasksEnabled, notifEventsEnabled, notifRemindersEnabled, notifDeadlinesEnabled", "value_boolean":boolean_or_null, "value_int":number_or_null, "reply":"short spoken confirmation" }
 QUERY_SCHEDULE: { "action":"QUERY_SCHEDULE", "reply":"natural spoken answer about their schedule based on the app state above" }
 REPLY:          { "action":"REPLY", "reply":"your spoken response" }
 
-Keep all reply strings short, friendly, and natural — they will be read aloud by TTS.
+Keep all reply strings short, friendly, and natural.
+NEVER mention entity IDs (course_id, task_id, event_id, etc.) in reply strings — these are internal and should never be shown to the user.
 Do NOT include markdown in reply strings.
 """.trimIndent()
 
