@@ -906,13 +906,15 @@ fun AcademicsCourseInfoPage(
                 ).filter { it.second > 0f }
 
                 if (weights.isNotEmpty()) {
+                    val totalWeight = weights.sumOf { it.second.toDouble() }.toFloat()
                     Box(modifier = Modifier.fillMaxWidth().background(Color(CardColor), RoundedCornerShape(12.dp))) {
                         Column {
                             weights.forEachIndexed { index, (label, weight) ->
+                                val displayPct = if (totalWeight > 0f) (weight / totalWeight * 100f) else 0f
                                 Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
                                     Text(label, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color.Gray)
                                     Spacer(modifier = Modifier.height(6.dp))
-                                    Text("${weight.toInt()}%", fontSize = 16.sp)
+                                    Text("${"%.1f".format(displayPct)}%", fontSize = 16.sp)
                                 }
                                 if (index < weights.lastIndex) HorizontalDivider(thickness = 1.dp, color = Color.LightGray)
                             }
