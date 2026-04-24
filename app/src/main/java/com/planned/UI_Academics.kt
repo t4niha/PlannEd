@@ -35,6 +35,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.ui.platform.LocalContext
 
 // Type converters
 @TypeConverter
@@ -805,6 +806,7 @@ fun AcademicsCourseInfoPage(
     onUpdateDataReady: (CourseUpdateFormData) -> Unit,
     onUpdate: () -> Unit
 ) {
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
     var gradeItems by remember { mutableStateOf<List<GradeItem>>(emptyList()) }
@@ -978,6 +980,23 @@ fun AcademicsCourseInfoPage(
                                     val gradeRegex = Regex("^(A[+-]?|B[+-]?|C[+-]?|D[+-]?|F|U|P|NP|S|W|I|N|NC)$")
                                     if (!gradeRegex.matches(finalGradeText.trim())) { showMsg("Invalid letter grade"); return@Button }
                                     scope.launch {
+                                        // Collect affected event and category IDs before nulling courseId
+                                        val linkedEvents = db.eventDao().getAllMasterEvents()
+                                            .filter { it.courseId == course.id }
+                                        val eventIds = linkedEvents.map { it.id }
+                                        val categoryIds = linkedEvents.mapNotNull { it.categoryId }.distinct()
+
+                                        // Null out courseId in linked events and deadlines
+                                        linkedEvents.forEach { event ->
+                                            db.eventDao().update(event.copy(courseId = null))
+                                        }
+                                        db.deadlineDao().getAll()
+                                            .filter { it.courseId == course.id }
+                                            .forEach { deadline ->
+                                                db.deadlineDao().update(deadline.copy(courseId = null))
+                                            }
+
+                                        // Insert completed course and delete active course
                                         db.completedCourseDao().insert(CompletedCourse(
                                             courseTitle = course.title,
                                             courseCode = course.courseCode,
@@ -990,6 +1009,11 @@ fun AcademicsCourseInfoPage(
                                         ))
                                         db.gradeItemDao().deleteByCourseId(course.id)
                                         db.courseDao().deleteById(course.id)
+
+                                        // Update ATI with collected IDs and reschedule
+                                        updateATIForEvents(db, eventIds, categoryIds)
+                                        generateTaskIntervals(context, db)
+
                                         onSubmitted()
                                     }
                                 },
@@ -1031,8 +1055,30 @@ fun AcademicsCourseInfoPage(
                             onClick = {
                                 showDeleteDialog = false
                                 scope.launch {
+                                    // Collect affected event and category IDs before nulling courseId
+                                    val linkedEvents = db.eventDao().getAllMasterEvents()
+                                        .filter { it.courseId == course.id }
+                                    val eventIds = linkedEvents.map { it.id }
+                                    val categoryIds = linkedEvents.mapNotNull { it.categoryId }.distinct()
+
+                                    // Null out courseId in linked events and deadlines
+                                    linkedEvents.forEach { event ->
+                                        db.eventDao().update(event.copy(courseId = null))
+                                    }
+                                    db.deadlineDao().getAll()
+                                        .filter { it.courseId == course.id }
+                                        .forEach { deadline ->
+                                            db.deadlineDao().update(deadline.copy(courseId = null))
+                                        }
+
+                                    // Delete course and grade items
                                     db.gradeItemDao().deleteByCourseId(course.id)
                                     db.courseDao().deleteById(course.id)
+
+                                    // Update ATI with collected IDs and reschedule
+                                    updateATIForEvents(db, eventIds, categoryIds)
+                                    generateTaskIntervals(context, db)
+
                                     onDeleted()
                                 }
                             },
@@ -1067,6 +1113,7 @@ fun AcademicsCourseInfoPage(
                                 scope.launch {
                                     db.gradeItemDao().deleteById(toDelete.id)
                                     gradeItems = db.gradeItemDao().getByCourseId(course.id)
+                                    updateATIForCourse(context, db, course.id)
                                 }
                             },
                             modifier = Modifier.weight(1f),
@@ -1405,6 +1452,7 @@ fun AcademicsAddGradeForm(
     onBack: () -> Unit,
     onSaved: () -> Unit
 ) {
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
 
@@ -1559,6 +1607,7 @@ fun AcademicsAddGradeForm(
                             if (received > total) { showBanner("Marks received cannot exceed total marks"); return@Button }
                             scope.launch {
                                 db.gradeItemDao().insert(GradeItem(courseId = course.id, type = selectedType, title = gradeTitle.trim(), marksReceived = received, totalMarks = total))
+                                updateATIForCourse(context, db, course.id)
                                 onSaved()
                             }
                         },

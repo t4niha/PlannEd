@@ -66,6 +66,7 @@ data class ScheduleOrderRow(
     val title: String,
     val dependencyTaskId: Int?,
     val urgency: Int?,
+    val calcGrade: Float?,
     val categoryScore: Float,
     val eventScore: Float
 )
@@ -143,11 +144,22 @@ fun Settings(db: AppDatabase) {
                 val eventScore    = task.eventId
                     ?.let { id -> eventATIList.find { it.eventId == id }?.score }
                     ?: noneEventScore
+                val calcGrade = task.eventId?.let { eventId ->
+                    val event = masterEvents.find { it.id == eventId }
+                    val courseId = event?.courseId
+                    if (courseId == null) null
+                    else {
+                        val course = courses.find { it.id == courseId }
+                        val items = gradeItems.filter { it.courseId == courseId }
+                        if (course != null) calculateCurrentGrade(course, items) else null
+                    }
+                }
                 rows.add(ScheduleOrderRow(
                     masterTaskId = task.id,
                     title = task.title,
                     dependencyTaskId = task.dependencyTaskId,
                     urgency = urgency,
+                    calcGrade = calcGrade,
                     categoryScore = categoryScore,
                     eventScore = eventScore
                 ))
@@ -1788,7 +1800,7 @@ fun SchedulePage(
                         .fillMaxWidth()
                         .height(IntrinsicSize.Min)
                 ) {
-                    listOf("Task ID", "Title", "Dependency", "Urgency", "Cat. Score", "Event Score")
+                    listOf("Task ID", "Title", "Dependency", "Urgency", "Calc Grade", "Category Score", "Event Score")
                         .forEachIndexed { index, header ->
                             Box(
                                 modifier = Modifier
@@ -1796,7 +1808,7 @@ fun SchedulePage(
                                     .fillMaxHeight()
                                     .drawWithContent {
                                         drawContent()
-                                        if (index < 5) drawLine(
+                                        if (index < 6) drawLine(
                                             color       = GRID_COLOR,
                                             start       = Offset(size.width, 0f),
                                             end         = Offset(size.width, size.height),
@@ -1828,9 +1840,10 @@ fun SchedulePage(
                             row.title,
                             row.dependencyTaskId?.toString() ?: "",
                             row.urgency?.toString() ?: "",
+                            if (row.calcGrade != null) "${"%.1f".format(row.calcGrade)}%" else "",
                             "%.3f".format(row.categoryScore),
                             "%.3f".format(row.eventScore)
-                        ) else List(6) { "" }
+                        ) else List(7) { "" }
 
                         values.forEachIndexed { index, value ->
                             Box(
@@ -1839,7 +1852,7 @@ fun SchedulePage(
                                     .fillMaxHeight()
                                     .drawWithContent {
                                         drawContent()
-                                        if (index < 5) drawLine(
+                                        if (index < 6) drawLine(
                                             color       = GRID_COLOR,
                                             start       = Offset(size.width, 0f),
                                             end         = Offset(size.width, size.height),

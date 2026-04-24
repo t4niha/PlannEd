@@ -1,5 +1,7 @@
 package com.planned
 
+import android.content.Context
+
 /**
 Adaptive Time Intelligence:
 1) Dynamic Scoring — tracks deadline miss rate and avg overtime per category/event
@@ -7,8 +9,9 @@ Adaptive Time Intelligence:
  **/
 
 // Scoring weights
-private const val WEIGHT_DEADLINE_MISS = 0.6f
-private const val WEIGHT_AVG_OVERTIME  = 0.4f
+private const val WEIGHT_DEADLINE_MISS  = 0.35f
+private const val WEIGHT_AVG_OVERTIME   = 0.25f
+private const val WEIGHT_GRADE_STRUGGLE = 0.4f
 private const val ROLLING_WINDOW       = 10
 
 /* Round a float number of minutes up to the nearest 5 */
@@ -57,10 +60,10 @@ fun calculatePadding(tasks: List<MasterTask>): PaddingResult {
  * deadlineMissCount: how many of last 10 completed tasks missed their deadline (0-10)
  * avgOvertime: average overtime in minutes across last 10 completed tasks
  * Returns a score float — higher means more struggle, needs earlier scheduling */
-fun calculateScore(deadlineMissCount: Int, avgOvertime: Float): Float {
-    val missRate    = deadlineMissCount / ROLLING_WINDOW.toFloat()
+fun calculateScore(deadlineMissCount: Int, avgOvertime: Float, gradeStruggle: Float): Float {
+    val missRate     = deadlineMissCount / ROLLING_WINDOW.toFloat()
     val overtimeNorm = (avgOvertime / 180f).coerceIn(0f, 1f)
-    return (WEIGHT_DEADLINE_MISS * missRate) + (WEIGHT_AVG_OVERTIME * overtimeNorm)
+    return (WEIGHT_GRADE_STRUGGLE * gradeStruggle) + (WEIGHT_DEADLINE_MISS * missRate) + (WEIGHT_AVG_OVERTIME * overtimeNorm)
 }
 
 /* Main ATI update function — called every time a task is marked as complete.
@@ -92,6 +95,38 @@ suspend fun pruneCompletedTasks(db: AppDatabase, eventId: Int) {
     toDelete.forEach { db.taskDao().deleteMasterTask(it.id) }
 }
 
+/* Compute system-wide grade struggle from all active courses */
+private suspend fun getSystemWideGradeStruggle(db: AppDatabase): Float {
+    val allCourses = db.courseDao().getAll()
+    val allGrades = allCourses.mapNotNull { course ->
+        val items = db.gradeItemDao().getByCourseId(course.id)
+        calculateCurrentGrade(course, items)
+    }
+    return if (allGrades.isEmpty()) 0.5f
+    else 1f - (allGrades.average().toFloat() / 100f)
+}
+
+/* Trigger ATI updates for a specific set of event IDs and category IDs */
+suspend fun updateATIForEvents(db: AppDatabase, eventIds: List<Int>, categoryIds: List<Int>) {
+    // Update each event
+    eventIds.forEach { updateEventATI(db, it) }
+    // Update each category
+    categoryIds.forEach { updateCategoryATI(db, it) }
+    // Always update None records since system-wide average may have changed
+    updateEventATI(db, 0)
+    updateCategoryATI(db, 0)
+}
+
+/* Trigger ATI updates for all events and categories linked to a course */
+suspend fun updateATIForCourse(context: Context, db: AppDatabase, courseId: Int) {
+    val linkedEvents = db.eventDao().getAllMasterEvents()
+        .filter { it.courseId == courseId }
+    val eventIds = linkedEvents.map { it.id }
+    val categoryIds = linkedEvents.mapNotNull { it.categoryId }.distinct()
+    updateATIForEvents(db, eventIds, categoryIds)
+    generateTaskIntervals(context, db)
+}
+
 /* Update CategoryATI for a given category (0 = None) */
 private suspend fun updateCategoryATI(db: AppDatabase, categoryId: Int) {
     val allTasks = db.taskDao().getAllMasterTasks()
@@ -110,7 +145,21 @@ private suspend fun updateCategoryATI(db: AppDatabase, categoryId: Int) {
     val avgOvertime       = completedTasks.map { (it.overTime ?: 0).toFloat() }.average().toFloat()
     val deadlineMissCount = countDeadlineMisses(completedTasks)
     val paddingResult     = calculatePadding(completedTasks)
-    val score             = calculateScore(deadlineMissCount, avgOvertime)
+    val gradeStruggle = if (categoryId == 0) {
+        getSystemWideGradeStruggle(db)
+    } else {
+        val eventsInCategory = db.eventDao().getAllMasterEvents()
+            .filter { it.categoryId == categoryId }
+        val categoryGrades = eventsInCategory.mapNotNull { event ->
+            val courseId = event.courseId ?: return@mapNotNull null
+            val course = db.courseDao().getById(courseId) ?: return@mapNotNull null
+            val items = db.gradeItemDao().getByCourseId(courseId)
+            calculateCurrentGrade(course, items)
+        }
+        if (categoryGrades.isEmpty()) getSystemWideGradeStruggle(db)
+        else 1f - (categoryGrades.average().toFloat() / 100f)
+    }
+    val score = calculateScore(deadlineMissCount, avgOvertime, gradeStruggle)
     val tasksCompleted    = allTasks.count {
         (if (categoryId == 0) it.categoryId == null else it.categoryId == categoryId)
                 && it.status == 3 && it.allDay == null
@@ -159,7 +208,22 @@ private suspend fun updateEventATI(db: AppDatabase, eventId: Int) {
     val avgOvertime       = completedTasks.map { (it.overTime ?: 0).toFloat() }.average().toFloat()
     val deadlineMissCount = countDeadlineMisses(completedTasks)
     val paddingResult     = calculatePadding(completedTasks)
-    val score             = calculateScore(deadlineMissCount, avgOvertime)
+    val gradeStruggle = if (eventId == 0) {
+        getSystemWideGradeStruggle(db)
+    } else {
+        val event = db.eventDao().getMasterEventById(eventId)
+        val courseId = event?.courseId
+        if (courseId == null) {
+            getSystemWideGradeStruggle(db)
+        } else {
+            val course = db.courseDao().getById(courseId)
+            val items = db.gradeItemDao().getByCourseId(courseId)
+            val grade = if (course != null) calculateCurrentGrade(course, items) else null
+            if (grade == null) getSystemWideGradeStruggle(db)
+            else 1f - (grade / 100f)
+        }
+    }
+    val score = calculateScore(deadlineMissCount, avgOvertime, gradeStruggle)
     val tasksCompleted    = allTasks.count {
         (if (eventId == 0) it.eventId == null else it.eventId == eventId)
                 && it.status == 3 && it.allDay == null
