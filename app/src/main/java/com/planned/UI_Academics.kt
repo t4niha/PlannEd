@@ -763,7 +763,7 @@ fun AcademicsCourseInfoPage(
             }
 
             Column(modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(scrollState).padding(horizontal = 16.dp)) {
-                Box(modifier = Modifier.fillMaxWidth().padding(18.dp)) {
+                Box(modifier = Modifier.fillMaxWidth().padding(start = 18.dp, end = 18.dp, bottom = 18.dp, top = 8.dp)) {
                     Text(course.title, fontSize = 20.sp, fontWeight = FontWeight.Medium)
                 }
 
@@ -881,11 +881,10 @@ fun AcademicsCourseInfoPage(
                         }
                     }
                 }
-
-                Spacer(modifier = Modifier.height(24.dp))
             }
 
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Spacer(modifier = Modifier.height(16.dp))
+            Row(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Button(
                     onClick = { showDeleteDialog = true },
                     modifier = Modifier.weight(1f),
