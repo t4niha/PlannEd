@@ -757,7 +757,10 @@ fun NavigationDrawer(
                     )
                 }
 
-
+                DrawerRow("AI Assistant", { ChatIcon() }) {
+                    currentScreen = "Assistant"
+                    onDrawerToggle()
+                }
                 DrawerRow("Categories", { CalendarIcon() }) {
                     categoriesCurrentView = "list"
                     categoriesSelectedCategory = null
@@ -807,10 +810,6 @@ fun NavigationDrawer(
                     taskBucketsCurrentView = "list"
                     taskBucketsSelectedBucket = null
                     currentScreen = "TaskBuckets"
-                    onDrawerToggle()
-                }
-                DrawerRow("AI Assistant", { ChatIcon() }) {
-                    currentScreen = "Assistant"
                     onDrawerToggle()
                 }
                 DrawerRow("Academics", { AcademicsIcon() }) {
