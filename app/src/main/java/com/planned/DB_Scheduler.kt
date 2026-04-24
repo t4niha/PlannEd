@@ -10,8 +10,8 @@ import java.time.LocalTime
 Ordering Factors:
 0) Dependency
 1) Urgency (Deadline)
-2) Category Score (ATI)
-3) Event Score (ATI)
+2) Event Score (ATI)
+3) Category Score (ATI)
 4) Date Created (Task ID)
  **/
 
@@ -138,8 +138,8 @@ private suspend fun orderAutoScheduledTasks(db: AppDatabase, autoTasks: List<Mas
         Triple(task, urgency, Triple(categoryScore, eventScore, task.id))
     }.sortedWith(compareBy(
         { it.second ?: Int.MAX_VALUE },   // 1) Urgency ascending (no deadline = last)
-        { -(it.third.first) },            // 2) Category score descending (higher = earlier)
-        { -(it.third.second) },           // 3) Event score descending (higher = earlier)
+        { -(it.third.second) },           // 2) Event score descending (higher = earlier)
+        { -(it.third.first) },            // 3) Category score descending (higher = earlier)
         { it.third.third }                // 4) Task ID ascending (tie breaker)
     )).map {
         OrderedTask(it.first, it.first.predictedDuration)
