@@ -1311,6 +1311,13 @@ fun DatabasePage(
                                 // Reset None records to defaults instead of deleting them
                                 db.categoryATIDao().update(CategoryATI(categoryId = 0))
                                 db.eventATIDao().update(EventATI(eventId = 0))
+                                //Academics
+                                db.gradeItemDao()
+                                    .let { dao -> db.courseDao().getAll().forEach { dao.deleteByCourseId(it.id) } }
+                                db.courseDao().getAll()
+                                    .forEach { db.courseDao().deleteById(it.id) }
+                                db.completedCourseDao().getAll()
+                                    .forEach { db.completedCourseDao().deleteById(it.id) }
                                 onRefresh()
                             }
                         },
