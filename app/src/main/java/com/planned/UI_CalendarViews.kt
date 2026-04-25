@@ -536,13 +536,35 @@ fun MonthView(
         }
 
         // Selected date
-        Text(
-            text = selectedDate.format(DateTimeFormatter.ofPattern("EEEE, MMM d")),
+        // Selected date
+        Row(
             modifier = Modifier.padding(top = 16.dp),
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Medium,
-            color = PrimaryColor
-        )
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(28.dp)
+                    .background(
+                        if (taskIntervals.isNotEmpty()) PrimaryColor else Color.LightGray,
+                        CircleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = taskIntervals.size.toString(),
+                    color = Color.White,
+                    fontSize = 14.sp,
+                    fontWeight = if (taskIntervals.isNotEmpty()) FontWeight.Bold else FontWeight.Normal
+                )
+            }
+            Text(
+                text = selectedDate.format(DateTimeFormatter.ofPattern("EEEE, MMM d")),
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Medium,
+                color = PrimaryColor
+            )
+        }
 
         Spacer(modifier = Modifier.height(10.dp))
 

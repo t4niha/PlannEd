@@ -140,4 +140,4 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-// TODO: assistant page imePadding, nav bar over header, task not inheriting color on calendar (getting events color but if event has no color, not getting category's color)
+// TODO: assistant page imePadding

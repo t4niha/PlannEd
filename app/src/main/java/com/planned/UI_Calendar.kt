@@ -250,7 +250,7 @@ fun Calendars(db: AppDatabase) {
             Box(
                 modifier = Modifier
                     .size(40.dp)
-                    .background(PrimaryColor, shape = CircleShapePrimary)
+                    .background(Color.LightGray, shape = CircleShapePrimary)
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null
@@ -261,7 +261,7 @@ fun Calendars(db: AppDatabase) {
             Box(
                 modifier = Modifier
                     .size(40.dp)
-                    .background(PrimaryColor, shape = CircleShapePrimary)
+                    .background(Color.LightGray, shape = CircleShapePrimary)
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null
@@ -339,7 +339,7 @@ fun ReminderDeadlineIndicators(db: AppDatabase, date: LocalDate) {
                         )
                     }
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(text = "To Do", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                    Text(text = "To Do", fontSize = 13.sp, fontWeight = FontWeight.Medium)
                 }
             }
 
@@ -376,7 +376,7 @@ fun ReminderDeadlineIndicators(db: AppDatabase, date: LocalDate) {
                         )
                     }
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(text = "Reminders", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                    Text(text = "Reminders", fontSize = 13.sp, fontWeight = FontWeight.Medium)
                 }
             }
 
@@ -413,7 +413,7 @@ fun ReminderDeadlineIndicators(db: AppDatabase, date: LocalDate) {
                         )
                     }
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(text = "Deadlines", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                    Text(text = "Deadlines", fontSize = 13.sp, fontWeight = FontWeight.Medium)
                 }
             }
         }
