@@ -250,7 +250,7 @@ fun Calendars(db: AppDatabase) {
             Box(
                 modifier = Modifier
                     .size(40.dp)
-                    .background(Color.LightGray, shape = CircleShapePrimary)
+                    .background(Color(0xFF9E9E9E), shape = CircleShapePrimary)
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null
@@ -261,7 +261,7 @@ fun Calendars(db: AppDatabase) {
             Box(
                 modifier = Modifier
                     .size(40.dp)
-                    .background(Color.LightGray, shape = CircleShapePrimary)
+                    .background(Color(0xFF9E9E9E), shape = CircleShapePrimary)
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null
