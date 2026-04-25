@@ -613,7 +613,7 @@ fun NavigationDrawer(
     // Measure actual top bar offset dynamically
     val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     val topBarHeight = 64.dp
-    val drawerTopOffset = statusBarHeight + topBarHeight + 1.dp
+    val drawerTopOffset = statusBarHeight + topBarHeight + 10.dp
 
     Box(modifier = Modifier.fillMaxSize()) {
         content()
