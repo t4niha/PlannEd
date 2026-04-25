@@ -139,5 +139,3 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
-
-// TODO: assistant page imePadding

@@ -125,7 +125,7 @@ fun Assistant(db: AppDatabase) {
         modifier = Modifier
             .fillMaxSize()
             .background(BackgroundColor)
-            .imePadding()
+            .windowInsetsPadding(WindowInsets.ime.exclude(WindowInsets.navigationBars))
     ) {
         // Chat area
         Box(
