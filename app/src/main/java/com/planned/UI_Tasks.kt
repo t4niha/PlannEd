@@ -1152,7 +1152,7 @@ fun PomodoroPage(
                 colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
                 contentPadding = PaddingValues(16.dp)
             ) {
-                Text(if (PomodoroState.isRunning) "Pause" else "Start", fontSize = 16.sp, color = Color.White)
+                Text(if (PomodoroState.isRunning) "Stop" else "Start", fontSize = 16.sp, color = Color.White)
             }
 
             Button(
@@ -1902,7 +1902,7 @@ fun AllDayPomodoroPage(
                 colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
                 contentPadding = PaddingValues(16.dp)
             ) {
-                Text(if (PomodoroState.isRunning) "Pause" else "Start", fontSize = 16.sp, color = Color.White)
+                Text(if (PomodoroState.isRunning) "Stop" else "Start", fontSize = 16.sp, color = Color.White)
             }
 
             Button(
