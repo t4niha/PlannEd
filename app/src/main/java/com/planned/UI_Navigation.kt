@@ -610,6 +610,11 @@ fun NavigationDrawer(
         animationSpec = tween(durationMillis = AnimationDuration)
     )
 
+    // Measure actual top bar offset dynamically
+    val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val topBarHeight = 64.dp
+    val drawerTopOffset = statusBarHeight + topBarHeight + 1.dp
+
     Box(modifier = Modifier.fillMaxSize()) {
         content()
 
@@ -617,7 +622,7 @@ fun NavigationDrawer(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(top = 128.dp)
+                    .padding(top = drawerTopOffset)
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null
@@ -629,7 +634,7 @@ fun NavigationDrawer(
             modifier = Modifier
                 .offset(x = offsetX)
                 .fillMaxHeight()
-                .padding(top = 128.dp)
+                .padding(top = drawerTopOffset)
                 .width(DrawerWidth)
                 .background(BackgroundColor)
                 .border(
