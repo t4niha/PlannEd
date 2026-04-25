@@ -101,7 +101,8 @@ fun Calendars(db: AppDatabase) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 10.dp, horizontal = 15.dp),
+                .padding(horizontal = 15.dp)
+                .padding(top = 10.dp, bottom = 2.dp),
             contentAlignment = Alignment.Center
         ) {
             Box(
