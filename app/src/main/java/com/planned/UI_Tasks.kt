@@ -711,14 +711,26 @@ fun TaskInfoPage(
                 hours > 0 -> "${hours}h"
                 else -> "${minutes}m"
             }
-            InfoCard(listOf(
-                "Duration" to durationText,
-                "Prerequisite Task" to (dependencyTask?.title ?: "None"),
-                "Deadline" to (deadline?.title ?: "None"),
-                "Event" to (event?.title ?: "None"),
-                "Category" to (category?.title ?: "None"),
-                "Breakable" to (if (currentTask.breakable == true) "Yes" else "No")
-            ))
+            val totalPadding = intervals.sumOf { it.atiPadding }
+            val paddingText = if (totalPadding > 0) {
+                val ph = totalPadding / 60
+                val pm = totalPadding % 60
+                when {
+                    ph > 0 && pm > 0 -> "${ph}h ${pm}m"
+                    ph > 0 -> "${ph}h"
+                    else -> "${pm}m"
+                }
+            } else null
+
+            InfoCard(buildList {
+                add("Duration" to durationText)
+                if (paddingText != null) add("Padding" to paddingText)
+                add("Prerequisite Task" to (dependencyTask?.title ?: "None"))
+                add("Deadline" to (deadline?.title ?: "None"))
+                add("Event" to (event?.title ?: "None"))
+                add("Category" to (category?.title ?: "None"))
+                add("Breakable" to (if (currentTask.breakable == true) "Yes" else "No"))
+            })
         }
 
         Spacer(modifier = Modifier.height(16.dp))
