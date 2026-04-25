@@ -244,7 +244,7 @@ fun Calendars(db: AppDatabase) {
 
         // Navigation buttons
         Row(
-            modifier = Modifier.fillMaxWidth().padding(all = 20.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 10.dp),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Box(
