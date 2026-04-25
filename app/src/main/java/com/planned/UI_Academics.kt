@@ -509,7 +509,7 @@ fun AcademicsAddCourseForm(
                         TextField(
                             value = title,
                             onValueChange = { title = it },
-                            modifier = Modifier.fillMaxWidth().background(BackgroundColor, RoundedCornerShape(8.dp)).border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)),
+                            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(BackgroundColor, RoundedCornerShape(8.dp)).border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)),
                             textStyle = LocalTextStyle.current.copy(fontSize = 16.sp),
                             colors = TextFieldDefaults.colors(focusedContainerColor = BackgroundColor, unfocusedContainerColor = BackgroundColor, focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent)
                         )
@@ -525,7 +525,7 @@ fun AcademicsAddCourseForm(
                         TextField(
                             value = courseCode,
                             onValueChange = { courseCode = it },
-                            modifier = Modifier.fillMaxWidth().background(BackgroundColor, RoundedCornerShape(8.dp)).border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)),
+                            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(BackgroundColor, RoundedCornerShape(8.dp)).border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)),
                             textStyle = LocalTextStyle.current.copy(fontSize = 16.sp),
                             colors = TextFieldDefaults.colors(focusedContainerColor = BackgroundColor, unfocusedContainerColor = BackgroundColor, focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent)
                         )
@@ -541,7 +541,7 @@ fun AcademicsAddCourseForm(
                         TextField(
                             value = description,
                             onValueChange = { description = it },
-                            modifier = Modifier.fillMaxWidth().background(BackgroundColor, RoundedCornerShape(8.dp)).border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)),
+                            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(BackgroundColor, RoundedCornerShape(8.dp)).border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)),
                             textStyle = LocalTextStyle.current.copy(fontSize = 16.sp),
                             colors = TextFieldDefaults.colors(focusedContainerColor = BackgroundColor, unfocusedContainerColor = BackgroundColor, focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent),
                             minLines = 3
@@ -618,7 +618,7 @@ fun AcademicsAddCourseForm(
                         Text("Semester", fontSize = 16.sp, fontWeight = FontWeight.Medium)
                         Spacer(modifier = Modifier.height(12.dp))
                         Box(
-                            modifier = Modifier.fillMaxWidth().background(BackgroundColor, RoundedCornerShape(8.dp)).border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)).padding(12.dp)
+                            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(BackgroundColor, RoundedCornerShape(8.dp)).border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)).padding(12.dp)
                         ) { Text(semesterName(semester), fontSize = 16.sp) }
                         AnimatedVisibility(visible = showSemesterDropdown, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) {
                             Column(modifier = Modifier.padding(top = 8.dp)) {
@@ -669,7 +669,7 @@ fun AcademicsAddCourseForm(
                                 TextField(
                                     value = value,
                                     onValueChange = { setter(it) },
-                                    modifier = Modifier.width(80.dp).background(BackgroundColor, RoundedCornerShape(8.dp)).border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)),
+                                    modifier = Modifier.width(80.dp).clip(RoundedCornerShape(8.dp)).background(BackgroundColor, RoundedCornerShape(8.dp)).border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)),
                                     textStyle = LocalTextStyle.current.copy(fontSize = 16.sp),
                                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                     colors = TextFieldDefaults.colors(focusedContainerColor = BackgroundColor, unfocusedContainerColor = BackgroundColor, focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent),
@@ -970,7 +970,7 @@ fun AcademicsCourseInfoPage(
                                 value = finalGradeText,
                                 onValueChange = { finalGradeText = it },
                                 placeholder = { Text("e.g. A-", color = Color.Gray) },
-                                modifier = Modifier.weight(1f).background(BackgroundColor, RoundedCornerShape(8.dp)).border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)),
+                                modifier = Modifier.weight(1f).clip(RoundedCornerShape(8.dp)).background(BackgroundColor, RoundedCornerShape(8.dp)).border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)),
                                 textStyle = LocalTextStyle.current.copy(fontSize = 16.sp),
                                 colors = TextFieldDefaults.colors(focusedContainerColor = BackgroundColor, unfocusedContainerColor = BackgroundColor, focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent),
                                 singleLine = true
@@ -1228,7 +1228,7 @@ fun AcademicsCourseUpdateForm(
                         Spacer(modifier = Modifier.height(8.dp))
                         TextField(
                             value = title, onValueChange = { title = it },
-                            modifier = Modifier.fillMaxWidth().background(BackgroundColor, RoundedCornerShape(8.dp)).border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)),
+                            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(BackgroundColor, RoundedCornerShape(8.dp)).border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)),
                             textStyle = LocalTextStyle.current.copy(fontSize = 16.sp),
                             colors = TextFieldDefaults.colors(focusedContainerColor = BackgroundColor, unfocusedContainerColor = BackgroundColor, focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent)
                         )
@@ -1242,7 +1242,7 @@ fun AcademicsCourseUpdateForm(
                         Spacer(modifier = Modifier.height(8.dp))
                         TextField(
                             value = courseCode, onValueChange = { courseCode = it },
-                            modifier = Modifier.fillMaxWidth().background(BackgroundColor, RoundedCornerShape(8.dp)).border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)),
+                            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(BackgroundColor, RoundedCornerShape(8.dp)).border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)),
                             textStyle = LocalTextStyle.current.copy(fontSize = 16.sp),
                             colors = TextFieldDefaults.colors(focusedContainerColor = BackgroundColor, unfocusedContainerColor = BackgroundColor, focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent)
                         )
@@ -1256,7 +1256,7 @@ fun AcademicsCourseUpdateForm(
                         Spacer(modifier = Modifier.height(8.dp))
                         TextField(
                             value = description, onValueChange = { description = it },
-                            modifier = Modifier.fillMaxWidth().background(BackgroundColor, RoundedCornerShape(8.dp)).border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)),
+                            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(BackgroundColor, RoundedCornerShape(8.dp)).border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)),
                             textStyle = LocalTextStyle.current.copy(fontSize = 16.sp),
                             colors = TextFieldDefaults.colors(focusedContainerColor = BackgroundColor, unfocusedContainerColor = BackgroundColor, focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent),
                             minLines = 3
@@ -1299,7 +1299,7 @@ fun AcademicsCourseUpdateForm(
                     Column {
                         Text("Semester", fontSize = 16.sp, fontWeight = FontWeight.Medium)
                         Spacer(modifier = Modifier.height(12.dp))
-                        Box(modifier = Modifier.fillMaxWidth().background(BackgroundColor, RoundedCornerShape(8.dp)).border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)).padding(12.dp)) {
+                        Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(BackgroundColor, RoundedCornerShape(8.dp)).border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)).padding(12.dp)) {
                             Text(semesterName(semester), fontSize = 16.sp)
                         }
                         AnimatedVisibility(visible = showSemesterDropdown, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) {
@@ -1345,7 +1345,7 @@ fun AcademicsCourseUpdateForm(
                                 Text(label, fontSize = 16.sp, modifier = Modifier.weight(1f))
                                 TextField(
                                     value = value, onValueChange = { setter(it) },
-                                    modifier = Modifier.width(80.dp).background(BackgroundColor, RoundedCornerShape(8.dp)).border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)),
+                                    modifier = Modifier.width(80.dp).clip(RoundedCornerShape(8.dp)).background(BackgroundColor, RoundedCornerShape(8.dp)).border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)),
                                     textStyle = LocalTextStyle.current.copy(fontSize = 16.sp),
                                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                     colors = TextFieldDefaults.colors(focusedContainerColor = BackgroundColor, unfocusedContainerColor = BackgroundColor, focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent),
@@ -1521,7 +1521,7 @@ fun AcademicsAddGradeForm(
                         TextField(
                             value = gradeTitle,
                             onValueChange = { gradeTitle = it },
-                            modifier = Modifier.fillMaxWidth().background(BackgroundColor, RoundedCornerShape(8.dp)).border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)),
+                            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(BackgroundColor, RoundedCornerShape(8.dp)).border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)),
                             textStyle = LocalTextStyle.current.copy(fontSize = 16.sp),
                             colors = TextFieldDefaults.colors(focusedContainerColor = BackgroundColor, unfocusedContainerColor = BackgroundColor, focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent)
                         )
@@ -1538,7 +1538,7 @@ fun AcademicsAddGradeForm(
                     Column {
                         Text("Type", fontSize = 16.sp, fontWeight = FontWeight.Medium)
                         Spacer(modifier = Modifier.height(12.dp))
-                        Box(modifier = Modifier.fillMaxWidth().background(BackgroundColor, RoundedCornerShape(8.dp)).border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)).padding(12.dp)) {
+                        Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(BackgroundColor, RoundedCornerShape(8.dp)).border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)).padding(12.dp)) {
                             Text(gradeItemTypeLabel(selectedType), fontSize = 16.sp)
                         }
                         AnimatedVisibility(visible = showTypeDropdown, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) {
@@ -1568,7 +1568,7 @@ fun AcademicsAddGradeForm(
                             TextField(
                                 value = marksReceivedText,
                                 onValueChange = { marksReceivedText = it },
-                                modifier = Modifier.width(100.dp).background(BackgroundColor, RoundedCornerShape(8.dp)).border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)),
+                                modifier = Modifier.width(100.dp).clip(RoundedCornerShape(8.dp)).background(BackgroundColor, RoundedCornerShape(8.dp)).border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)),
                                 textStyle = LocalTextStyle.current.copy(fontSize = 16.sp),
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                 colors = TextFieldDefaults.colors(focusedContainerColor = BackgroundColor, unfocusedContainerColor = BackgroundColor, focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent),
@@ -1581,7 +1581,7 @@ fun AcademicsAddGradeForm(
                             TextField(
                                 value = totalMarksText,
                                 onValueChange = { totalMarksText = it },
-                                modifier = Modifier.width(100.dp).background(BackgroundColor, RoundedCornerShape(8.dp)).border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)),
+                                modifier = Modifier.width(100.dp).clip(RoundedCornerShape(8.dp)).background(BackgroundColor, RoundedCornerShape(8.dp)).border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)),
                                 textStyle = LocalTextStyle.current.copy(fontSize = 16.sp),
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                 colors = TextFieldDefaults.colors(focusedContainerColor = BackgroundColor, unfocusedContainerColor = BackgroundColor, focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent),
@@ -1919,7 +1919,7 @@ fun AcademicsGradingScaleForm(
                                 TextField(
                                     value = value,
                                     onValueChange = { setter(it) },
-                                    modifier = Modifier.width(100.dp).background(BackgroundColor, RoundedCornerShape(8.dp)).border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)),
+                                    modifier = Modifier.width(100.dp).clip(RoundedCornerShape(8.dp)).background(BackgroundColor, RoundedCornerShape(8.dp)).border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)),
                                     textStyle = LocalTextStyle.current.copy(fontSize = 16.sp),
                                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                     colors = TextFieldDefaults.colors(focusedContainerColor = BackgroundColor, unfocusedContainerColor = BackgroundColor, focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent),
@@ -2071,7 +2071,7 @@ fun AcademicsCompletedCourseUpdateForm(
                         Spacer(modifier = Modifier.height(8.dp))
                         TextField(
                             value = courseTitle, onValueChange = { courseTitle = it },
-                            modifier = Modifier.fillMaxWidth().background(BackgroundColor, RoundedCornerShape(8.dp)).border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)),
+                            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(BackgroundColor, RoundedCornerShape(8.dp)).border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)),
                             textStyle = LocalTextStyle.current.copy(fontSize = 16.sp),
                             colors = TextFieldDefaults.colors(focusedContainerColor = BackgroundColor, unfocusedContainerColor = BackgroundColor, focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent)
                         )
@@ -2085,7 +2085,7 @@ fun AcademicsCompletedCourseUpdateForm(
                         Spacer(modifier = Modifier.height(8.dp))
                         TextField(
                             value = courseCode, onValueChange = { courseCode = it },
-                            modifier = Modifier.fillMaxWidth().background(BackgroundColor, RoundedCornerShape(8.dp)).border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)),
+                            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(BackgroundColor, RoundedCornerShape(8.dp)).border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)),
                             textStyle = LocalTextStyle.current.copy(fontSize = 16.sp),
                             colors = TextFieldDefaults.colors(focusedContainerColor = BackgroundColor, unfocusedContainerColor = BackgroundColor, focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent)
                         )
@@ -2099,7 +2099,7 @@ fun AcademicsCompletedCourseUpdateForm(
                         Spacer(modifier = Modifier.height(8.dp))
                         TextField(
                             value = description, onValueChange = { description = it },
-                            modifier = Modifier.fillMaxWidth().background(BackgroundColor, RoundedCornerShape(8.dp)).border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)),
+                            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(BackgroundColor, RoundedCornerShape(8.dp)).border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)),
                             textStyle = LocalTextStyle.current.copy(fontSize = 16.sp),
                             colors = TextFieldDefaults.colors(focusedContainerColor = BackgroundColor, unfocusedContainerColor = BackgroundColor, focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent),
                             minLines = 3
@@ -2142,7 +2142,7 @@ fun AcademicsCompletedCourseUpdateForm(
                     Column {
                         Text("Semester", fontSize = 16.sp, fontWeight = FontWeight.Medium)
                         Spacer(modifier = Modifier.height(12.dp))
-                        Box(modifier = Modifier.fillMaxWidth().background(BackgroundColor, RoundedCornerShape(8.dp)).border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)).padding(12.dp)) {
+                        Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(BackgroundColor, RoundedCornerShape(8.dp)).border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)).padding(12.dp)) {
                             Text(semesterName(semester), fontSize = 16.sp)
                         }
                         AnimatedVisibility(visible = showSemesterDropdown, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) {
@@ -2170,7 +2170,7 @@ fun AcademicsCompletedCourseUpdateForm(
                             value = submitGrade,
                             onValueChange = { submitGrade = it },
                             placeholder = { Text("e.g. A-", color = Color.Gray) },
-                            modifier = Modifier.fillMaxWidth().background(BackgroundColor, RoundedCornerShape(8.dp)).border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)),
+                            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(BackgroundColor, RoundedCornerShape(8.dp)).border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)),
                             textStyle = LocalTextStyle.current.copy(fontSize = 16.sp),
                             colors = TextFieldDefaults.colors(focusedContainerColor = BackgroundColor, unfocusedContainerColor = BackgroundColor, focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent),
                             singleLine = true

@@ -772,6 +772,7 @@ fun EnterGradeForm(
                             value = gradeTitle,
                             onValueChange = { gradeTitle = it },
                             modifier = Modifier.fillMaxWidth()
+                                .clip(RoundedCornerShape(8.dp))
                                 .background(BackgroundColor, RoundedCornerShape(8.dp))
                                 .border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)),
                             textStyle = LocalTextStyle.current.copy(fontSize = 16.sp),
@@ -792,7 +793,7 @@ fun EnterGradeForm(
                     Column {
                         Text("Type", fontSize = 16.sp, fontWeight = FontWeight.Medium)
                         Spacer(modifier = Modifier.height(12.dp))
-                        Box(modifier = Modifier.fillMaxWidth().background(BackgroundColor, RoundedCornerShape(8.dp)).border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)).padding(12.dp)) {
+                        Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(BackgroundColor, RoundedCornerShape(8.dp)).border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)).padding(12.dp)) {
                             Text(gradeItemTypeLabel(selectedType), fontSize = 16.sp)
                         }
                         AnimatedVisibility(visible = showTypeDropdown, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) {
@@ -822,7 +823,7 @@ fun EnterGradeForm(
                             Text("Marks Received", fontSize = 16.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
                             TextField(
                                 value = marksReceivedText, onValueChange = { marksReceivedText = it },
-                                modifier = Modifier.width(100.dp).background(BackgroundColor, RoundedCornerShape(8.dp)).border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)),
+                                modifier = Modifier.width(100.dp).clip(RoundedCornerShape(8.dp)).background(BackgroundColor, RoundedCornerShape(8.dp)).border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)),
                                 textStyle = LocalTextStyle.current.copy(fontSize = 16.sp),
                                 keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal),
                                 colors = TextFieldDefaults.colors(focusedContainerColor = BackgroundColor, unfocusedContainerColor = BackgroundColor, focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent),
@@ -834,7 +835,7 @@ fun EnterGradeForm(
                             Text("Total Marks", fontSize = 16.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
                             TextField(
                                 value = totalMarksText, onValueChange = { totalMarksText = it },
-                                modifier = Modifier.width(100.dp).background(BackgroundColor, RoundedCornerShape(8.dp)).border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)),
+                                modifier = Modifier.width(100.dp).clip(RoundedCornerShape(8.dp)).background(BackgroundColor, RoundedCornerShape(8.dp)).border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)),
                                 textStyle = LocalTextStyle.current.copy(fontSize = 16.sp),
                                 keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal),
                                 colors = TextFieldDefaults.colors(focusedContainerColor = BackgroundColor, unfocusedContainerColor = BackgroundColor, focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent),

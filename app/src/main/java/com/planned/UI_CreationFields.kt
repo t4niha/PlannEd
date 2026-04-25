@@ -181,6 +181,7 @@ fun typePickerField(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .clip(RoundedCornerShape(8.dp))
                     .background(BackgroundColor, RoundedCornerShape(8.dp))
                     .border(3.dp, PrimaryColor, RoundedCornerShape(8.dp))
                     .padding(12.dp)
@@ -254,6 +255,7 @@ fun textInputField(
                 onValueChange = { textValue = it },
                 modifier = Modifier
                     .fillMaxWidth()
+                    .clip(RoundedCornerShape(8.dp))
                     .background(BackgroundColor, RoundedCornerShape(8.dp))
                     .border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)),
                 textStyle = LocalTextStyle.current.copy(fontSize = 16.sp),
@@ -298,6 +300,7 @@ fun notesInputField(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(100.dp)
+                    .clip(RoundedCornerShape(8.dp))
                     .background(BackgroundColor, RoundedCornerShape(8.dp))
                     .border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)),
                 textStyle = LocalTextStyle.current.copy(fontSize = 16.sp),
@@ -714,6 +717,7 @@ fun recurrencePickerField(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .clip(RoundedCornerShape(8.dp))
                     .background(BackgroundColor, RoundedCornerShape(8.dp))
                     .border(1.dp, Color.LightGray, RoundedCornerShape(8.dp))
                     .padding(12.dp)
@@ -1633,6 +1637,7 @@ fun dropdownField(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .clip(RoundedCornerShape(8.dp))
                     .background(if (locked) Color.LightGray else BackgroundColor, RoundedCornerShape(8.dp))
                     .border(1.dp, Color.LightGray, RoundedCornerShape(8.dp))
                     .padding(12.dp)
