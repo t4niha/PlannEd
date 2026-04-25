@@ -575,7 +575,10 @@ fun MonthView(
                             when {
                                 masterTask?.eventId != null -> {
                                     val event = db.eventDao().getAllMasterEvents().find { it.id == masterTask.eventId }
-                                    event?.color?.let { Converters.toColor(it) } ?: Color.LightGray
+                                    event?.color?.let { Converters.toColor(it) }
+                                        ?: event?.categoryId?.let { catId -> db.categoryDao().getAll().find { it.id == catId }?.color?.let { Converters.toColor(it) } }
+                                        ?: masterTask.categoryId?.let { catId -> db.categoryDao().getAll().find { it.id == catId }?.color?.let { Converters.toColor(it) } }
+                                        ?: Color.LightGray
                                 }
                                 masterTask?.categoryId != null -> {
                                     val category = db.categoryDao().getAll().find { it.id == masterTask.categoryId }
