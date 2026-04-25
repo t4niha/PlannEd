@@ -338,7 +338,7 @@ fun ReminderDeadlineIndicators(db: AppDatabase, date: LocalDate) {
                         )
                     }
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(text = "To Do", fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                    Text(text = "To Do", fontSize = 12.sp, fontWeight = FontWeight.Medium)
                 }
             }
 
@@ -375,7 +375,7 @@ fun ReminderDeadlineIndicators(db: AppDatabase, date: LocalDate) {
                         )
                     }
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(text = "Reminders", fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                    Text(text = "Reminders", fontSize = 12.sp, fontWeight = FontWeight.Medium)
                 }
             }
 
@@ -412,7 +412,7 @@ fun ReminderDeadlineIndicators(db: AppDatabase, date: LocalDate) {
                         )
                     }
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(text = "Deadlines", fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                    Text(text = "Deadlines", fontSize = 12.sp, fontWeight = FontWeight.Medium)
                 }
             }
         }
